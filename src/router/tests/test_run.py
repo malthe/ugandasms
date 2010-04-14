@@ -11,9 +11,9 @@ class AppTest(FunctionalTestCase):
         parser = Parser(
             (('^abc$', Message),))
         from webob import Response
-        def handler(sender, receiver, message):
+        def handler(message):
             return Response(repr(
-                (sender, receiver, message.text)))
+                (message.sender, message.receiver, message.text)))
         self.app = WSGIApp(parser, handler)
         super(AppTest, self).setUp()
 

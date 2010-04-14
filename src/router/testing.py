@@ -8,22 +8,24 @@ def server_runner(wsgi_app, global_conf, host=None, port=None):
 class Gateway(object):
     """Mobile gateway."""
 
-    def __init__(self, parser, handler, recipient):
+    def __init__(self, parser, handler, receiver):
         self.parser = parser
         self.handler = handler
-        self.recipient = recipient
+        self.receiver = receiver
         self._subscribers = {}
 
-    def forward(self, recipient, text):
-        assert recipient != self.recipient
-        assert recipient in self._subscribers
-        subscriber = self._subscribers[recipient]
+    def forward(self, receiver, text):
+        assert receiver != self.receiver
+        assert receiver in self._subscribers
+        subscriber = self._subscribers[receiver]
         subscriber.receive(text)
 
     def send(self, subscriber, text):
         self._subscribers[subscriber.number] = subscriber
         message = self.parser(text)
-        response = self.handler(subscriber.number, self.recipient, message)
+        message.sender = subscriber.number
+        message.receiver = self.receiver
+        response = self.handler(message)
         if response is not None:
             subscriber.receive(response.body)
 

@@ -9,7 +9,8 @@ class HandlerTest(FunctionalTestCase):
 
     def test_message_record(self):
         from ..models import Message
-        self.handler("123", "456", Message("test"))
+        self.handler(
+            Message("test", sender="123", receiver="456"))
 
         from ..orm import Session
         session = Session()

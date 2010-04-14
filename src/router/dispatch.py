@@ -12,6 +12,7 @@ class Handler(object):
 
     def __call__(self, message):
         kind = camelcase_to_underscore(message.__class__.__name__)
+        message.kind = kind
 
         # record message
         session = Session()
