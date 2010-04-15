@@ -20,8 +20,9 @@ class WSGIApp(object):
     @wsgify
     def __call__(self, request):
         try:
-            receiver = request.params['receiver']
             sender = request.params['sender']
+            receiver = request.params['receiver']
+            delivery = int(request.params.get('delivery', -1))
             text = request.params['text']
             time = datetime.utcfromtimestamp(
                 float(request.params['timestamp']))
@@ -29,6 +30,10 @@ class WSGIApp(object):
             return Response(
                 "There was an error (``%s``) processing the request: %s." % (
                     type(e).__name__, str(e)), content_type="text/plain")
+
+        if delivery != -1:
+            # todo: delivery report
+            return Response("")
 
         message = self.parser(text)
         message.sender = sender

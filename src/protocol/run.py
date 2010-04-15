@@ -3,9 +3,10 @@ import threading
 
 from Queue import Queue, Empty
 from sqlalchemy import create_engine
+from httplib import HTTPConnection
 
 from router.run import WSGIApp
-from router.box import Connection
+from router.box import SendSMS
 from router.orm import Session
 from router.orm import Base
 
@@ -34,7 +35,9 @@ def send_loop(queue, connection, owner):
             queue.task_done()
 
 def make_router(config, database="sqlite://",
-                host="localhost", port="13013", username=None, password=None):
+                host="localhost", port="13013",
+                username=None, password=None,
+                dlr_url=None):
     # configure database
     db = create_engine(database)
     session = Session()
@@ -48,9 +51,10 @@ def make_router(config, database="sqlite://",
     router = WSGIApp(parser, handler)
 
     # configure send thread
-    connection = Connection(host, int(port), username, password)
+    connection = HTTPConnection(host, int(port))
+    send_sms = SendSMS(connection, username, password, dlr_url=dlr_url)
     owner = threading.current_thread()
-    thread = threading.Thread(target=send_loop, args=(queue, connection, owner))
+    thread = threading.Thread(target=send_loop, args=(queue, send_sms, owner))
     thread.start()
 
     return router
