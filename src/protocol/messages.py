@@ -28,9 +28,6 @@ class Register(UserMessage):
 
     title = u"Registration"
 
-class Approve(UserMessage):
-    """Approve user to join group."""
-
 for cls in locals().values():
     if isinstance(cls, type) and issubclass(cls, Message):
         args = cls.__mapper_args__ = cls.__mapper_args__.copy()
