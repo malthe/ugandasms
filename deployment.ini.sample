@@ -22,4 +22,4 @@ use = egg:Paste#urlmap
 [server:main]
 use = egg:Flup#scgi_thread
 host = 127.0.0.1
-port = 8280
+port = 8002
