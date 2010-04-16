@@ -1,7 +1,7 @@
 Overview
 ========
 
-RapidSMS-CVS is an SMS reporting system designed to assist community
+SMS-CVS is an SMS reporting system designed to assist community
 vulnerability surveillance using SMS reporting.
 
 License

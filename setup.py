@@ -37,7 +37,7 @@ install_requires = [
     ]
 
 setup(
-    name="RapidSMS-CVS",
+    name="SMS-CVS",
     version=__version__,
     description="Community Vulnerability Surveillance using SMS.",
     long_description=long_description,

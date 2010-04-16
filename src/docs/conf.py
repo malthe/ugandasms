@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# RapidSMS-CVS documentation build configuration file, created by
+# SMS-CVS documentation build configuration file, created by
 # sphinx-quickstart on Sun Nov  1 16:08:00 2009.
 #
 # This file is execfile()d with the current directory set to its containing dir.
@@ -37,7 +37,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'RapidSMS-CVS'
+project = u'SMS-CVS'
 copyright = u'2010 UNICEF Uganda'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -103,7 +103,7 @@ html_theme = 'default'
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
-html_title = "RapidSMS-CVS %s documentation" % version
+html_title = "SMS-CVS %s documentation" % version
 
 # A shorter title for the navigation bar.  Default is the same as html_title.
 #html_short_title = None
@@ -122,7 +122,7 @@ html_logo = "images/rapidsms.png"
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = []
 
-# If not '', a 'Last updated on:' timestamp is inserted at every page bRapidSMS-CVSm,
+# If not '', a 'Last updated on:' timestamp is inserted at every page bSMS-CVSm,
 # using the given strftime format.
 #html_last_updated_fmt = '%b %d, %Y'
 
@@ -158,7 +158,7 @@ html_static_path = []
 #html_file_suffix = ''
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'rapidsms-cvs-doc'
+htmlhelp_basename = 'sms-cvs-doc'
 
 
 # -- Options for LaTeX output --------------------------------------------------
@@ -172,7 +172,7 @@ htmlhelp_basename = 'rapidsms-cvs-doc'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'RapidSMS-CVS.tex', u'RapidSMS-CVS Documentation',
+  ('index', 'SMS-CVS.tex', u'SMS-CVS Documentation',
    u'UNICEF Uganda', 'manual'),
 ]
 

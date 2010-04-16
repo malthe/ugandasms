@@ -1,7 +1,7 @@
 Overview
 ========
 
-RapidSMS-CVS is an SMS reporting system designed for a pilot
+SMS-CVS is an SMS reporting system designed for a pilot
 deployment "Community Vulnerability Surveillance" by UNICEF in the
 Acholi region of Uganda.
 
