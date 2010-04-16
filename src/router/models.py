@@ -6,7 +6,10 @@ from sqlalchemy import types
 from .orm import Base
 
 NETWORKS = tuple((name, re.compile(pattern)) for (name, pattern) in 
-                 (('MTN', '^(\+?256|0)(78)$'),
+                 (('MTN', '^(\+?256|0)(78|77|39)$'),
+                  ('UTL', '^(\+?256|0)(71)$'),
+                  ('Orange', '^(\+?256|0)(79)$'),
+                  ('Orange', '^(\+?256|0)(75)$'),
                   ('Warid', '^(\+?256|0)(70)$'),))
 
 class Message(Base):
