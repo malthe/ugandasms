@@ -34,6 +34,14 @@ class Message(Base):
         super(Message, self).__init__(
             text=text, sender=sender, reply=reply, kind=kind)
 
+    @property
+    def title(self):
+        return self.text
+
+    @property
+    def user(self):
+        return self.sender
+
     def get_summary(self):
         for network, pattern in NETWORKS:
             if pattern.match(self.sender):
@@ -42,8 +50,8 @@ class Message(Base):
             network = None
 
         return {
-            'text': self.text,
-            'sender': self.sender,
+            'title': self.title,
+            'user': self.user,
             'network': network,
             'time': self.time.strftime("%A, %d. %B %Y %I:%M %p"),
             }
