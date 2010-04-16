@@ -1,6 +1,5 @@
 import collections
 
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column
 from sqlalchemy import types
 
@@ -10,10 +9,8 @@ Group = collections.namedtuple("Group", "name, mask")
 
 GROUPS = {
     'VHT': Group("Village Health Team", 0b00000001),
-    'HC2': Group("Health Center II group", 0b00000011),
-    'HC3': Group("Health Center III group", 0b00000101),
-    'HC4': Group("Health Center IV group", 0b00001001),
-    'ADM': Group("administrators' group", 0b10001111),
+    'HCW': Group("Health Center Worker", 0b00000011),
+    'ADM': Group("Administrator", 0b11111111),
     }
 
 class User(Base):

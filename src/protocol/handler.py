@@ -7,7 +7,7 @@ class Handler(dispatch.Handler):
     _user_unknown_response = Response(
         "You have not been registered with the system. Please join first!")
 
-    def handle_register(self, message):
+    def handle_registration(self, message):
         session = Session()
         query_users = session.query(models.User)
 
