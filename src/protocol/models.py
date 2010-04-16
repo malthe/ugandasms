@@ -20,8 +20,8 @@ class User(Base):
     __tablename__ = 'users'
 
     id = Column(types.Integer, primary_key=True)
-    name = Column(types.Unicode(50))
+    number = Column(types.String(12), unique=True)
+    name = Column(types.Unicode(50), nullable=True)
     location = Column(types.Unicode(50), nullable=True)
-    number = Column(types.String(12))
     mask = Column(types.Integer, default=0)
 
