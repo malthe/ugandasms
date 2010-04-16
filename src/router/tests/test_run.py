@@ -53,4 +53,4 @@ class AppTest(FunctionalTestCase):
             })
         self.assertEqual(
             eval(request.get_response(self.app).body),
-            ('456', '123', u'message'))
+            ('456', '123', None))
