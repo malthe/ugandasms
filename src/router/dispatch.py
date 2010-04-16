@@ -3,26 +3,21 @@ import webob
 
 from .orm import Session
 
-def camelcase_to_underscore(str):
-    return re.sub('(((?<=[a-z])[A-Z])|([A-Z](?![A-Z]|$)))', '_\\1', str).lower().strip('_')
-
 class Handler(object):
     def __init__(self, queue):
         self.queue = queue
 
     def __call__(self, message):
-        kind = camelcase_to_underscore(message.__class__.__name__)
-        message.kind = kind
-
         # record message
         session = Session()
         session.add(message)
 
         try:
-            method = getattr(self, 'handle_%s' % kind)
+            method = getattr(self, 'handle_%s' % message.kind)
         except AttributeError:
             response = webob.Response(
-                "No handler available for message kind ``%s``." % kind, status=200)
+                "No handler available for message kind ``%s``." % message.kind)
+
         else:
             response = method(message)
 

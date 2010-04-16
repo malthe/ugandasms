@@ -19,5 +19,5 @@ class HandlerTest(FunctionalTestCase):
         self.assertEquals(len(results), 1)
         self.assertEquals(results[0].text, u"test")
         self.assertEquals(results[0].sender, u"123")
-        self.assertEquals(results[0].kind, u"message")
+        self.assertEquals(results[0].kind, None)
         self.assertEquals(results[0].reply, u"No handler available for message kind ``message``.")

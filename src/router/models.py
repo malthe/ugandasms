@@ -19,8 +19,6 @@ class Message(Base):
     The ``text`` attribute contains the original text.
     """
 
-    __tablename__ = "messages"
-
     id = Column(types.Integer, primary_key=True)
     sender = Column(types.String(12))
     receiver = Column(types.String(12))
@@ -28,12 +26,18 @@ class Message(Base):
     reply = Column(types.String(160), nullable=True)
     state = Column(types.Integer, default=0)
     time = Column(types.DateTime)
-    kind = Column(types.String(20))
+    kind = Column(types.String(20), nullable=True)
 
-    def __init__(self, text, sender=None, reply=None, kind=None, **kwargs):
+    __tablename__ = "messages"
+    __mapper_args__ = {
+        'polymorphic_on': kind,
+        'with_polymorphic': '*',
+        }
+
+    def __init__(self, text, sender=None, reply=None, **kwargs):
         self.__dict__.update(kwargs)
         super(Message, self).__init__(
-            text=text, sender=sender, reply=reply, kind=kind)
+            text=text, sender=sender, reply=reply)
 
     @property
     def title(self):
