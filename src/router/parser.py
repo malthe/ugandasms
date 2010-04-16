@@ -1,9 +1,21 @@
 import re
 
 from .models import Message
+from .exc import InvalidMessage
 
 class NotUnderstood(Message):
     """Any message which was not understood."""
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'not-understood',
+        }
+
+class Invalid(Message):
+    """An invalid message."""
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'invalid',
+        }
 
 class Parser(object):
     """Parse text into message object."""
@@ -20,5 +32,9 @@ class Parser(object):
         for matcher, factory in self.patterns:
             m = matcher(text)
             if m is not None:
-                return factory(text, **m.groupdict())
+                try:
+                    return factory(text, **m.groupdict())
+                except InvalidMessage, exc:
+                    return Invalid(text)
+
         return NotUnderstood(text)
