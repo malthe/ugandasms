@@ -12,6 +12,7 @@ class Handler(object):
         session.add(message)
 
         try:
+            assert message.kind is not None
             name = message.kind.replace('-', '_')
             method = getattr(self, 'handle_%s' % name)
         except AttributeError:
