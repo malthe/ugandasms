@@ -10,6 +10,8 @@ class Handler(object):
         # record message
         session = Session()
         session.add(message)
+        session.flush()
+        session.refresh(message)
 
         try:
             assert message.kind is not None
