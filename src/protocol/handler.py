@@ -8,19 +8,15 @@ class Handler(dispatch.Handler):
         "You have not been registered with the system. Please join first!")
 
     def handle_registration(self, message):
-        session = Session()
-        query_users = session.query(models.User)
-
-        user = query_users.filter_by(number=message.sender).first()
-        if user is not None:
-            user.location = message.location
-            user.name = message.name
+        if message.user is not None:
+            message.user.location = message.location
+            message.user.name = message.name
 
             return Response(
                 ("Hello, %(name)s (#%(id)04d). "
                  "You have updated your information.") % {
                     'name': message.name,
-                    'id': user.id,
+                    'id': message.user.id,
                     })
 
         user = models.User(
@@ -28,6 +24,7 @@ class Handler(dispatch.Handler):
             number=message.sender,
             location=message.location)
 
+        session = Session()
         session.add(user)
         session.flush()
 
