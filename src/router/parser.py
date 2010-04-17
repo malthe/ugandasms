@@ -27,6 +27,6 @@ class Parser(object):
                 try:
                     return factory(text, **m.groupdict())
                 except InvalidMessage, exc:
-                    return Invalid(text)
+                    return Invalid(str(exc))
 
         return NotUnderstood(text)
