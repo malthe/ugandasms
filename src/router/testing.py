@@ -40,11 +40,13 @@ class Subscriber(object):
     def send(self, text):
         """Sends text to gateway."""
 
+        text = text.lstrip("> ")
         self.gateway.send(self, text)
 
     def receive(self, text=None):
         if text is None:
             return self._received.pop(0)
+        text = "<<< " + text
         self._received.append(text)
 
 class FunctionalTestCase(TestCase):
