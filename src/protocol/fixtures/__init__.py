@@ -32,7 +32,10 @@ def install_demo():
     path = os.path.join(os.path.dirname(__file__), "demo.csv")
     reader = csv.reader(open(path), delimiter='\t')
     for line in reader:
+        line = filter(None, line)
         if not line:
+            continue
+        if line[0].strip().startswith('#'):
             continue
         try:
             sender, receiver, text, date = line
@@ -46,8 +49,7 @@ def install_demo():
         message.receiver = receiver
         message.time = time
 
-        print "%s >>> %s" % (sender, text)
         response = handler(message)
+        print "%s >>> %s [%s]" % (sender, text, message.kind)
         print "%s <<< %s" % (sender, response.body)
-
 
