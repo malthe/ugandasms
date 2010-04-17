@@ -10,11 +10,12 @@ Message format
 
 Any message will consist of one or more sections in which a message
 token (single word prefixed by the ``+`` character, e.g. ``+JOIN``)
-precedes a set of parameters for that section. An example:
+precedes a set of parameters for that section. An example (note that
+``>>>`` denotes a message being sent to the system):
 
 ::
 
-  +EPI 12 4 81 +BD 1 0
+  >>> +EPI 12 4 81 +BD 1 0
 
 .. -> input
 
@@ -58,7 +59,7 @@ following reply is sent as feedback:
 
 ::
 
-  <<< Welcome, Jonathan Olel (#0001). You have been registered. Please resend if there is a mistake.
+  <<< Welcome, Jonathan Olel (#0001). You have been registered.
 
 .. -> output
 
@@ -68,7 +69,7 @@ Repeat registrations are interpreted as updates:
 
 ::
 
-  +REGISTER Jonathan Olel, Patiko, Gulu
+  >>> +REGISTER Jonathan Olel, Patiko, Gulu
 
 .. -> input
 
@@ -78,7 +79,7 @@ The system replies to inform the user that the update was succesful.
 
 ::
 
-  Hello, Jonathan Olel (#0001). You have updated your information.
+  <<< Hello, Jonathan Olel (#0001). You have updated your information.
 
 .. -> output
 
@@ -113,7 +114,7 @@ Village Health Team, followed by the Health Facility HMIS ID code.
 
   ::
 
-    +VHT 50864
+    >>> +VHT 50864
 
   .. -> input
 
@@ -121,14 +122,14 @@ Village Health Team, followed by the Health Facility HMIS ID code.
 
   ::
 
-    You have joined the Community Vulnerability Surveillance System as a
+    <<< You have joined the Community Vulnerability Surveillance System as a
     VHT for Pakooge HCIII in Gulu District. Please resend if there is a 
     mistake.
 
 Health Surviellance Focal Point, followed by the HMIS ID code.
 
   ::
-    +HCS 508
+    >>> +HCS 508
 
 .. -> input
 
@@ -136,7 +137,7 @@ Health Surviellance Focal Point, followed by the HMIS ID code.
 
   ::
 
-    You have joined the Community Vulnerability Surveillance System as a
+    <<< You have joined the Community Vulnerability Surveillance System as a
     Health Center Surviellence Officer for [Pakooge HCIII] in [Gulu 
     District]. Please resend if there is a mistake.
 
