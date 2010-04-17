@@ -26,7 +26,7 @@ class Message(Base):
     reply = Column(types.String(160), nullable=True)
     state = Column(types.Integer, default=0)
     time = Column(types.DateTime)
-    kind = Column(types.String(20), nullable=True)
+    kind = Column(types.String(25), nullable=True)
 
     __tablename__ = "messages"
     __mapper_args__ = {
@@ -34,10 +34,11 @@ class Message(Base):
         'with_polymorphic': '*',
         }
 
-    def __init__(self, text, sender=None, reply=None, **kwargs):
+    def __init__(self, text, **kwargs):
+        self.text = text
+        self.kind = self.__mapper_args__.get('polymorphic_identity')
         self.__dict__.update(kwargs)
-        super(Message, self).__init__(
-            text=text, sender=sender, reply=reply)
+        super(Message, self).__init__()
 
     @property
     def title(self):
@@ -58,5 +59,6 @@ class Message(Base):
             'title': self.title,
             'user': self.user,
             'network': network,
+            'kind': self.kind,
             'time': self.time.strftime("%A, %d. %B %Y %I:%M %p"),
             }

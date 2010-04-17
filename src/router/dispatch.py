@@ -1,4 +1,3 @@
-import re
 import webob
 
 from .orm import Session
