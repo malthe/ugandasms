@@ -23,6 +23,7 @@ class Registration(UserMessage):
     """Register with the system."""
 
     title = u"Registration"
+    location = Column(types.Unicode(25), nullable=True)
 
 class HealthWorkerSignup(UserMessage):
     """Register as health worker."""
