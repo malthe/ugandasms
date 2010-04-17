@@ -9,7 +9,7 @@ class HandlerTest(FunctionalTestCase):
                 'polymorphic_identity': 'my_message'
                 }
 
-        message = MyMessage("test")
+        message = MyMessage(u"test")
 
         from router.orm import Session
         session = Session()

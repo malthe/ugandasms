@@ -1,2 +1,3 @@
 class InvalidMessage(Exception):
     pass
+

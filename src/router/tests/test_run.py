@@ -11,8 +11,8 @@ class AppTest(FunctionalTestCase):
         from ..exc import InvalidMessage
         from ..orm import Session
         class Raises(Message):
-            def __init__(text, *args, **kwargs):
-                raise InvalidMessage("invalid: %s." % text)
+            def __init__(self, text, **kwargs):
+                raise InvalidMessage(text)
 
         parser = Parser(
             (('^abc$', Message),
@@ -25,7 +25,7 @@ class AppTest(FunctionalTestCase):
             session.add(message)
             session.flush()
             return Response(repr(
-                (message.sender, message.receiver, message.kind)))
+                (message.sender, message.receiver, message.text, message.kind)))
         self.app = WSGIApp(parser, handler)
         super(AppTest, self).setUp()
 
@@ -40,7 +40,7 @@ class AppTest(FunctionalTestCase):
             })
         self.assertEqual(
             eval(request.get_response(self.app).body),
-            ('456', '123', 'invalid'))
+            ('456', '123', 'def', 'invalid'))
 
     def test_valid_message(self):
         from webob import Request
@@ -53,4 +53,4 @@ class AppTest(FunctionalTestCase):
             })
         self.assertEqual(
             eval(request.get_response(self.app).body),
-            ('456', '123', None))
+            ('456', '123', u'abc', None))

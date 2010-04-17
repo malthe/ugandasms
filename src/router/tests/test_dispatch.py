@@ -13,7 +13,7 @@ class HandlerTest(FunctionalTestCase):
             pass
 
         self.handler(
-            Test("test", sender="123", receiver="456"))
+            Test(u"test", sender="123", receiver="456"))
 
         from ..orm import Session
         session = Session()
