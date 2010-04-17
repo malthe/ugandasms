@@ -14,7 +14,7 @@ class Parser(object):
 
     def __init__(self, patterns):
         self.patterns = [
-            (re.compile(pattern, re.IGNORECASE).match, factory)
+            (re.compile(pattern, re.IGNORECASE | re.UNICODE).match, factory)
             for (pattern, factory) in patterns]
 
     def __call__(self, text):
@@ -27,6 +27,6 @@ class Parser(object):
                 try:
                     return factory(text, **m.groupdict())
                 except InvalidMessage, exc:
-                    return Invalid(str(exc))
+                    return Invalid(unicode(exc))
 
         return NotUnderstood(text)
