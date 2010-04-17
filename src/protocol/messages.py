@@ -27,7 +27,7 @@ class Registration(UserMessage):
 class HealthWorkerSignup(UserMessage):
     """Register as health worker."""
 
-    mask = User.mask
+    mask = Column(types.Integer)
     facility = Column(types.Integer())
 
     def __init__(self, text, role=None, facility=None):
@@ -46,4 +46,4 @@ class HealthWorkerSignup(UserMessage):
 
     @property
     def title(self):
-        return "VHT: %d" % self.facility
+        return u"Signup as %s" % self.group.name
