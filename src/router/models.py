@@ -1,17 +1,7 @@
-import re
-
 from sqlalchemy import Column
 from sqlalchemy import types
 
 from .orm import Base
-
-NETWORKS = tuple((name, re.compile(pattern)) for (name, pattern) in 
-                 (('Test Network', '^(\+?256|0)(00)'),
-                  ('MTN', '^(\+?256|0)(78|77|39)'),
-                  ('UTL', '^(\+?256|0)(71)'),
-                  ('Orange', '^(\+?256|0)(79)'),
-                  ('Orange', '^(\+?256|0)(75)'),
-                  ('Warid', '^(\+?256|0)(70)'),))
 
 class Message(Base):
     """Represents an SMS message.
@@ -43,22 +33,3 @@ class Message(Base):
     @property
     def title(self):
         return self.text
-
-    @property
-    def user(self):
-        return self.sender
-
-    def get_summary(self):
-        for network, pattern in NETWORKS:
-            if pattern.match(self.sender):
-                break
-        else:
-            network = None
-
-        return {
-            'title': self.title,
-            'user': self.user,
-            'network': network,
-            'kind': self.kind.replace('_', '-'),
-            'time': self.time.strftime("%A, %d. %B %Y %I:%M %p"),
-            }
