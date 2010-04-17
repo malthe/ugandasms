@@ -8,7 +8,7 @@ class HandlerTest(FunctionalTestCase):
         from ..models import User
         from ..messages import UserMessage
         user = User(number="123")
-        message = UserMessage(text="test", sender=user.number)
+        message = UserMessage(text=u"test", sender=user.number)
 
         session.add(user)
         session.add(message)
