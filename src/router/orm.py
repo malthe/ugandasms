@@ -15,7 +15,7 @@ class PolymorphicMeta(DeclarativeMeta):
         kind = camelcase_to_underscore(name)
         attrs = attrs.copy()
         args = attrs.setdefault('__mapper_args__', {})
-        args['polymorphic_identity'] = kind
+        args.setdefault('polymorphic_identity', kind)
         return type.__new__(meta, name, bases, attrs)
 
 Session = scoped_session(sessionmaker(autoflush=False))
