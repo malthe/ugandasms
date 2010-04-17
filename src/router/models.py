@@ -16,11 +16,12 @@ class Message(Base):
     reply = Column(types.String(160), nullable=True)
     state = Column(types.Integer, default=0)
     time = Column(types.DateTime)
-    kind = Column(types.String(25), nullable=True)
+    kind = Column(types.String(25))
 
     __tablename__ = "messages"
     __mapper_args__ = {
         'polymorphic_on': kind,
+        'polymorphic_identity': None,
         'with_polymorphic': '*',
         }
 
