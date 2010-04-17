@@ -33,6 +33,7 @@ def install_demo():
     reader = csv.reader(open(path), delimiter='\t')
     for line in reader:
         line = filter(None, line)
+        line = map(unicode, line)
         if not line:
             continue
         if line[0].strip().startswith('#'):
