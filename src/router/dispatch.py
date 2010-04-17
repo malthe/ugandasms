@@ -12,7 +12,8 @@ class Handler(object):
         session.add(message)
 
         try:
-            method = getattr(self, 'handle_%s' % message.kind)
+            name = message.kind.replace('-', '_')
+            method = getattr(self, 'handle_%s' % name)
         except AttributeError:
             response = webob.Response(
                 "No handler available for message kind ``%s``." % message.kind)

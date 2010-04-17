@@ -7,8 +7,8 @@ from sqlalchemy.ext.declarative import DeclarativeMeta
 
 def camelcase_to_underscore(str):
     return re.sub(
-        '(((?<=[a-z])[A-Z])|([A-Z](?![A-Z]|$)))', '_\\1',
-        str).lower().strip('_')
+        '(((?<=[a-z])[A-Z])|([A-Z](?![A-Z]|$)))', '-\\1',
+        str).lower().strip('-')
 
 class PolymorphicMeta(DeclarativeMeta):
     def __new__(meta, name, bases, attrs):

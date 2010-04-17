@@ -59,6 +59,6 @@ class Message(Base):
             'title': self.title,
             'user': self.user,
             'network': network,
-            'kind': self.kind,
+            'kind': self.kind.replace('_', '-'),
             'time': self.time.strftime("%A, %d. %B %Y %I:%M %p"),
             }
