@@ -49,14 +49,14 @@ class DoctestCase(FunctionalTestCase):
         from protocol.patterns import parser
         from protocol.handler import Handler
         handler = Handler(queue)
-        gateway = Gateway(parser, handler, "1234")
+        gateway = Gateway(parser, handler, u"1234")
 
         # set up test subscribers
         from router.testing import Subscriber
         globs = {
-            'admin': Subscriber(gateway, "256000000000"),
-            'jonathan': Subscriber(gateway, "256000000001"),
-            'sam': Subscriber(gateway, "256000000002"),
+            'admin': Subscriber(gateway, u"256000000000"),
+            'jonathan': Subscriber(gateway, u"256000000001"),
+            'sam': Subscriber(gateway, u"256000000002"),
             'parse': parser,
             }
 
