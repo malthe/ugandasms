@@ -30,7 +30,7 @@ class Handler(object):
             session.rollback()
             raise
 
-        message.reply = response.body
+        message.reply = response.unicode_body
         return response
 
     def enqueue(self, recipient, text):
