@@ -22,3 +22,5 @@ class User(Base):
     location = Column(types.Unicode(50), nullable=True)
     mask = Column(types.Integer, default=0)
 
+    def __unicode__(self):
+        return self.name
