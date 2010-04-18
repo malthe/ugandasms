@@ -54,7 +54,8 @@ class WSGIApp(object):
 
         # handle delivery reports
         if delivery != -1:
-            report = Delivery(time=time, message_id=message_id)
+            report = Delivery(
+                time=time, message_id=message_id, status=delivery)
             session.add(report)
             response = Response("")
         else:

@@ -118,3 +118,4 @@ class AppTest(FunctionalTestCase):
         delivery = session.query(Delivery).first()
         self.assertFalse(delivery is None)
         self.assertEqual(delivery.time, delivered)
+        self.assertEqual(delivery.success, True)

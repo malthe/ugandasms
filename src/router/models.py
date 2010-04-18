@@ -48,6 +48,11 @@ class Delivery(Base):
         Message, primaryjoin=(message_id==Message.id),
         uselist=False, backref=backref(
             'delivery', uselist=False))
+    status = Column(types.Integer)
+
+    @property
+    def success(self):
+        return self.status == 1
 
 class Incoming(Message):
     """An incoming message."""
