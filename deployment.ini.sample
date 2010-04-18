@@ -8,7 +8,7 @@ host = 196.0.26.61
 port = 13013
 username = kannel
 password = kannel
-dlr_url = http://uganda.rapidsms.org/kannel?delivery=%d&text=%A&sender=%P&receiver=%p&timestamp=%t
+dlr_url = http://uganda.rapidsms.org/kannel
 
 [app:docs]
 use = egg:Paste#static
