@@ -1,12 +1,12 @@
 import re
 
-from .models import Message
+from .models import Incoming
 from .exc import InvalidMessage
 
-class NotUnderstood(Message):
+class NotUnderstood(Incoming):
     """Any message which was not understood."""
 
-class Invalid(Message):
+class Invalid(Incoming):
     """An invalid message."""
 
 class Parser(object):

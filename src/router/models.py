@@ -1,10 +1,13 @@
 from sqlalchemy import Column
 from sqlalchemy import types
+from sqlalchemy.orm import relation
+from sqlalchemy.orm import backref
+from sqlalchemy.schema import ForeignKey
 
 from .orm import Base
 
 class Message(Base):
-    """Represents an SMS message.
+    """SMS message.
 
     The ``text`` attribute contains the original text.
     """
@@ -13,9 +16,7 @@ class Message(Base):
     sender = Column(types.String(12))
     receiver = Column(types.String(12))
     text = Column(types.Unicode(160))
-    reply = Column(types.Unicode(160), nullable=True)
-    state = Column(types.Integer, default=0)
-    time = Column(types.DateTime)
+    time = Column(types.DateTime, nullable=True)
     kind = Column(types.String(25))
 
     __tablename__ = "messages"
@@ -34,3 +35,27 @@ class Message(Base):
     @property
     def title(self):
         return self.text
+
+class Delivery(Base):
+    """Message delivery confirmation (DLR)."""
+
+    __tablename__ = "deliveries"
+
+    id = Column(types.Integer, primary_key=True)
+    time = Column(types.DateTime)
+    message_id = Column(types.Integer, ForeignKey(Message.id), unique=True)
+    message = relation(
+        Message, primaryjoin=(message_id==Message.id),
+        uselist=False, backref=backref(
+            'delivery', uselist=False))
+
+class Incoming(Message):
+    """An incoming message."""
+
+    __tablename__ = "incoming"
+
+    id = Column(types.Integer, ForeignKey(Message.id), primary_key=True)
+    reply = Column(types.Unicode(160))
+
+class Outgoing(Message):
+    """An outgoing message."""

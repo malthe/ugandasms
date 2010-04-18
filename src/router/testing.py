@@ -23,11 +23,31 @@ class Gateway(object):
     def send(self, subscriber, text):
         self._subscribers[subscriber.number] = subscriber
         message = self.parser(text)
+
+        # record message
+        from router.orm import Session
+        session = Session()
+        session.add(message)
         message.sender = subscriber.number
         message.receiver = self.receiver
+        session.flush()
+        session.refresh(message)
+
         response = self.handler(message)
         if response is not None:
-            subscriber.receive(response.body)
+            message.reply = response.unicode_body
+            self.deliver(subscriber, response.body, message)
+
+    def deliver(self, receiver, text, message):
+        receiver.receive(text)
+
+        # note delivery
+        from router.orm import Session
+        from router.models import Delivery
+        session = Session()
+        message.delivery = Delivery(time=message.time, message=message)
+        session.flush()
+        session.refresh(message)
 
 class Subscriber(object):
     """Mobile subscriber."""
