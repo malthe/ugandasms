@@ -48,7 +48,7 @@ def make_router(config, database="sqlite://",
     # configure router
     queue = Queue()
     handler = Handler(queue)
-    router = WSGIApp(parser, handler)
+    router = WSGIApp(parser, handler, dlr_url)
 
     # configure send thread
     connection = HTTPConnection(host, int(port))
