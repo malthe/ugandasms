@@ -3,17 +3,17 @@ from sqlalchemy.orm import backref
 from sqlalchemy import Column
 from sqlalchemy import types
 
-from router.models import Message
+from router.models import Incoming
 
 from .models import User
 from .models import GROUPS
 
-class UserMessage(Message):
+class UserMessage(Incoming):
     user = relation(
-        User, primaryjoin=(Message.sender==User.number),
+        User, primaryjoin=(Incoming.sender==User.number),
         foreign_keys=[User.number],
         uselist=False, backref=backref(
-            'messages', uselist=True, order_by=Message.time),
+            'messages', uselist=True, order_by=Incoming.time),
         )
 
 class Empty(UserMessage):
