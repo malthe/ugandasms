@@ -7,7 +7,7 @@ patterns = (
      messages.Empty),
     (r'^\+reg(ister)?\s+(?P<name>[^,]+)\s*(,\s*(?P<location>.+))?$',
      messages.Registration),
-    (r'^\+(?P<role>vht|hcw)\s+(?P<facility>\d+)$',
+    (r'^\+(?P<role>vht|hc.)\s+(?P<facility>\d+)$',
      messages.HealthWorkerSignup),
     )
 
