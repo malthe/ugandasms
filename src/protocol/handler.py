@@ -35,6 +35,34 @@ class Handler(dispatch.Handler):
                 'id': user.id,
                 })
 
+    def handle_health_worker_signup(self, message):
+        if message.user is None:
+            return self._user_unknown_response
+
+        session = Session()
+
+        # look up facility
+        facility = session.query(
+            models.HealthFacility).filter_by(
+            hmis=message.facility).first()
+
+        if facility is None:
+            return Response(
+                u"No such facility HMIS code: %d." % message.facility)
+
+        # add role mask (community worker, facility staff, etc)
+        message.user.mask |= message.mask
+
+        # assign facility
+        message.user.facility = facility
+
+        return Response(
+            ("You have joined the "
+             "Community Vulnerability Surveillance System "
+             "as a %s for %s in %s. Please resend if "
+             "there is a mistake.") % (
+                message.group.name, facility.name, facility.location))
+
     def handle_not_understood(self, message):
         return Response(
             "Message not understood: %s." % message.text, status=200)
