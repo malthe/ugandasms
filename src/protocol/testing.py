@@ -15,4 +15,12 @@ class FunctionalTestCase(testing.FunctionalTestCase):
 
         session = orm.Session()
         session.add(admin)
+
+        # add health clinic
+        patiko = models.HealthFacility(
+            hmis=50864,
+            name=u"Patiko Health Clinic",
+            location=u"Patiko, Gulu District")
+        session.add(patiko)
+
         session.commit()

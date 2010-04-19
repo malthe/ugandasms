@@ -1,17 +1,18 @@
 import os
-import unittest
+import re
 import doctest
-import functools
 
 from protocol.testing import FunctionalTestCase
 
 OPTIONFLAGS = (doctest.ELLIPSIS |
                doctest.NORMALIZE_WHITESPACE)
 
+re_trim = re.compile('[\s\n]+')
+
 def assert_equals(s1, s2, strip=True):
     if strip is True and s1 and s2:
-        s1 = s1.strip()
-        s2 = s2.strip()
+        s1 = re_trim.sub(' ', s1.strip(" \n"))
+        s2 = re_trim.sub(' ', s2.strip(" \n"))
 
     assert s1 == s2, "%s != %s." % (repr(s1), repr(s2))
 

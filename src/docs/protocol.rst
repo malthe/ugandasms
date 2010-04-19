@@ -85,6 +85,23 @@ The system replies to inform the user that the update was succesful.
 
   >>> assert_equals(jonathan.receive(), output)
 
+If we register another user, a new registration number is assigned::
+
+  >>> +REGISTER Sam Okoyo, Patiko, Gulu
+
+.. -> input
+
+  >>> sam.send(input)
+
+This user, Sam Okoyo, is a health worker at the Patiko Health Clinic.
+
+::
+
+  <<< Welcome, Sam Okoyo (#0002). You have been registered.
+
+.. -> output
+
+  >>> assert_equals(sam.receive(), output)
 
 
 Community Vulnerability Surveillance
@@ -118,29 +135,42 @@ Village Health Team, followed by the Health Facility HMIS ID code.
 
   .. -> input
 
-  Subscription feedback:
-
-  ::
-
-    <<< You have joined the Community Vulnerability Surveillance System as a
-    VHT for Pakooge HCIII in Gulu District. Please resend if there is a 
-    mistake.
-
-Health Surviellance Focal Point, followed by the HMIS ID code.
-
-  ::
-    >>> +HCS 508
-
-.. -> input
+  >>> jonathan.send(input)
 
   Subscription feedback:
 
   ::
 
-    <<< You have joined the Community Vulnerability Surveillance System as a
-    Health Center Surviellence Officer for [Pakooge HCIII] in [Gulu 
-    District]. Please resend if there is a mistake.
+    <<< You have joined the Community Vulnerability Surveillance
+    System as a Village Health Team for Patiko Health Clinic in
+    Patiko, Gulu District. Please resend if there is a mistake.
 
+  .. -> output
+
+  >>> assert_equals(jonathan.receive(), output)
+
+
+  Health Surviellance Focal Point, followed by the HMIS ID code.
+
+  ::
+
+    >>> +HCS 50864
+
+  .. -> input
+
+  >>> sam.send(input)
+
+  Subscription feedback:
+
+  ::
+
+    <<< You have joined the Community Vulnerability Surveillance System as a
+    Health Center Surveillance Officer for Patiko Health Clinic in Patiko, Gulu 
+    District. Please resend if there is a mistake.
+
+  .. -> output
+
+  >>> assert_equals(sam.receive(), output)
 
 Weekly Epi Reports
 ~~~~~~~~~~~~~~~~~~
