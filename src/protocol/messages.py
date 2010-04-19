@@ -37,7 +37,7 @@ class HealthWorkerSignup(UserMessage):
             raise ValueError("Role unknown: %s." % role)
 
         super(HealthWorkerSignup, self).__init__(
-            text, mask=group.mask, facility=facility)
+            text, mask=group.mask, facility=int(facility))
 
     @property
     def group(self):
