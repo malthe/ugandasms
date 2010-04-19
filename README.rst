@@ -4,7 +4,7 @@ Overview
 SMS-CVS is an SMS reporting system designed for a pilot deployment
 "Community Vulnerability Surveillance" in the Acholi region of Uganda.
 
-The software is developed by developed by the UNICEF country office in
+The software is developed by the UNICEF country office in
 Uganda.
 
 Platform
