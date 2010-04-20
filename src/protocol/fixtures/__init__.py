@@ -7,6 +7,7 @@ from sqlalchemy import create_engine
 
 from router.orm import Session
 from router.orm import Base
+from router.models import Message
 
 from ..patterns import parser
 from ..handler import Handler
@@ -49,8 +50,12 @@ def install_demo():
         message.sender = sender
         message.receiver = receiver
         message.time = time
+        session.add(message)
 
         response = handler(message)
         print "%s >>> %s [%s]" % (sender, text, message.kind)
         print "%s <<< %s" % (sender, response.body)
 
+    session.commit()
+    print "%d messages recorded." % len(session.query(Message).all())
+    session.close()
