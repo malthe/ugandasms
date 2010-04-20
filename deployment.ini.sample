@@ -3,16 +3,16 @@ debug = false
 
 [app:router]
 use = egg:SMS-CVS#router
-database = sqlite:///var/main.db
-host = 196.0.26.61
+database = sqlite:///deployment.db
+host = localhost
 port = 13013
 username = kannel
 password = kannel
-dlr_url = http://uganda.rapidsms.org/kannel
+dlr_url = http://host/kannel
 
 [app:docs]
 use = egg:Paste#static
-document_root = %(here)s/docs
+document_root = %(here)s/docs/html
 
 [composite:main]
 use = egg:Paste#urlmap
@@ -22,4 +22,4 @@ use = egg:Paste#urlmap
 [server:main]
 use = egg:Flup#scgi_thread
 host = 127.0.0.1
-port = 8002
+port = 8080
