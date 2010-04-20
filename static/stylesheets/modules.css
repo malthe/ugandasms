@@ -1,0 +1,722 @@
+div.module
+{
+	position:relative;
+	width:24em;
+	float:left;
+	margin:2em 0.5em 0;
+}
+
+h2,h3
+{
+	background:#74d7e3 url(../images/h2-bg.png) repeat-x;
+	border-bottom:1px solid #4bd;
+	color:#fff;
+	font-weight:700;
+	font-size:100%;
+	text-align:left;
+	white-space:nowrap;
+	line-height:1;
+	margin:0;
+	padding:0.5em;
+}
+
+h2
+{
+	color:#fff;
+	border-bottom:0;
+	background:#000 url("../images/h2-bg-alt.png") repeat-x 0 100%;
+	background-color:#000;
+	font-weight:400;
+	font-size:160%;
+	text-shadow:#000 2px 2px 1px;
+	padding:0.3125em;
+}
+
+h3
+{
+	border-bottom-color:#8fbcc9;
+	background-image:url("../images/h3-bg.png");
+	background-color:#aad0d4;
+	font-weight:400;
+}
+
+h2 span
+{
+	color:#e3f7f9;
+	font-size:80%;
+}
+
+a.reporter,a.connection,a.location,span.rapidsms
+{
+	background:no-repeat 0 50%;
+	padding-left:18px;
+	color:#000;
+}
+
+a.reporter
+{
+	background-image:url("../icons/silk/user--dull.png");
+}
+
+a.connection
+{
+	background-image:url("../icons/silk/phone--dull.png");
+}
+
+a.location
+{
+	background-image:url("../icons/silk/house--dull.png");
+}
+
+a.reporter:hover,a.connection:hover,a.location:hover
+{
+	background-color:none;
+	color:#33a7d2;
+}
+
+a.reporter:hover
+{
+	background-image:url("../icons/silk/user.png");
+}
+
+a.connection:hover
+{
+	background-image:url("../icons/silk/phone.png");
+}
+
+a.location:hover
+{
+	background-image:url("../icons/silk/house.png");
+}
+
+span.rapidsms
+{
+	background-image:url("../icons/silk/building.png");
+	color:#aaa;
+}
+
+table
+{
+	border-collapse:collapse;
+}
+
+th
+{
+	font-weight:400;
+	text-align:left;
+}
+
+thead th
+{
+	background:#e1e1e1 url(../images/table-header-bg.png) repeat-x 100% 0;
+	border-top:none;
+	color:#888;
+}
+
+thead td
+{
+	border-top:none;
+}
+
+tr.horiz-th th
+{
+	background:#e1e1e1;
+	text-align:right;
+}
+
+td,th
+{
+	border-top:1px solid #eee;
+	padding:0.5em;
+}
+
+html:last-child td
+{
+	padding-right:1.5em;
+}
+
+td a.unknown
+{
+	color:#66BDDD;
+	font-style:italic;
+}
+
+td.na
+{
+	color:#ccc;
+	font-style:italic;
+}
+
+table.sortable thead th a
+{
+	display:block;
+	color:#888;
+	outline:0;
+	border-right:1px solid #ddd;
+	border-left:1px solid #fff;
+	padding:0.5em;
+}
+
+table.sortable thead th:first-child a
+{
+	border-left:none;
+}
+
+table.sortable thead th:last-child a
+{
+	border-right:none;
+}
+
+table.sortable col.sorted
+{
+	background-color:#f8f8ff;
+}
+
+table.sortable thead th:hover
+{
+	background-image:url(../images/table-header-bg-highlight.png);
+}
+
+table.sortable thead th:hover a
+{
+	color:#000;
+}
+
+table.sortable thead th.sorted a
+{
+	background-repeat:no-repeat;
+	background-position:right;
+	padding-right:15px;
+}
+
+table.sortable thead th.ascending a
+{
+	background-image:url("../../webapp/icons/silk/arrow_down.png");
+}
+
+table.sortable thead th.descending a
+{
+	background-image:url("../../webapp/icons/silk/arrow_up.png");
+}
+
+tr.no-data td
+{
+	text-align:center;
+	background:#f8f8ff;
+	color:#aaa;
+	padding:2em;
+}
+
+tr.depth-5 td.indent
+{
+	padding-left:10em;
+}
+
+tr.depth-6 td.indent
+{
+	padding-left:12em;
+}
+
+tr.depth-7 td.indent
+{
+	padding-left:14em;
+}
+
+tr.depth-8 td.indent
+{
+	padding-left:16em;
+}
+
+tfoot
+{
+	background:#eee url("../images/table-footer-bg.png") repeat-x 0 100%;
+	font-size:80%;
+}
+
+tfoot a,tfoot span
+{
+	display:block;
+	float:right;
+	color:#aaa;
+	padding:0.5em;
+}
+
+tfoot span
+{
+	color:#ddd;
+}
+
+tfoot a:hover
+{
+	background:#fff;
+}
+
+tfoot .paginator a.active
+{
+	background:#eee;
+	color:#000;
+}
+
+tfoot .paginator .first,tfoot .paginator .prev,tfoot .paginator .next,tfoot .paginator .last
+{
+	background-repeat:no-repeat;
+	background-position:0 50%;
+	text-indent:-9999px;
+	overflow:hidden;
+	padding-right:0;
+	padding-left:0;
+	width:16px;
+}
+
+tfoot .paginator .first
+{
+	background-image:url("../icons/silk/resultset_first.png");
+}
+
+tfoot .paginator .prev
+{
+	background-image:url("../icons/silk/resultset_previous.png");
+}
+
+tfoot .paginator .next
+{
+	background-image:url("../icons/silk/resultset_next.png");
+}
+
+tfoot .paginator .last
+{
+	background-image:url("../icons/silk/resultset_last.png");
+}
+
+tfoot .paginator span.na
+{
+	background-position:-16px 50%;
+}
+
+.module div.help,.module form.search
+{
+	border-right:0.5em solid #ffb;
+	border-left:0.5em solid #ffb;
+	background:#ffc;
+	padding:1em;
+}
+
+.module div.help p
+{
+	margin:0;
+}
+
+.module div.toolbar
+{
+	position:absolute;
+	top:0;
+	right:0;
+	line-height:1em;
+	padding-top:1em;
+}
+
+.module div.toolbar a,.module div.toolbar span
+{
+	display:block;
+	float:right;
+	color:#eee;
+	margin-right:0.625em;
+	padding-left:21px;
+	background-repeat:no-repeat;
+	background-position:0 50%;
+	font-size:80%;
+	cursor:pointer;
+}
+
+.module div.toolbar .help
+{
+	background-image:url("../icons/silk/help.png");
+}
+
+.module div.toolbar .search
+{
+	background-image:url("../icons/silk/magnifier.png");
+}
+
+.module div.toolbar .prev
+{
+	background-image:url("../icons/tango/go-previous.png");
+}
+
+.module div.toolbar .next
+{
+	background-image:url("../icons/tango/go-next.png");
+}
+
+.module div.toolbar .first
+{
+	background-image:url("../icons/tango/go-first.png");
+}
+
+.module div.toolbar .last
+{
+	background-image:url("../icons/tango/go-last.png");
+}
+
+.module option.depth-1
+{
+	padding-left:1em;
+}
+
+.module option.depth-3
+{
+	padding-left:3em;
+}
+
+.module option.depth-5
+{
+	padding-left:5em;
+}
+
+.module option.depth-7
+{
+	padding-left:7em;
+}
+
+#inner > .module div.invalid
+{
+	border-right:0.5em solid #eef;
+	border-left:0.5em solid #eef;
+	margin:0 -1em;
+	padding:0 0.5em;
+}
+
+.module form .no-data
+{
+	display:inline-block;
+	background:#f8f8ff;
+	text-align:center;
+	color:#aaa;
+	padding:2em;
+}
+
+.module label
+{
+	display:block;
+	margin:2em 0 0.5em;
+}
+
+.module label.suffix
+{
+	display:inline;
+	font-style:italic;
+	font-size:80%;
+	color:#aaa;
+	margin:0;
+}
+
+.module label.invalid
+{
+	color:#a00;
+}
+
+.module label.error
+{
+	background:#fff url("../icons/silk/exclamation.png") no-repeat 0 50%;
+	padding-left:16px;
+	min-height:16px;
+	color:#d00;
+	margin:0 0 0 0.25em;
+}
+
+.module label.error span
+{
+	padding-left:0.25em;
+}
+
+.module form div > label.error
+{
+	text-indent:-9999px;
+}
+
+.module form div:hover > label.error
+{
+	text-indent:0;
+}
+
+input.js-button
+{
+	cursor:pointer;
+	border:0;
+	width:16px;
+	height:16px;
+	overflow:hidden;
+	text-indent:-9999px;
+	background-color:transparent;
+	background-repeat:no-repeat;
+	background-position:50% 50%;
+	padding:0;
+}
+
+input.js-button.del
+{
+	background-image:url("../icons/silk/delete.png");
+}
+
+input.js-button.accept
+{
+	background-image:url("../icons/silk/accept.png");
+}
+
+input.js-button.unaccept
+{
+	background-image:url("../icons/silk/accept--dull.png");
+}
+
+input.js-button.clear
+{
+	background-image:url("../icons/silk/decline.png");
+}
+
+.module form option.na
+{
+	font-style:italic;
+	color:#aaa;
+}
+
+.module form p.help
+{
+	margin-top:0.625em;
+	font-size:80%;
+	color:#ccc;
+	width:30em;
+}
+
+.module form div.submit
+{
+	margin-top:2em;
+}
+
+.module div.submit .errors p
+{
+	display:inline-block;
+	border:1px solid #fdd;
+	background:#fee;
+	color:#d00;
+	margin:0 0 1em;
+	padding:1em;
+}
+
+.tmp td.num
+{
+	text-align:right;
+}
+
+.tmp td.shrink
+{
+	font-size:75%;
+}
+
+.tmp .min
+{
+	white-space:nowrap;
+	width:1%;
+}
+
+.tmp h3
+{
+	margin-top:1em;
+}
+
+.tmp tr.summary td
+{
+	background:#eee url("../images/table-footer-bg.png") repeat-x 0 100%;
+	font-size:80%;
+	text-align:center;
+	color:#aaa;
+	padding:0.625em;
+}
+
+#inner .tmp div.split-3 .left
+{
+	width:37%;
+}
+
+#inner .tmp div.split-3 .mid
+{
+	width:43%;
+}
+
+#inner .tmp div.split-3 .right
+{
+	background:#ffe;
+	width:20%;
+}
+
+.tmp .recent-reporters li
+{
+	border:1px solid #aaa;
+	background:#f8f8f8;
+	line-height:1.4;
+	display:block;
+	margin:0 0 1em;
+	padding:1em;
+}
+
+.tmp .recent-reporters li > div
+{
+	padding-bottom:0.25em;
+	font-weight:700;
+}
+
+.tmp .recent-reporters li > span
+{
+	display:block;
+	font-size:90%;
+	color:#aaa;
+}
+
+.tmp .progress .future
+{
+	color:#eee;
+}
+
+.tmp .progress td.perc
+{
+	padding-right:2em;
+	color:#aaa;
+}
+
+.tmp .progress td.perc:last-child
+{
+	padding-right:1em;
+}
+
+.tmp .stats li
+{
+	display:block;
+	text-align:center;
+	margin-top:2em;
+}
+
+.tmp .stats li div
+{
+	font-size:400%;
+	font-weight:700;
+}
+
+.tmp .pilot,.tmp .logistics
+{
+	margin-top:2em !important;
+}
+
+.tmp .pilot .scroller,.tmp .logistics .scroller
+{
+	overflow-y:scroll;
+	padding-right:0.5em;
+	height:60em;
+}
+
+.tmp .pilot tr.warning td
+{
+	color:#FFF;
+	background:#f99;
+	border-top:1px solid red;
+	border-bottom:1px solid red;
+}
+
+.tmp .logistics tr.warning td h3
+{
+	color:#FFF;
+	background:#f99;
+	height:1em;
+	border-top:1px solid red;
+	border-bottom:1px solid red;
+	text-align:center;
+}
+
+.tmp .logistics tr.warning td h3 em
+{
+	float:right;
+	font-size:80%;
+	color:#302010;
+}
+
+.tmp .logistics td.dir-R
+{
+	background:url("../icons/silk/package_add.png") no-repeat 50% 50%;
+}
+
+.tmp .logistics td.dir-I
+{
+	background:url("../icons/silk/package_go.png") no-repeat 50% 50%;
+}
+
+.tmp .logistics td.dir-R span,.tmp .logistics td.dir-I span
+{
+	text-indent:-9999px;
+	display:block;
+}
+
+div.module:first-child,.tmp thead:first-child h3,.tmp .stats li:first-child
+{
+	margin-top:0;
+}
+
+html:last-child td:last-child,.tmp .logistics tbody td:last-child
+{
+	padding-right:0.5em;
+}
+
+table.sortable thead th,tfoot td,.tmp tr.caption td,.tmp ul
+{
+	padding:0;
+}
+
+body:last-child tr.no-data td:last-child,.tmp .progress td.day,.tmp .logistics tbody td
+{
+	padding-right:2em;
+}
+
+tr.no-data td a.add,.module form .no-data a.add
+{
+	display:block;
+	padding-top:0.625em;
+	font-size:80%;
+}
+
+tr.depth-1 td.indent,.module option.depth-2
+{
+	padding-left:2em;
+}
+
+tr.depth-2 td.indent,.module option.depth-4
+{
+	padding-left:4em;
+}
+
+tr.depth-3 td.indent,.module option.depth-6
+{
+	padding-left:6em;
+}
+
+tr.depth-4 td.indent,.module option.depth-8
+{
+	padding-left:8em;
+}
+
+tfoot .paginator,tfoot .paginator a,tfoot .paginator span,.tmp .logistics tr.warning td h3 div,.tmp .logistics tr.warning td h3 span
+{
+	float:left;
+}
+
+.module div.toolbar .add,input.js-button.add
+{
+	background-image:url("../icons/silk/add.png");
+}
+
+.tmp .progress table,.tmp .pilot table,.tmp .logistics table
+{
+	width:100%;
+}
+
+.tmp .progress .totals,.tmp .pilot .totals
+{
+	background:#ffc;
+	font-weight:700;
+}

@@ -1,0 +1,74 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:tal="http://xml.zope.org/namespaces/tal"
+      xmlns:metal="http://xml.zope.org/namespaces/metal"
+      xmlns:i18n="http://xml.zope.org/namespaces/i18n"
+      xml:lang="en"
+      lang="en">
+
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="generator" content="SMS" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+
+    <!-- Disable IE6 image toolbar -->
+    <meta http-equiv="imagetoolbar" content="no" />
+
+    <title metal:define-slot="title">
+      <span tal:replace="title | None">
+        Web UI
+      </span>
+    </title>
+
+    <!-- stylesheets -->
+	<link type="text/css" rel="stylesheet"
+          href="/static/stylesheets/layout.css" />
+
+	<link type="text/css" rel="stylesheet"
+          href="/static/stylesheets/modules.css" />
+
+    <link type="text/css" rel="stylesheet"
+          href="/static/stylesheets/cvs.css" />
+
+  </head>
+
+  <body metal:define-slot="body">
+	<div id="wrapper">
+	  <div class="region rg-top empty">
+	    <!-- nothing to include -->
+      </div>
+	  <div id="header">
+		<div class="container">
+
+		  <div id="auth">
+			<a href="/accounts/login/">Log in</a>
+		  </div>
+
+		  <div id="branding">
+			<h4>
+			  <a title="Click to reach home page" href="/">
+                <span>SMS</span>
+              </a>
+            </h4>
+		  </div>
+
+		  <ul id="tabs">
+		  </ul>
+
+          <ul id="page-tabs">
+	        <li><a href="/users/">Users</a></li>
+          </ul>
+		</div>
+      </div><!-- End Container Class -->
+
+	  <div id="inner">
+		<div class="container">
+          <div metal:define-slot="content">
+            <!-- content -->
+          </div>
+          System running since ${uptime}.
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

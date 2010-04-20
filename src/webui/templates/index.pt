@@ -1,0 +1,53 @@
+<html metal:use-macro="load('master.pt')">
+  <head>
+    <title metal:fill-slot="title">
+      Dashboard
+    </title>
+  </head>
+  <body>
+    <div metal:fill-slot="content">
+      <h1>
+        Community Vulnerability Surveillance
+	    / <a href="">Dashboard</a>
+      </h1>
+
+      <div class="module">
+        <h2>Latest reports</h2>
+
+        <div class="toolbar">
+          <a href="/reports">All reports</a>
+        </div>
+
+        <ul class="reports">
+	      <li class="${report.kind}" tal:repeat="report latest_reports">
+            <span class="time">
+              ${report.time.strftime("%A, %B %d %Y %I:%M %p")}
+            </span>
+	        <div class="report">${report.title}</div>
+	        <div class="meta" tal:condition="report.user | None">
+              <a href="/users/${report.user}" class="reporter">
+                ${report.user}
+              </a>
+              <tal:location condition="report.location | None">
+                &raquo; ${report.location}
+              </tal:location>
+	        </div>
+	      </li>
+        </ul>
+	  </div>
+      <div class="module">
+        <h2>Today's Stats</h2>
+        <div class="toolbar">
+          <!-- nothing here -->
+        </div>
+
+        <ul class="reports">
+	      <li>
+            test
+          </li>
+        </ul>
+      </div>
+      <div class="clear-hack"><!-- nothing here --></div>
+	</div>
+  </body>
+</html>

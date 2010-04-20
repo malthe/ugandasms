@@ -1,0 +1,15 @@
+<html metal:use-macro="master">
+  <head>
+    <title metal:fill-slot="title">
+      Login
+    </title>
+  </head>
+  <body>
+    <div metal:fill-slot="content">
+      <h1>
+        Community Vulnerability Surveillance
+	    /accounts/login <a href="">Login</a>
+      </h1>
+    </div>
+  </body>
+</html>

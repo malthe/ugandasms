@@ -18,6 +18,14 @@ GROUPS = {
     'ADM': Group("Administrator", 0b11111111),
     }
 
+NETWORKS = tuple((name, re.compile(pattern)) for (name, pattern) in 
+                 (('GSM', '^(\+?256|0)(00)'),
+                  ('MTN', '^(\+?256|0)(78|77|39)'),
+                  ('UTL', '^(\+?256|0)(71)'),
+                  ('Orange', '^(\+?256|0)(79)'),
+                  ('Orange', '^(\+?256|0)(75)'),
+                  ('Warid', '^(\+?256|0)(70)'),))
+
 class User(Base):
     __tablename__ = 'users'
     __table_args__ = {'useexisting' : True}
@@ -30,6 +38,17 @@ class User(Base):
 
     def __unicode__(self):
         return self.name
+
+    def __html__(self):
+        for network, pattern in NETWORKS:
+            if pattern.match(self.number):
+                break
+        else:
+            network = None
+
+        return '''
+        <span class="reporter network-%s" href="#">%s</span>
+        ''' % (network.lower(), self.name)
 
 class UserHealthFacilityMembership(Base):
     __tablename__ = 'facility_memberships'

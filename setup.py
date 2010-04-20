@@ -30,6 +30,7 @@ install_requires = [
     'WebOb',
     'Otto',
     'SQLAlchemy',
+    'Chameleon',
     'PasteScript',
     'PasteDeploy',
     'iso8601',
@@ -58,6 +59,7 @@ setup(
     entry_points="""
     [paste.app_factory]
     router = protocol.run:make_router
+    dashboard = webui.run:make_dashboard
 
     [paste.server_runner]
     wsgiref = router.testing:server_runner
