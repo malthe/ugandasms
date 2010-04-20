@@ -29,7 +29,6 @@ version = sys.version_info[:3]
 install_requires = [
     'WebOb',
     'Otto',
-    'Chameleon',
     'SQLAlchemy',
     'PasteScript',
     'PasteDeploy',
