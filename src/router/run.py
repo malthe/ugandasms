@@ -1,14 +1,23 @@
+import os
+import sys
+
 from webob.dec import wsgify
 from webob import Response
 from datetime import datetime
+from django.core.handlers.wsgi import WSGIHandler
 
-from .orm import Session
 from .models import Delivery
 
 STATUS_DENIED = -2
 STATUS_UNKNOWN = -1
 STATUS_ACCEPTED = 0
 STATUS_QUEUED = 3
+
+# _application = django.core.handlers.wsgi.WSGIHandler()
+
+# def application(environ, start_response):
+#     environ['PATH_INFO'] = environ['SCRIPT_NAME'] + environ['PATH_INFO']
+#     return _application(environ, start_response)
 
 class WSGIApp(object):
     """Kannel HTTP service.
@@ -50,13 +59,11 @@ class WSGIApp(object):
                     type(e).__name__, str(e)), content_type="text/plain",
                 status="406 Not Acceptable")
 
-        session = Session()
-
         # handle delivery reports
         if delivery != -1:
             report = Delivery(
                 time=time, message_id=message_id, status=delivery)
-            session.add(report)
+            report.save()
             response = Response("")
         else:
             # parse message
@@ -66,9 +73,8 @@ class WSGIApp(object):
             message.time = time
 
             # record message and refresh
-            session.add(message)
-            session.flush()
-            session.refresh(message)
+            # XXX session.flush()
+            # XXX session.refresh(message)
 
             # add delivery confirmation request
             response = self.handler(message)
@@ -79,12 +85,13 @@ class WSGIApp(object):
 
             # record reply
             message.reply = response.unicode_body
+            message.save()
 
         # commit or rollback
-        try:
-            session.commit()
-        except:
-            session.rollback()
-            raise
+        # try:
+        #     session.commit()
+        # except:
+        #     session.rollback()
+        #     raise
 
         return response

@@ -29,10 +29,11 @@ version = sys.version_info[:3]
 install_requires = [
     'WebOb',
     'Otto',
-    'SQLAlchemy',
     'PasteScript',
     'PasteDeploy',
     'iso8601',
+    'Django',
+    'django_polymorphic',
     ]
 
 setup(
@@ -56,12 +57,6 @@ setup(
     zip_safe=False,
     tests_require = install_requires + ['manuel', 'nose'],
     entry_points="""
-    [paste.app_factory]
-    router = protocol.run:make_router
-
-    [paste.server_runner]
-    wsgiref = router.testing:server_runner
-
     [console_scripts]
     install_demo_fixture = protocol.fixtures:install_demo
     """,

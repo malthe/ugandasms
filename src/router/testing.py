@@ -1,5 +1,6 @@
 from unittest import TestCase
 from wsgiref.simple_server import make_server
+from dpt import testing as dpt
 
 def server_runner(wsgi_app, global_conf, host=None, port=None):
     server = make_server(host, int(port), wsgi_app)
@@ -70,19 +71,49 @@ class Subscriber(object):
         self._received.append(text)
 
 class FunctionalTestCase(TestCase):
-    def setUp(test):
-        from sqlalchemy import create_engine
-        sqlite_memory_db = create_engine('sqlite://')
-        from .orm import Session
-        session = Session()
-        session.configure(bind=sqlite_memory_db)
-        from .orm import Base
-        Base.metadata.bind = sqlite_memory_db
-        Base.metadata.create_all()
+    def setUp(self):
+        from django.conf import settings
+        settings.configure(
+            DATABASES={
+                'default': {
+                    'ENGINE': 'django.db.backends.sqlite3',
+                    'NAME': ':memory:',
+                    }
+                },
+            INSTALLED_APPS=(
+                'django.contrib.auth',
+                'django.contrib.contenttypes',
+                'django.contrib.sessions',
+                'router',
+                ),
+            )
+        from django.core.management import call_command
+        call_command('syncdb', verbosity=0, interactive=False, database='default')
+        super(FunctionalTestCase, self).setUp()
 
-    def tearDown(test):
-        from .orm import Session
-        session = Session()
-        session.close()
-        from .orm import Base
-        Base.metadata.drop_all(bind=session.bind)
+    def tearDown(self):
+        super(FunctionalTestCase, self).tearDown()
+        from django.core.management import call_command
+        from django.db.models import get_apps
+        from django.db.models import get_app
+        from django.core.exceptions import ImproperlyConfigured
+
+        # reset application data
+        for app in get_apps():
+            # waiting for http://code.djangoproject.com/ticket/3591,
+            # this is our least awful option
+
+            label = app.__name__.rsplit('.', 1)[0]
+            while label:
+                try:
+                    get_app(label)
+                except ImproperlyConfigured:
+                    label = label.split('.', 1)[-1]
+                else:
+                    break
+
+            call_command('reset', label, verbosity=0, interactive=False, database='default')
+
+        # reset configuration
+        from django import conf
+        reload(conf)

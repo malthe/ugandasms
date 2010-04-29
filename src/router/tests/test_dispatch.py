@@ -13,6 +13,6 @@ class HandlerTest(FunctionalTestCase):
             pass
 
         response = self.handler(
-            Test(u"test", sender="123", receiver="456"))
+            Test(text=u"test", sender="123", receiver="456"))
 
         self.assertTrue("test" in response.body)

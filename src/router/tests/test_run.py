@@ -9,7 +9,7 @@ class AppTest(FunctionalTestCase):
         from ..run import WSGIApp
         from ..models import Message
         from ..exc import InvalidMessage
-        from ..orm import Session
+
         class Raises(Message):
             def __init__(self, text, **kwargs):
                 raise InvalidMessage(text)
@@ -21,11 +21,10 @@ class AppTest(FunctionalTestCase):
         from webob import Response
 
         def handler(message):
-            session = Session()
-            session.add(message)
-            session.flush()
+            message.save()
             return Response(repr(
                 (message.sender, message.receiver, message.text, message.kind)))
+
         self.app = WSGIApp(parser, handler, "http://host")
         super(AppTest, self).setUp()
 
@@ -77,11 +76,8 @@ class AppTest(FunctionalTestCase):
 
         response = request.get_response(self.app)
 
-        from ..orm import Session
         from ..models import Message
-        session = Session()
-        results = session.query(Message).all()
-
+        results = Message.objects.all()
         self.assertEquals(len(results), 1)
         self.assertEquals(results[0].text, u"test")
         self.assertEquals(results[0].receiver, u"123")
@@ -112,10 +108,8 @@ class AppTest(FunctionalTestCase):
         request.call_application(self.app)
 
         # verify delivery record
-        from router.orm import Session
-        session = Session()
         from router.models import Delivery
-        delivery = session.query(Delivery).first()
+        delivery = Delivery.objects.get()
         self.assertFalse(delivery is None)
         self.assertEqual(delivery.time, delivered)
         self.assertEqual(delivery.success, True)

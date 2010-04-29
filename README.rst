@@ -10,7 +10,7 @@ Uganda.
 Platform
 --------
 
-- Python 2.6 (with SQLAlchemy 0.6)
+- Python 2.6 (with Django 1.2 r12394)
 - Kannel 1.4.3
 
 Development

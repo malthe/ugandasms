@@ -1,10 +1,12 @@
-from sqlalchemy import Column
-from sqlalchemy import types
-from sqlalchemy.orm import relation
-from sqlalchemy.orm import backref
-from sqlalchemy.schema import ForeignKey
+import re
 
+from django.db import models
 from .orm import Base
+
+def camelcase_to_underscore(str):
+    return re.sub(
+        '(((?<=[a-z])[A-Z])|([A-Z](?![A-Z]|$)))', '-\\1',
+        str).lower().strip('-')
 
 class Message(Base):
     """SMS message.
@@ -12,25 +14,21 @@ class Message(Base):
     The ``text`` attribute contains the original text.
     """
 
-    id = Column(types.Integer, primary_key=True)
-    sender = Column(types.String(12))
-    receiver = Column(types.String(12))
-    text = Column(types.Unicode(160))
-    time = Column(types.DateTime, nullable=True)
-    kind = Column(types.String(25))
+    sender = models.CharField(max_length=12)
+    receiver = models.CharField(max_length=12)
+    text = models.CharField(max_length=160)
+    time = models.DateTimeField(null=True)
 
-    __tablename__ = "messages"
-    __mapper_args__ = {
-        'polymorphic_on': kind,
-        'polymorphic_identity': None,
-        'with_polymorphic': '*',
-        }
-
-    def __init__(self, text, **kwargs):
-        self.text = text
-        self.kind = self.__mapper_args__.get('polymorphic_identity')
-        self.__dict__.update(kwargs)
-        super(Message, self).__init__()
+    @property
+    def kind(self):
+        ctype = self.polymorphic_ctype
+        if ctype is None:
+            cls = type(self)
+        else:
+            cls = self.polymorphic_ctype.model_class()
+            if cls is Message:
+                return
+        return camelcase_to_underscore(cls.__name__)
 
     @property
     def title(self):
@@ -39,16 +37,9 @@ class Message(Base):
 class Delivery(Base):
     """Message delivery confirmation (DLR)."""
 
-    __tablename__ = "deliveries"
-
-    id = Column(types.Integer, primary_key=True)
-    time = Column(types.DateTime)
-    message_id = Column(types.Integer, ForeignKey(Message.id), unique=True)
-    message = relation(
-        Message, primaryjoin=(message_id==Message.id),
-        uselist=False, backref=backref(
-            'delivery', uselist=False))
-    status = Column(types.Integer)
+    time = models.DateTimeField(null=True)
+    message = models.OneToOneField(Message)
+    status = models.IntegerField()
 
     @property
     def success(self):
@@ -57,10 +48,7 @@ class Delivery(Base):
 class Incoming(Message):
     """An incoming message."""
 
-    __tablename__ = "incoming"
-
-    id = Column(types.Integer, ForeignKey(Message.id), primary_key=True)
-    reply = Column(types.Unicode(160))
+    reply = models.CharField(max_length=160)
 
 class Outgoing(Message):
     """An outgoing message."""

@@ -25,8 +25,8 @@ class Parser(object):
             m = matcher(text)
             if m is not None:
                 try:
-                    return factory(text, **m.groupdict())
+                    return factory(text=text, **m.groupdict())
                 except InvalidMessage, exc:
-                    return Invalid(unicode(exc))
+                    return Invalid(text=unicode(exc))
 
-        return NotUnderstood(text)
+        return NotUnderstood(text=text)
