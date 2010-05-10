@@ -1,10 +1,15 @@
-import collections
-
 from django.db import models
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from polymorphic import PolymorphicModel as Model
 from router.models import Incoming
+
+from picoparse import remaining
+from picoparse import one_of
+from picoparse.text import whitespace1
+from router.parser import one_of_strings
+from router.parser import digits
+from router.parser import ParseError
 
 class Facility(Model):
     hmis = models.IntegerField(unique=True)
@@ -24,9 +29,22 @@ class Signup(Incoming):
     facility = models.IntegerField()
     registration_required = True
 
-    def __init__(self, role=None, facility=None, **kwargs):
-        super(Signup, self).__init__(
-            role=role.upper(), facility=int(facility), **kwargs)
+    @staticmethod
+    def parse():
+        one_of('+')
+        role = u"".join(one_of_strings('vht', 'chw', 'hcs', 'hcw')).upper()
+
+        try:
+            whitespace1()
+            facility = int(u"".join(digits()))
+        except:
+            raise ParseError(u"Expected an HMIS facility number (got: %s)." %
+                             "".join(remaining()))
+
+        return {
+            'role': role,
+            'facility': facility
+            }
 
     def __call__(self):
         if self.anonymous:

@@ -17,9 +17,10 @@ def install_demo():
     settings = conf.Settings("settings")
     conf.settings.configure(settings)
 
-    from ..patterns import patterns
+    from django.db.models import get_models
+    from router.models import camelcase_to_dash
     from router.parser import Parser
-    parser = Parser(patterns)
+    parser = Parser(get_models())
 
     path = os.path.join(os.path.dirname(__file__), "demo.csv")
     reader = csv.reader(open(path), delimiter='\t')
@@ -44,7 +45,8 @@ def install_demo():
         message.save()
 
         response = message()
-        print "%s >>> %s [%s]" % (sender, text, message.kind)
+        print "%s >>> %s [%s]" % (
+            sender, text, camelcase_to_dash(message.__class__.__name__))
         print "%s <<< %s" % (sender, "".join(response))
 
     from router.models import Message

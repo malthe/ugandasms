@@ -1,7 +1,7 @@
 from datetime import datetime
 from django.http import HttpResponse as Response
 from django.conf import settings
-
+from django.db.models import get_models
 from .parser import Parser
 from .models import Delivery
 
@@ -33,8 +33,8 @@ def kannel(request):
         report.save()
         response = Response("")
     else:
-        # XXX: cache this
-        parser = Parser(settings.PATTERNS)
+        # to-do: cache this
+        parser = Parser(get_models())
 
         # parse message
         message = parser(text)

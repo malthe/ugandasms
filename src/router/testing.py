@@ -1,4 +1,3 @@
-from copy import deepcopy
 from unittest import TestCase
 from traceback import format_exc
 
@@ -58,27 +57,31 @@ class Subscriber(object):
         text = "<<< " + text
         self._received.append(text)
 
-class FunctionalTestCase(TestCase):
-    INSTALLED_APPS = (
-        'django.contrib.contenttypes',
-        'router',
-        )
-
+class UnitTestCase(TestCase):
     class Settings(object):
         pass
 
     # this is a global!
     SETTINGS = Settings()
-    USER_SETTINGS = {}
 
     def setUp(self):
-        # always reload the configuration package
         from django.conf import settings
         from django.conf import global_settings
 
         if not settings.configured:
-            self.SETTINGS.__dict__.update(global_settings.__dict__)
             settings.configure(self.SETTINGS)
+            self.SETTINGS.__dict__.update(global_settings.__dict__)
+
+class FunctionalTestCase(UnitTestCase):
+    INSTALLED_APPS = (
+        'django.contrib.contenttypes',
+        'router',
+        )
+
+    USER_SETTINGS = {}
+
+    def setUp(self):
+        super(FunctionalTestCase, self).setUp()
 
         self.SETTINGS.__dict__.update({
             'DATABASES': {
@@ -109,7 +112,6 @@ class FunctionalTestCase(TestCase):
         super(FunctionalTestCase, self).tearDown()
         from django.core.management import call_command
         from django.db.models.loading import get_apps
-        from django.core.exceptions import ImproperlyConfigured
 
         for app in get_apps():
             label = app.__name__.split('.')[-2]

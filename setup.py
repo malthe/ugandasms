@@ -28,11 +28,12 @@ long_description = long_description.replace('.. code-block:: python', '::')
 version = sys.version_info[:3]
 
 install_requires = [
+    'Django',
+    'django_polymorphic',
     'PasteScript',
     'PasteDeploy',
     'iso8601',
-    'Django',
-    'django_polymorphic',
+    'picoparse',
     ]
 
 setup(

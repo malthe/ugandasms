@@ -8,15 +8,6 @@ class KannelViewTest(FunctionalTestCase):
         'router.tests',
         )
 
-    def setUp(self):
-        super(KannelViewTest, self).setUp()
-
-        from django.conf import settings
-        settings.PATTERNS = (
-            ('^abc$', "tests.Echo"),
-            ('^(?P<bad_argument>def)$', "tests.Echo"),
-            )
-
     @property
     def _make_request(self):
         from django.http import HttpRequest
@@ -55,37 +46,11 @@ class KannelViewTest(FunctionalTestCase):
         response = self._view(request)
         self.assertEqual(response.status_code, "406 Not Acceptable")
 
-    def test_invalid_message(self):
-        request = self._make_request.post("/", {
-            'receiver': '123',
-            'sender': '456',
-            'text': 'def',
-            'timestamp': str(time.mktime(
-                datetime.datetime(1999, 12, 31).timetuple())),
-            })
-        response = self._view(request)
-        reply = "".join(response).lower()
-        self.assertTrue("error" in reply)
-        self.assertTrue("echo" in reply)
-        self.assertEqual(response.status_code, 200)
-
-    def test_valid_message(self):
-        request = self._make_request.post("/", {
-            'receiver': '123',
-            'sender': '456',
-            'text': 'abc',
-            'timestamp': str(time.mktime(
-                datetime.datetime(1999, 12, 31).timetuple())),
-            })
-        response = self._view(request)
-        self.assertEqual("".join(response), "abc")
-        self.assertEqual(response.status_code, 200)
-
     def test_message_record(self):
         request = self._make_request.post("/", {
             'receiver': '123',
             'sender': '456',
-            'text': 'test',
+            'text': '+echo test',
             'timestamp': str(time.mktime(
                 datetime.datetime(1999, 12, 31).timetuple())),
             })
@@ -98,14 +63,13 @@ class KannelViewTest(FunctionalTestCase):
         self.assertEquals(results[0].text, u"test")
         self.assertEquals(results[0].receiver, u"123")
         self.assertEquals(results[0].sender, u"456")
-        self.assertEquals(results[0].kind, 'not-understood')
         self.assertEquals(results[0].reply, "".join(response))
 
     def test_message_delivery_success(self):
         request = self._make_request.post("/", {
             'receiver': '123',
             'sender': '456',
-            'text': 'test',
+            'text': '+echo test',
             'timestamp': str(time.mktime(
                 datetime.datetime(1999, 12, 31).timetuple())),
             })

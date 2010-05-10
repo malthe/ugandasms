@@ -3,6 +3,7 @@ import re
 from django.db import models
 from polymorphic import PolymorphicModel as Model
 from django.core.exceptions import ObjectDoesNotExist
+from picoparse import eof
 
 def camelcase_to_dash(str):
     return re.sub(
@@ -29,17 +30,6 @@ class Message(Model):
     class Meta:
         ordering = ['-time']
 
-    @property
-    def kind(self):
-        ctype = self.polymorphic_ctype
-        if ctype is None:
-            cls = type(self)
-        else:
-            cls = self.polymorphic_ctype.model_class()
-            if cls is Message:
-                return
-        return camelcase_to_dash(cls.__name__)
-
 class Delivery(Model):
     """Message delivery confirmation (DLR)."""
 
@@ -55,6 +45,7 @@ class Incoming(Message):
     """An incoming message."""
 
     reply = models.CharField(max_length=160)
+    parse = None
 
     @property
     def anonymous(self):
@@ -76,6 +67,8 @@ class Incoming(Message):
 class Empty(Incoming):
     """The empty message."""
 
+    parse = eof
+
 class NotUnderstood(Incoming):
     """Any message which was not understood."""
 
@@ -85,9 +78,9 @@ class NotUnderstood(Incoming):
 class Broken(Incoming):
     """Broken message."""
 
-    factory = models.CharField(max_length=30)
+    kind = models.CharField(max_length=30)
 
     def __call__(self):
         return "System error handling message: %s (type: %s)." % (
-            self.text, camelcase_to_dash(self.factory).replace('-', ' '))
+            self.text, self.kind.replace('-', ' '))
 

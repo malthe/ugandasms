@@ -105,11 +105,12 @@ class DoctestCase(FunctionalTestCase):
             def append(item):
                 gateway.forward(*item)
 
-        # set up gateway
-        from cvs.patterns import patterns
+        # set up parser
+        from django.db.models import get_models
         from router.parser import Parser
-        parser = Parser(patterns)
+        parser = Parser(get_models())
 
+        # set up gateway
         from router.testing import Gateway
         gateway = Gateway(parser, u"1234")
 

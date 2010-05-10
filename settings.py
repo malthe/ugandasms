@@ -2,8 +2,6 @@ DEBUG = True
 
 ROOT_URLCONF = "cvs.urls"
 
-PATTERNS = "cvs.patterns"
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
