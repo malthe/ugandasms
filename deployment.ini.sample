@@ -1,14 +1,9 @@
 [DEFAULT]
 debug = false
 
-[app:router]
-use = egg:SMS-CVS#router
-database = sqlite:///deployment.db
-host = localhost
-port = 13013
-username = kannel
-password = kannel
-dlr_url = http://host/kannel
+[app:django]
+use = egg:SMS-CVS
+settings = %(here)s/settings.py
 
 [app:docs]
 use = egg:Paste#static
@@ -16,8 +11,9 @@ document_root = %(here)s/docs/html
 
 [composite:main]
 use = egg:Paste#urlmap
-/kannel = router
+/media = media
 /docs = docs
+/ = django
 
 [server:main]
 use = egg:Flup#scgi_thread

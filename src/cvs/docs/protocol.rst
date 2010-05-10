@@ -19,7 +19,9 @@ precedes a set of parameters for that section. An example (note that
 
 .. -> input
 
-   >>> parse(input)
+   >>> message = parse(input)
+   >>> message.kind == 'not-understood'
+   False
 
 This message--an aggregated incident report--includes two (required)
 message tokens to help structure input.
@@ -32,6 +34,8 @@ The subscription subsystem handles user registration.
 Registration
 ~~~~~~~~~~~~
 
+  *+REGISTER <name>[, <location>]*
+
 New users of the system are required to register using the
 ``+REGISTER`` command. Users must provide a name and optionally
 location:
@@ -41,8 +45,6 @@ location:
 The idea with a separate registration step is that users might
 subscribe to zero or more services; keeping user registration separate
 allows us to keep service subscription simple.
-
-  *+REGISTER <name>[, <location>]*
 
 Example:
 
@@ -111,21 +113,19 @@ This subsystem implements a set of commands that together form a
 framework to perform community vulnerability surveillance in the
 field.
 
-Location Hierarchy
-~~~~~~~~~~~~~~~~~~
-
-A location database hierarchy will need to be created for a range of catchment areas. Catchment areas in Uganda are as follows: Community (HCI), Parish (HCII), Sub-county (HCIII), County (HCIV and Hospitals) and District. 
-
-Each level should feed information and data from the catchment areas beneath it. The database will be prepopulated with all the Health Center names, HMIS ID codes and GIS coordinates.  Note for the HCI level, there are not HMIS ID codes. Instead, Communities will be first sorted under the HCII/HCIII codes for the facilities which they report to, and then resorted by village names, using fuzzy name matching grouping.  
-
-
 Subscription
 ~~~~~~~~~~~~
 
 Users subscribe to the system using a command that corresponds to
-their role in the system. For the CVS system, there are three primary subscriptions: Village Health Team members, Health Surviellance Officers and Registered Nurses at Outpatient Thereputic Feeding Centers. Subscriptions will place the user at the appropriate level in the hierarchy. 
+their role in the system. For the CVS system, there are three primary
+subscriptions: Village Health Team members, Health Surviellance
+Officers and Registered Nurses at Outpatient Thereputic Feeding
+Centers. Subscriptions will place the user at the appropriate level in
+the hierarchy.
 
-The VHT works at the HCI level, which will be sorted by the HMIS ID codes for HCII/HCIIIs, which is the lowest level that has HMIS ID codes. They will For Health Surviellence
+The VHT works at the HCI level, which will be sorted by the HMIS ID
+codes for HCII/HCIIIs, which is the lowest level that has HMIS ID
+codes. They will For Health Surviellence
 
 Village Health Team, followed by the Health Facility HMIS ID code. 
 
@@ -180,6 +180,15 @@ The WHO and MoH sponsored Community Based Disease Surveillance (CBDS) system was
 Taken from the government form (similiar to HMIS 033B form for Health Units), VHTs are to report on the following diseases: Malaria, Meningitis, Measles, Diarrhea Bloody, Cholera, Persistant Cough (TB) > 2 weeks, AFP/Polio, Guinea Worm, Neonatal Tetanus (3-28 days), Others (Avian Flu, Oncho, Yellow Fever)
 
 While there are 9 key indicators on the "Reporting of Suspected Disease Conditions" form, only 3 are regularly reported on (Malaria, Diarrhea Bloody and TB. Furthermore, a many of the other diseases require immediate response, including Cholera, Meningitis, AFP/Polio, and Guinea Worm.   
+
+Location Hierarchy
+~~~~~~~~~~~~~~~~~~
+
+A location database hierarchy will need to be created for a range of catchment areas. Catchment areas in Uganda are as follows: Community (HCI), Parish (HCII), Sub-county (HCIII), County (HCIV and Hospitals) and District. 
+
+Each level should feed information and data from the catchment areas beneath it. The database will be prepopulated with all the Health Center names, HMIS ID codes and GIS coordinates.  Note for the HCI level, there are not HMIS ID codes. Instead, Communities will be first sorted under the HCII/HCIII codes for the facilities which they report to, and then resorted by village names, using fuzzy name matching grouping.  
+
+
 
 
 Per Case Malnutrition Reports and Referral Monitoring

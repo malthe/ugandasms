@@ -1,34 +1,25 @@
 import os
 import csv
+import imp
 import sys
 import iso8601
 
-from sqlalchemy import create_engine
-
-from router.orm import Session
-from router.orm import Base
-from router.models import Message
-
-from ..patterns import parser
-from ..handler import Handler
+from django import conf
 
 def install_demo():
     try:
-        database = sys.argv[1]
+        settings = sys.argv[1]
     except IndexError:
-        print "Error: Must provide database connection string " \
-              "(e.g. 'sqlite:///file.db')."
+        print "Error: Must provide path to settings module (e.g. ``settings.py``)"
         sys.exit(1)
 
-    # configure database
-    db = create_engine(database)
-    session = Session()
-    session.configure(bind=db)
-    Base.metadata.bind = db
-    Base.metadata.create_all()
+    imp.load_source("settings", settings)
+    settings = conf.Settings("settings")
+    conf.settings.configure(settings)
 
-    queue = []
-    handler = Handler(queue)
+    from ..patterns import patterns
+    from router.parser import Parser
+    parser = Parser(patterns)
 
     path = os.path.join(os.path.dirname(__file__), "demo.csv")
     reader = csv.reader(open(path), delimiter='\t')
@@ -50,12 +41,11 @@ def install_demo():
         message.sender = sender
         message.receiver = receiver
         message.time = time
-        session.add(message)
+        message.save()
 
-        response = handler(message)
+        response = message()
         print "%s >>> %s [%s]" % (sender, text, message.kind)
-        print "%s <<< %s" % (sender, response.body)
+        print "%s <<< %s" % (sender, "".join(response))
 
-    session.commit()
-    print "%d messages recorded." % len(session.query(Message).all())
-    session.close()
+    from router.models import Message
+    print "%d messages recorded." % Message.objects.count()

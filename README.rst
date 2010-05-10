@@ -10,8 +10,15 @@ Uganda.
 Platform
 --------
 
-- Python 2.6 (with Django 1.2 r12394)
+- Python 2.6 (with Django 1.2 r13076)
 - Kannel 1.4.3
+
+Setup
+-----
+
+To enable the Django admin user interface, copy the contents of your
+``django/contrib/admin/media`` directory into a local directory
+``./media``.
 
 Development
 -----------
@@ -21,19 +28,12 @@ Running all tests::
   $ easy_install nose
   $ python setup.py nosetests
 
-To run the server, install the software in development mode and use
+To run the server, install (or develop) the package and use
 ``paster``::
 
   $ python setup.py develop
   $ easy_install pastescript
   $ paster serve development.ini
-
-Building documentation (HTML and PDF formats)::
-
-  $ make html
-  $ make latex
-  $ cd docs/latex
-  $ make all-pdf
 
 Deployment
 ----------
@@ -63,6 +63,17 @@ example of a configuration for the `lighttpd
 To run the server, simply use ``paster``::
 
   $ paster serve deployment.ini
+
+Documentation
+-------------
+
+The system comes with documentation. To build the outputs (HTML and
+PDF formats)::
+
+  $ make html
+  $ make latex
+  $ cd docs/latex
+  $ make all-pdf
 
 Kannel
 ------

@@ -1,17 +1,12 @@
+from copy import deepcopy
 from unittest import TestCase
-from wsgiref.simple_server import make_server
-from dpt import testing as dpt
-
-def server_runner(wsgi_app, global_conf, host=None, port=None):
-    server = make_server(host, int(port), wsgi_app)
-    server.serve_forever()
+from traceback import format_exc
 
 class Gateway(object):
     """Mobile gateway."""
 
-    def __init__(self, parser, handler, receiver):
+    def __init__(self, parser, receiver):
         self.parser = parser
-        self.handler = handler
         self.receiver = receiver
         self._subscribers = {}
 
@@ -26,29 +21,22 @@ class Gateway(object):
         message = self.parser(text)
 
         # record message
-        from router.orm import Session
-        session = Session()
-        session.add(message)
         message.sender = subscriber.number
         message.receiver = self.receiver
-        session.flush()
-        session.refresh(message)
+        message.save()
 
-        response = self.handler(message)
+        response = message()
         if response is not None:
-            message.reply = response.unicode_body
-            self.deliver(subscriber, response.body, message)
+            reply = message.reply = "".join(response)
+            self.deliver(subscriber, reply, message)
 
     def deliver(self, receiver, text, message):
         receiver.receive(text)
 
         # note delivery
-        from router.orm import Session
         from router.models import Delivery
-        session = Session()
-        message.delivery = Delivery(time=message.time, message=message)
-        session.flush()
-        session.refresh(message)
+        delivery = Delivery(time=message.time, message=message, status=1)
+        delivery.save()
 
 class Subscriber(object):
     """Mobile subscriber."""
@@ -71,49 +59,61 @@ class Subscriber(object):
         self._received.append(text)
 
 class FunctionalTestCase(TestCase):
+    INSTALLED_APPS = (
+        'django.contrib.contenttypes',
+        'router',
+        )
+
+    class Settings(object):
+        pass
+
+    # this is a global!
+    SETTINGS = Settings()
+    USER_SETTINGS = {}
+
     def setUp(self):
+        # always reload the configuration package
         from django.conf import settings
-        settings.configure(
-            DATABASES={
+        from django.conf import global_settings
+
+        if not settings.configured:
+            self.SETTINGS.__dict__.update(global_settings.__dict__)
+            settings.configure(self.SETTINGS)
+
+        self.SETTINGS.__dict__.update({
+            'DATABASES': {
                 'default': {
                     'ENGINE': 'django.db.backends.sqlite3',
                     'NAME': ':memory:',
                     }
                 },
-            INSTALLED_APPS=(
-                'django.contrib.auth',
-                'django.contrib.contenttypes',
-                'django.contrib.sessions',
-                'router',
-                ),
-            )
+            'INSTALLED_APPS': self.INSTALLED_APPS,
+            'DLR_URL': 'http://host/kannel',
+            })
+        self.SETTINGS.__dict__.update(self.USER_SETTINGS)
+
+        from django.db.models.loading import cache
+        cache.app_store.clear()
+        cache.loaded = False
+        cache.handled.clear()
+        del cache.postponed[:]
+
         from django.core.management import call_command
-        call_command('syncdb', verbosity=0, interactive=False, database='default')
+        try:
+            call_command('syncdb', verbosity=0, interactive=False, database='default')
+        except SystemExit, exc:
+            self.fail(format_exc(exc))
         super(FunctionalTestCase, self).setUp()
 
     def tearDown(self):
         super(FunctionalTestCase, self).tearDown()
         from django.core.management import call_command
-        from django.db.models import get_apps
-        from django.db.models import get_app
+        from django.db.models.loading import get_apps
         from django.core.exceptions import ImproperlyConfigured
 
-        # reset application data
         for app in get_apps():
-            # waiting for http://code.djangoproject.com/ticket/3591,
-            # this is our least awful option
-
-            label = app.__name__.rsplit('.', 1)[0]
-            while label:
-                try:
-                    get_app(label)
-                except ImproperlyConfigured:
-                    label = label.split('.', 1)[-1]
-                else:
-                    break
-
-            call_command('reset', label, verbosity=0, interactive=False, database='default')
-
-        # reset configuration
-        from django import conf
-        reload(conf)
+            label = app.__name__.split('.')[-2]
+            try:
+                call_command('reset', label, verbosity=0, interactive=False, database='default')
+            except SystemExit, exc:
+                self.fail(format_exc(exc))

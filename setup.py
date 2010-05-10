@@ -4,6 +4,7 @@ __version__ = '1.0dev'
 
 import os
 import sys
+import itertools
 
 from ez_setup import use_setuptools
 use_setuptools()
@@ -27,8 +28,6 @@ long_description = long_description.replace('.. code-block:: python', '::')
 version = sys.version_info[:3]
 
 install_requires = [
-    'WebOb',
-    'Otto',
     'PasteScript',
     'PasteDeploy',
     'iso8601',
@@ -52,13 +51,16 @@ setup(
     install_requires=install_requires,
     license='BSD',
     packages=find_packages('src'),
-    package_dir = {'': 'src'},
+    package_dir={'': 'src'},
     include_package_data=True,
     zip_safe=False,
     tests_require = install_requires + ['manuel', 'nose'],
     entry_points="""
     [console_scripts]
-    install_demo_fixture = protocol.fixtures:install_demo
+    install_demo_fixture = cvs.fixtures:install_demo
+
+    [paste.app_factory]
+    main = cvs.wsgi:make_app
     """,
     )
 
