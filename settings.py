@@ -2,6 +2,8 @@ DEBUG = True
 
 ROOT_URLCONF = "cvs.urls"
 
+DLR_URL = "http://localhost:8080/kannel"
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
