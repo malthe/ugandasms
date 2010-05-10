@@ -13,6 +13,11 @@ Platform
 - Python 2.6 (with Django 1.2 r13076)
 - Kannel 1.4.3
 
+To install the ``django_polymorphic`` dependency, visit the `homepage
+<http://bserve.webhop.org/wiki/django_polymorphic>`_ or download from
+the `Github repository
+<http://github.com/bconstantin/django_polymorphic>`_.
+
 Setup
 -----
 
