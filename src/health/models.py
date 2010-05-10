@@ -46,7 +46,7 @@ class Signup(Incoming):
             'facility': facility
             }
 
-    def __call__(self):
+    def handle(self):
         if self.anonymous:
             return getattr(
                 settings, "REGISTERED_USERS_ONLY_MESSAGE",

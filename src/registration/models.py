@@ -49,7 +49,7 @@ class Registration(Incoming):
             'location': location,
             }
 
-    def __call__(self):
+    def handle(self):
         try:
             user = self.user
         except ObjectDoesNotExist:

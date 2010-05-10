@@ -54,7 +54,7 @@ class Incoming(Message):
         except ObjectDoesNotExist:
             return True
 
-    def __call__(self):
+    def handle(self):
         """Handle incoming message.
 
         The return value is used as the message reply; a ``None``
@@ -62,7 +62,7 @@ class Incoming(Message):
         """
 
         raise NotImplementedError(
-            "Message must provide the call function.")
+            "Message must implement the ``handle`` function.")
 
 class Empty(Incoming):
     """The empty message."""
@@ -72,7 +72,7 @@ class Empty(Incoming):
 class NotUnderstood(Incoming):
     """Any message which was not understood."""
 
-    def __call__(self):
+    def handle(self):
         return "Message not understood: %s." % self.text
 
 class Broken(Incoming):
@@ -80,7 +80,7 @@ class Broken(Incoming):
 
     kind = models.CharField(max_length=30)
 
-    def __call__(self):
+    def handle(self):
         return "System error handling message: %s (type: %s)." % (
             self.text, self.kind.replace('-', ' '))
 

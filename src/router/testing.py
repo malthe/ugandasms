@@ -24,7 +24,7 @@ class Gateway(object):
         message.receiver = self.receiver
         message.save()
 
-        response = message()
+        response = message.handle()
         if response is not None:
             reply = message.reply = "".join(response)
             self.deliver(subscriber, reply, message)

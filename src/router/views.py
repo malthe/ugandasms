@@ -40,7 +40,7 @@ def kannel(request):
         message.time = time
 
         # process and record reply
-        reply = message()
+        reply = message.handle()
         message.reply = reply
         message.save()
 

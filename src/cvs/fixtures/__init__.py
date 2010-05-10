@@ -44,7 +44,7 @@ def install_demo():
         message.time = time
         message.save()
 
-        response = message()
+        response = message.handle()
         print "%s >>> %s [%s]" % (
             sender, text, camelcase_to_dash(message.__class__.__name__))
         print "%s <<< %s" % (sender, "".join(response))

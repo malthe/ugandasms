@@ -27,7 +27,7 @@ class Echo(Incoming):
             'text': "".join(many(any_token))
             }
 
-    def __call__(self):
+    def handle(self):
         return self.text
 
 class Error(Echo):
