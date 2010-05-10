@@ -1,17 +1,8 @@
 DEBUG = True
 
-SMS_SEND_SERVICE = {
-    'host': 'localhost',
-    'port': 13013,
-    'username': 'kannel',
-    'password': 'kannel',
-    }
-
-DLR_URL = "http://localhost:8080/kannel"
+ROOT_URLCONF = "cvs.urls"
 
 PATTERNS = "cvs.patterns"
-
-ROOT_URLCONF = "cvs.urls"
 
 DATABASES = {
     'default': {
