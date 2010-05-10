@@ -47,7 +47,7 @@ class KannelViewTest(FunctionalTestCase):
         self.assertEqual(response.status_code, "406 Not Acceptable")
 
     def test_message_record(self):
-        request = self._make_request.post("/", {
+        request = self._make_request.get("/", {
             'receiver': '123',
             'sender': '456',
             'text': '+echo test',
@@ -66,7 +66,7 @@ class KannelViewTest(FunctionalTestCase):
         self.assertEquals(results[0].reply, "".join(response))
 
     def test_message_delivery_success(self):
-        request = self._make_request.post("/", {
+        request = self._make_request.get("/", {
             'receiver': '123',
             'sender': '456',
             'text': '+echo test',

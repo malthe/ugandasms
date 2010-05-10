@@ -92,7 +92,7 @@ Here's an example of a ``sms-service`` configuration section::
   keyword-regex = .*
   catch-all = yes
   max-messages = 3
-  post-url = "http://localhost:8080/kannel?sender=%p&receiver=%P&text=%b&timestamp=%T"
+  get-url = "http://localhost:8080/kannel?sender=%p&receiver=%P&text=%b&timestamp=%T"
   concatenation = true
   assume-plain-text = true
   accept-x-kannel-headers = true

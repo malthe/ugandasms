@@ -7,19 +7,16 @@ from .models import Delivery
 
 def kannel(request):
     try:
-        delivery = int(request.REQUEST.get('delivery', -1))
+        delivery = int(request.GET.get('delivery', 0))
         time = datetime.fromtimestamp(
-            float(request.REQUEST['timestamp']))
+            float(request.GET['timestamp']))
 
-        # message send
-        if request.method == 'POST':
-            sender = request.POST['sender']
-            receiver = request.POST['receiver']
-            text = request.POST['text']
-
-        # message delivery
-        elif request.method == 'GET':
+        if delivery:
             message_id = int(request.GET['id'])
+        else:
+            sender = request.GET['sender']
+            receiver = request.GET['receiver']
+            text = request.GET['text']
     except Exception, e:
         return Response(
             "There was an error (``%s``) processing the request: %s." % (
@@ -27,7 +24,7 @@ def kannel(request):
             status="406 Not Acceptable")
 
     # handle delivery reports
-    if delivery != -1:
+    if delivery:
         report = Delivery(
             time=time, message_id=message_id, status=delivery)
         report.save()
