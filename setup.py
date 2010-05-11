@@ -61,7 +61,7 @@ setup(
     install_demo_fixture = cvs.fixtures:install_demo
 
     [paste.app_factory]
-    main = cvs.wsgi:make_app
+    main = router.wsgi:make_app
     """,
     )
 
