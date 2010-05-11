@@ -17,11 +17,12 @@ class ProxyForeignKey(models.ForeignKey):
 class User(Model):
     """Identified user.
 
-    The ``peers`` list can be used for identification.
+    The instrumented ``peers`` list can be used for identification.
     """
 
     name = models.CharField(max_length=50, null=True)
     location = models.CharField(max_length=50, null=True)
+    peers = []
 
     def __unicode__(self):
         return self.name
@@ -56,6 +57,7 @@ class Message(Model):
     is not registered, the object may not exist.
     """
 
+    uri = None
     text = models.CharField(max_length=160)
     time = models.DateTimeField(null=True)
     peer = ProxyForeignKey(Peer, db_column="uri", null=True)
