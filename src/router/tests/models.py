@@ -4,18 +4,11 @@ from polymorphic import PolymorphicModel as Model
 from picoparse import any_token
 from picoparse import many
 from picoparse import one_of
-from picoparse.text import whitespace
 from picoparse.text import whitespace1
 from picoparse.text import caseless_string
 
 from ..models import Incoming
 from ..parser import ParseError
-
-class User(Model):
-    number = models.CharField(max_length=12, unique=True)
-
-    class Meta:
-        app_label = 'router'
 
 class Echo(Incoming):
     @staticmethod

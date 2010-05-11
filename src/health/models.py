@@ -3,6 +3,7 @@ from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from polymorphic import PolymorphicModel as Model
 from router.models import Incoming
+from router.models import User
 
 from picoparse import remaining
 from picoparse import one_of
@@ -19,8 +20,7 @@ class Facility(Model):
 class Subscription(Model):
     role = models.CharField(max_length=3)
     facility = models.ForeignKey(Facility, null=True)
-    user = models.ForeignKey(
-        "router.User", to_field="number", related_name="subscriptions", null=True)
+    user = models.ForeignKey(User, related_name="subscriptions", null=True)
 
 class Signup(Incoming):
     """Message to register as health worker."""

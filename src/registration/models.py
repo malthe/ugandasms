@@ -1,7 +1,7 @@
 from django.db import models
 from django.core.exceptions import ObjectDoesNotExist
-from polymorphic import PolymorphicModel as Model
 from router.models import Incoming
+from router.models import User
 
 from picoparse import any_token
 from picoparse import many
@@ -14,17 +14,6 @@ from picoparse.text import whitespace1
 from router.parser import one_of_strings
 from router.parser import next_parameter
 from router.parser import ParseError
-
-class User(Model):
-    number = models.CharField(max_length=12, unique=True)
-    name = models.CharField(max_length=50, null=True)
-    location = models.CharField(max_length=50, null=True)
-
-    class Meta:
-        app_label = "router"
-
-    def __unicode__(self):
-        return self.name
 
 class Registration(Incoming):
     """Register with the system."""

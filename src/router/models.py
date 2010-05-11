@@ -3,6 +3,7 @@ import re
 from django.db import models
 from polymorphic import PolymorphicModel as Model
 from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import ForeignKey
 from picoparse import eof
 
 def camelcase_to_dash(str):
@@ -14,6 +15,14 @@ class ProxyForeignKey(models.ForeignKey):
     def get_attname(self):
         return self.db_column
 
+class User(Model):
+    number = models.CharField(max_length=12, unique=True)
+    name = models.CharField(max_length=50, null=True)
+    location = models.CharField(max_length=50, null=True)
+
+    def __unicode__(self):
+        return self.name
+
 class Message(Model):
     """SMS message.
 
@@ -23,9 +32,8 @@ class Message(Model):
     receiver = models.CharField(max_length=12)
     text = models.CharField(max_length=160)
     time = models.DateTimeField(null=True)
-    user = ProxyForeignKey(
-        "router.User", to_field="number", db_column="sender",
-        related_name="messages", null=True)
+    user = ProxyForeignKey(User, to_field="number", db_column="sender",
+                      related_name="messages", null=True)
 
     class Meta:
         ordering = ['-time']
