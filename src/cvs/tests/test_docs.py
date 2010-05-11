@@ -73,12 +73,13 @@ class DoctestCase(FunctionalTestCase):
 
         # setup admin user
         from registration.models import User
+        from router.models import Peer
         admin = User(
             id=0,
             name=u"Administrator",
-            number="256000000000",
             location="Ministry of Health")
 
+        admin.peers.add(Peer(uri="mobile://256000000000"))
         admin.save()
 
         # add health clinic
@@ -112,14 +113,14 @@ class DoctestCase(FunctionalTestCase):
 
         # set up gateway
         from router.testing import Gateway
-        gateway = Gateway(parser, u"1234")
+        gateway = Gateway(parser)
 
         # set up test subscribers
         from router.testing import Subscriber
         self.globs.update({
-            'admin': Subscriber(gateway, u"256000000000"),
-            'jonathan': Subscriber(gateway, u"256000000001"),
-            'sam': Subscriber(gateway, u"256000000002"),
+            'admin': Subscriber(gateway, u"mobile://256000000000"),
+            'jonathan': Subscriber(gateway, u"mobile://256000000001"),
+            'sam': Subscriber(gateway, u"mobile://256000000002"),
             'parse': parser,
             })
 

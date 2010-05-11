@@ -2,8 +2,10 @@ from datetime import datetime
 from django.http import HttpResponse as Response
 from django.conf import settings
 from django.db.models import get_models
+from django.core.exceptions import ObjectDoesNotExist
 from .parser import Parser
 from .models import Delivery
+from .models import Peer
 
 def kannel(request):
     try:
@@ -15,7 +17,6 @@ def kannel(request):
             message_id = int(request.GET['id'])
         else:
             sender = request.GET['sender']
-            receiver = request.GET['receiver']
             text = request.GET['text']
     except Exception, e:
         return Response(
@@ -35,9 +36,16 @@ def kannel(request):
 
         # parse message
         message = parser(text)
-        message.sender = sender
-        message.receiver = receiver
+        message.uri = "kannel://%s" % sender
         message.time = time
+
+        try:
+            peer = message.peer
+        except ObjectDoesNotExist:
+            peer = None
+
+        if peer is None:
+            Peer(uri=message.uri).save()
 
         # process and record reply
         reply = message.handle()

@@ -4,25 +4,34 @@ from traceback import format_exc
 class Gateway(object):
     """Mobile gateway."""
 
-    def __init__(self, parser, receiver):
+    def __init__(self, parser):
         self.parser = parser
-        self.receiver = receiver
         self._subscribers = {}
 
-    def forward(self, receiver, text):
-        assert receiver != self.receiver
-        assert receiver in self._subscribers
-        subscriber = self._subscribers[receiver]
-        subscriber.receive(text)
+    # def forward(self, receiver, text):
+    #     assert receiver != self.receiver
+    #     assert receiver in self._subscribers
+    #     subscriber = self._subscribers[receiver]
+    #     subscriber.receive(text)
 
     def send(self, subscriber, text):
-        self._subscribers[subscriber.number] = subscriber
+        self._subscribers[subscriber.uri] = subscriber
         message = self.parser(text)
 
         # record message
-        message.sender = subscriber.number
-        message.receiver = self.receiver
+        message.uri = subscriber.uri
         message.save()
+
+        # record peer
+        from django.core.exceptions import ObjectDoesNotExist
+        try:
+            peer = message.peer
+        except ObjectDoesNotExist:
+            peer = None
+
+        if peer is None:
+            from router.models import Peer
+            Peer(uri=message.uri).save()
 
         response = message.handle()
         if response is not None:
@@ -40,9 +49,9 @@ class Gateway(object):
 class Subscriber(object):
     """Mobile subscriber."""
 
-    def __init__(self, gateway, number=None):
+    def __init__(self, gateway, uri=None):
         self.gateway = gateway
-        self.number = number
+        self.uri = uri
         self._received = []
 
     def send(self, text):

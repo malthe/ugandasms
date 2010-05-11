@@ -39,34 +39,34 @@ class Registration(Incoming):
             }
 
     def handle(self):
-        try:
-            user = self.user
-        except ObjectDoesNotExist:
-            user = User(
-                number=self.sender,
+        if self.user is None:
+            self.user = User(
                 name = self.name,
-                location = self.location,
+                location = self.location
                 )
 
-            user.save()
+            self.user.save()
+
+            # we define the relation to the message per only after the
+            # user object has been saved (to ensure that we have a
+            # primary key)
+            self.user.peers.add(self.peer)
+            self.user.save()
+
             return (
                 "Welcome, %(name)s (#%(id)04d). "
                 "You have been registered.") % {
                 'name': self.name,
-                'id': user.id,
+                'id': self.user.id,
                 }
 
-        user.name = self.name
-        user.location = self.location
-        user.save()
+        self.user.name = self.name
+        self.user.location = self.location
+        self.user.save()
 
         return (
             "Hello, %(name)s (#%(id)04d). "
             "You have updated your information.") % {
             'name': self.name,
-            'id': user.id,
+            'id': self.user.id,
             }
-
-
-
-

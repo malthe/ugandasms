@@ -48,7 +48,6 @@ class KannelViewTest(FunctionalTestCase):
 
     def test_message_record(self):
         request = self._make_request.get("/", {
-            'receiver': '123',
             'sender': '456',
             'text': '+echo test',
             'timestamp': str(time.mktime(
@@ -61,13 +60,11 @@ class KannelViewTest(FunctionalTestCase):
         results = Message.objects.all()
         self.assertEquals(len(results), 1)
         self.assertEquals(results[0].text, u"test")
-        self.assertEquals(results[0].receiver, u"123")
-        self.assertEquals(results[0].sender, u"456")
+        self.assertEquals(results[0].uri, u"kannel://456")
         self.assertEquals(results[0].reply, "".join(response))
 
     def test_message_delivery_success(self):
         request = self._make_request.get("/", {
-            'receiver': '123',
             'sender': '456',
             'text': '+echo test',
             'timestamp': str(time.mktime(

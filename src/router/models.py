@@ -3,7 +3,6 @@ import re
 from django.db import models
 from polymorphic import PolymorphicModel as Model
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import ForeignKey
 from picoparse import eof
 
 def camelcase_to_dash(str):
@@ -16,24 +15,61 @@ class ProxyForeignKey(models.ForeignKey):
         return self.db_column
 
 class User(Model):
-    number = models.CharField(max_length=12, unique=True)
+    """Identified user.
+
+    The ``peers`` list can be used for identification.
+    """
+
     name = models.CharField(max_length=50, null=True)
     location = models.CharField(max_length=50, null=True)
 
     def __unicode__(self):
         return self.name
 
-class Message(Model):
-    """SMS message.
+class Peer(Model):
+    """Remote peer object.
 
-    The ``text`` attribute contains the original text.
+    The ``uri`` attribute identifies the peer in terms of a transport
+    token and an identification string.
+
+    Examples:
+
+      kannel://256703945965
+      twitter://bob
+      email://bob@host.com
+
+
+    The transport token identifies a transport; this is configured in
+    the Django settings module under the ``TRANSPORTS`` key.
     """
 
-    receiver = models.CharField(max_length=12)
+    uri = models.CharField(max_length=30, primary_key=True)
+    user = models.ForeignKey(User, related_name="peers", null=True)
+
+    def __repr__(self):
+        return '<Peer uri="%s" at 0x%x>' % (self.uri, id(self))
+
+class Message(Model):
+    """SMS message between a user and the system.
+
+    The ``user`` attribute holds a relation to the user. If the user
+    is not registered, the object may not exist.
+    """
+
     text = models.CharField(max_length=160)
     time = models.DateTimeField(null=True)
-    user = ProxyForeignKey(User, to_field="number", db_column="sender",
-                      related_name="messages", null=True)
+    peer = ProxyForeignKey(Peer, db_column="uri", null=True)
+
+    def get_user(self):
+        try:
+            return self.peer.user
+        except ObjectDoesNotExist:
+            pass
+
+    def set_user(self, user):
+        self.peer.user = user
+
+    user = property(get_user, set_user)
 
     class Meta:
         ordering = ['-time']
