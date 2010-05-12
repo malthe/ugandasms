@@ -9,6 +9,11 @@ DATABASES = {
     }
 }
 
+MESSAGES = (
+    'registration.Registration',
+    'health.Signup',
+    )
+
 TRANSPORTS = {
     'kannel': {
         'TRANSPORT': 'router.transports.Kannel',
