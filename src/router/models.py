@@ -137,7 +137,7 @@ class NotUnderstood(Incoming):
     """Any message which was not understood."""
 
     def handle(self):
-        return "Message not understood: %s." % self.text
+        self.reply("Message not understood: %s." % self.text)
 
 class Broken(Incoming):
     """Broken message."""
@@ -145,6 +145,6 @@ class Broken(Incoming):
     kind = models.CharField(max_length=30)
 
     def handle(self):
-        return "System error handling message: %s (type: %s)." % (
-            self.text, self.kind.replace('-', ' '))
+        self.reply("System error handling message: %s (type: %s)." % (
+            self.text, self.kind.replace('-', ' ')))
 
