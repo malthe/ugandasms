@@ -20,8 +20,6 @@ precedes a set of parameters for that section. An example (note that
 .. -> input
 
    >>> message = parse(input)
-   >>> message.handle() is not None
-   True
 
 This message--an aggregated incident report--includes two (required)
 message tokens to help structure input.
