@@ -2,10 +2,10 @@
 #
 
 # You can set these variables from the command line.
-SPHINXOPTS    = src/cvs/docs
+SPHINXOPTS    = docs
 SPHINXBUILD   = /usr/bin/env sphinx-build
 PAPER         =
-BUILDDIR      = docs
+BUILDDIR      = build
 
 # Internal variables.
 PAPEROPT_a4     = -D latex_paper_size=a4
@@ -61,9 +61,9 @@ qthelp:
 	@echo
 	@echo "Build finished; now you can run "qcollectiongenerator" with the" \
 	      ".qhcp project file in $(BUILDDIR)/qthelp, like this:"
-	@echo "# qcollectiongenerator $(BUILDDIR)/qthelp/SMS-CVS.qhcp"
+	@echo "# qcollectiongenerator $(BUILDDIR)/qthelp/SMS.qhcp"
 	@echo "To view the help file:"
-	@echo "# assistant -collectionFile $(BUILDDIR)/qthelp/SMS-CVS.qhc"
+	@echo "# assistant -collectionFile $(BUILDDIR)/qthelp/SMS.qhc"
 
 latex:
 	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/latex

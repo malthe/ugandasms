@@ -46,7 +46,7 @@ setup(
        "Intended Audience :: Developers",
        "Programming Language :: Python",
       ],
-    keywords="rapidsms unicef cvs",
+    keywords="mhealth unicef sms",
     author="Malthe Borch and UNICEF Uganda T4D Unit",
     author_email="mborch@gmail.com",
     install_requires=install_requires,
