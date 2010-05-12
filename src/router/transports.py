@@ -79,9 +79,9 @@ class Transport(object):
         for key, value in options.items():
             setattr(self, key.lower(), value)
 
-    def incoming(self, ident, text, time):
+    def incoming(self, ident, text, time=None):
         message = self.parse(text)
-        message.time = time
+        message.time = time or datetime.now()
         message.uri = uri="%s://%s" % (self.name, ident)
         message.save()
 
