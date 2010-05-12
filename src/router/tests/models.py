@@ -21,7 +21,7 @@ class Echo(Incoming):
             }
 
     def handle(self):
-        return self.text
+        self.reply(self.text)
 
 class Error(Echo):
     class Meta:

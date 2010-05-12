@@ -48,24 +48,23 @@ class Signup(Incoming):
 
     def handle(self):
         if self.anonymous:
-            return getattr(
+            self.reply(getattr(
                 settings, "REGISTERED_USERS_ONLY_MESSAGE",
-                u"You must be registered to use this service.")
+                u"You must be registered to use this service."))
+        else:
+            try:
+                facility = Facility.objects.filter(hmis=self.facility).get()
+            except ObjectDoesNotExist:
+                return u"No such facility HMIS code: %d." % self.facility
 
-        try:
-            facility = Facility.objects.filter(hmis=self.facility).get()
-        except ObjectDoesNotExist:
-            return u"No such facility HMIS code: %d." % self.facility
+            self.user.subscriptions.create(
+                role=self.role,
+                facility=facility)
 
-        self.user.subscriptions.create(
-            role=self.role,
-            facility=facility)
-
-        return (
-            "You have joined the "
-            "Community Vulnerability Surveillance System "
-            "as a %s for %s in %s. Please resend if "
-            "there is a mistake.") % (
-            getattr(settings, "HEALTH_FACILITY_ROLES", {}).get(self.role, self.role),
-            facility.name, facility.location)
-
+            self.reply((
+                "You have joined the "
+                "Community Vulnerability Surveillance System "
+                "as a %s for %s in %s. Please resend if "
+                "there is a mistake.") % (
+                getattr(settings, "HEALTH_FACILITY_ROLES", {}).get(self.role, self.role),
+                facility.name, facility.location))

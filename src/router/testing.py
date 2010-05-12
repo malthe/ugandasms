@@ -33,18 +33,19 @@ class Gateway(object):
             from router.models import Peer
             Peer(uri=message.uri).save()
 
-        response = message.handle()
-        if response is not None:
-            reply = message.reply = "".join(response)
-            self.deliver(subscriber, reply, message)
+        message.handle()
 
-    def deliver(self, receiver, text, message):
-        receiver.receive(text)
+        from router.models import Outgoing
+        replies = Outgoing.objects.filter(in_reply_to=message)
+        for reply in replies:
+            self.deliver(subscriber, reply, message.time)
 
-        # note delivery
-        from router.models import Delivery
-        delivery = Delivery(time=message.time, message=message, status=1)
-        delivery.save()
+    def deliver(self, receiver, reply, time):
+        receiver.receive(reply.text)
+
+        # note delivery time
+        reply.delivery = time
+        reply.save()
 
 class Subscriber(object):
     """Mobile subscriber."""

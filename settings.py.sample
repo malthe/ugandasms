@@ -2,14 +2,20 @@ DEBUG = True
 
 ROOT_URLCONF = "cvs.urls"
 
-DLR_URL = "http://localhost:8080/kannel"
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': 'sms.db'
     }
 }
+
+TRANSPORTS = {
+    'kannel': {
+        'TRANSPORT': 'router.transports.Kannel',
+        'SMS_URL': 'http://localhost:13013/cgi-bin/sendsms?username=kannel&password=kannel',
+        'DLR_URL': 'http://localhost:8080/kannel',
+        }
+    }
 
 INSTALLED_APPS = (
     'django.contrib.auth',

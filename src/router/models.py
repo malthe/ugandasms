@@ -1,18 +1,14 @@
 import re
 
 from django.db import models
-from polymorphic import PolymorphicModel as Model
 from django.core.exceptions import ObjectDoesNotExist
+from polymorphic import PolymorphicModel as Model
 from picoparse import eof
 
 def camelcase_to_dash(str):
     return re.sub(
         '(((?<=[a-z])[A-Z])|([A-Z](?![A-Z]|$)))', '-\\1',
         str).lower().strip('-')
-
-class ProxyForeignKey(models.ForeignKey):
-    def get_attname(self):
-        return self.db_column
 
 class User(Model):
     """Identified user.
@@ -22,10 +18,19 @@ class User(Model):
 
     name = models.CharField(max_length=50, null=True)
     location = models.CharField(max_length=50, null=True)
-    peers = []
+    peers = ()
 
     def __unicode__(self):
         return self.name
+
+class CustomForeignKey(models.ForeignKey):
+    def __init__(self, *args, **kwargs):
+        self.column = kwargs.pop('column')
+        kwargs.setdefault('db_column', "%s_id" % self.column)
+        return super(CustomForeignKey, self).__init__(*args, **kwargs)
+
+    def get_attname(self):
+        return self.column
 
 class Peer(Model):
     """Remote peer object.
@@ -60,7 +65,7 @@ class Message(Model):
     uri = None
     text = models.CharField(max_length=160)
     time = models.DateTimeField(null=True)
-    peer = ProxyForeignKey(Peer, db_column="uri", null=True)
+    peer = CustomForeignKey(Peer, column="uri", null=True)
 
     def get_user(self):
         try:
@@ -73,25 +78,22 @@ class Message(Model):
 
     user = property(get_user, set_user)
 
-    class Meta:
-        ordering = ['-time']
-
-class Delivery(Model):
-    """Message delivery confirmation (DLR)."""
-
-    time = models.DateTimeField(null=True)
-    message = models.OneToOneField(Message)
-    status = models.IntegerField()
+    @property
+    def transport(self):
+        return self.uri.split('://', 1)[0]
 
     @property
-    def success(self):
-        return self.status == 1
+    def ident(self):
+        return self.uri.split('://', 1)[1]
+
+    class Meta:
+        ordering = ['-time']
 
 class Incoming(Message):
     """An incoming message."""
 
-    reply = models.CharField(max_length=160)
     parse = None
+    replies = ()
 
     @property
     def anonymous(self):
@@ -109,6 +111,22 @@ class Incoming(Message):
 
         raise NotImplementedError(
             "Message must implement the ``handle`` function.")
+
+    def reply(self, text):
+        """Schedule an outgoing message as reply to this message."""
+
+        message = Outgoing(text=text, uri=self.uri, in_reply_to=self)
+        message.save()
+
+class Outgoing(Message):
+    """An outgoing message."""
+
+    in_reply_to = models.ForeignKey(Incoming, related_name="replies")
+    delivery = models.DateTimeField(null=True)
+
+    @property
+    def delivered(self):
+        return self.delivery is not None
 
 class Empty(Incoming):
     """The empty message."""

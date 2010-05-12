@@ -3,10 +3,19 @@ import datetime
 
 from ..testing import FunctionalTestCase
 
-class KannelViewTest(FunctionalTestCase):
+class KannelTest(FunctionalTestCase):
     INSTALLED_APPS = FunctionalTestCase.INSTALLED_APPS + (
         'router.tests',
         )
+
+    USER_SETTINGS = {
+        'TRANSPORTS': {
+            'kannel': {
+                'TRANSPORT': 'router.transports.Kannel',
+                'SMS_URL': 'http://locahost:13013/cgi-bin/sendsms',
+                }
+            }
+        }
 
     @property
     def _make_request(self):
@@ -56,14 +65,23 @@ class KannelViewTest(FunctionalTestCase):
 
         response = self._view(request)
 
-        from ..models import Message
-        results = Message.objects.all()
+        from ..models import Incoming
+        results = Incoming.objects.all()
         self.assertEquals(len(results), 1)
         self.assertEquals(results[0].text, u"test")
         self.assertEquals(results[0].uri, u"kannel://456")
-        self.assertEquals(results[0].reply, "".join(response))
+
+        from ..models import Outgoing
+        results = Outgoing.objects.all()
+        self.assertEquals(len(results), 1)
+        self.assertEquals(results[0].text, u"test")
+        self.assertEquals(results[0].uri, u"kannel://456")
 
     def test_message_delivery_success(self):
+        # set up mock sms service
+        from router.transports import get_transport
+        kannel = get_transport('kannel')
+
         request = self._make_request.get("/", {
             'sender': '456',
             'text': '+echo test',
@@ -71,23 +89,31 @@ class KannelViewTest(FunctionalTestCase):
                 datetime.datetime(1999, 12, 31).timetuple())),
             })
 
+        headers = {}
+        def fetch(request, **kwargs):
+            headers.update(request.headers)
+        kannel.fetch = fetch
+        from django.conf import settings
+        settings.TRANSPORTS['kannel']['DLR_URL'] = 'http://localhost'
+
         response = self._view(request)
         self.assertEqual(response.status_code, 200)
 
-        dlr_url = response.get('X-Kannel-DLR-Url', None)
+        dlr_url = headers.get('X-kannel-dlr-url', None)
         self.assertNotEqual(dlr_url, None)
 
         query_string = dlr_url.split('?')[1]
-        delivered = datetime.datetime(2000, 1, 1)
+        delivery = datetime.datetime(2000, 1, 1)
 
+        # fill in the blanks
         request = self._make_request.get("?" + query_string.replace(
-            '%d', '1').replace('%T', str(time.mktime(delivered.timetuple()))))
+            '%d', '1').replace('%T', str(time.mktime(delivery.timetuple()))))
         response = self._view(request)
         self.assertEqual("".join(response), "")
 
         # verify delivery record
-        from router.models import Delivery
-        delivery = Delivery.objects.get()
-        self.assertFalse(delivery is None)
-        self.assertEqual(delivery.time, delivered)
-        self.assertEqual(delivery.success, True)
+        from router.models import Outgoing
+        message = Outgoing.objects.get()
+        self.assertFalse(message is None)
+        self.assertEqual(message.delivery, delivery)
+        self.assertEqual(message.delivered, True)

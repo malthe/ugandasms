@@ -1,5 +1,4 @@
 from django.db import models
-from django.core.exceptions import ObjectDoesNotExist
 from router.models import Incoming
 from router.models import User
 
@@ -53,20 +52,20 @@ class Registration(Incoming):
             self.user.peers.add(self.peer)
             self.user.save()
 
-            return (
+            self.reply((
                 "Welcome, %(name)s (#%(id)04d). "
                 "You have been registered.") % {
                 'name': self.name,
                 'id': self.user.id,
-                }
+                })
+        else:
+            self.user.name = self.name
+            self.user.location = self.location
+            self.user.save()
 
-        self.user.name = self.name
-        self.user.location = self.location
-        self.user.save()
-
-        return (
-            "Hello, %(name)s (#%(id)04d). "
-            "You have updated your information.") % {
-            'name': self.name,
-            'id': self.user.id,
-            }
+            self.reply((
+                "Hello, %(name)s (#%(id)04d). "
+                "You have updated your information.") % {
+                           'name': self.name,
+                           'id': self.user.id,
+                           })
