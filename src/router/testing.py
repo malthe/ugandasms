@@ -8,12 +8,6 @@ class Gateway(object):
         self.parser = parser
         self._subscribers = {}
 
-    # def forward(self, receiver, text):
-    #     assert receiver != self.receiver
-    #     assert receiver in self._subscribers
-    #     subscriber = self._subscribers[receiver]
-    #     subscriber.receive(text)
-
     def send(self, subscriber, text):
         self._subscribers[subscriber.uri] = subscriber
         message = self.parser(text)
