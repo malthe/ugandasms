@@ -7,7 +7,6 @@ Contents
    :maxdepth: 2
 
    protocol.rst
-   testing.rst
    glossary.rst
 
 Indices and tables
