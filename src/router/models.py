@@ -65,7 +65,7 @@ class Message(Model):
     uri = None
     text = models.CharField(max_length=160)
     time = models.DateTimeField(null=True)
-    peer = CustomForeignKey(Peer, column="uri", null=True)
+    peer = CustomForeignKey(Peer, column="uri", related_name="messages", null=True)
 
     def get_user(self):
         try:
