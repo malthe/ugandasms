@@ -146,6 +146,9 @@ class Empty(Incoming):
     def parse():
         eof()
 
+    def handle(self):
+        self.reply(u"You sent a message with no text.")
+
 class NotUnderstood(Incoming):
     """Any message which was not understood."""
 
