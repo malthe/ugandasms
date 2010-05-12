@@ -94,9 +94,6 @@ class Transport(object):
 
         message.handle()
 
-    def outgoing(self, message):
-        raise NotImplementedError("Must be implemented by subclass.")
-
 class Kannel(Transport):
     """Kannel transport.
 
