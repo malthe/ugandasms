@@ -1,3 +1,4 @@
+from copy import deepcopy
 from unittest import TestCase
 from traceback import format_exc
 
@@ -97,7 +98,8 @@ class FunctionalTestCase(UnitTestCase):
             'INSTALLED_APPS': self.INSTALLED_APPS,
             'DLR_URL': 'http://host/kannel',
             })
-        self.SETTINGS.__dict__.update(self.USER_SETTINGS)
+
+        self.SETTINGS.__dict__.update(deepcopy(self.USER_SETTINGS))
 
         from django.db.models.loading import cache
         cache.app_store.clear()

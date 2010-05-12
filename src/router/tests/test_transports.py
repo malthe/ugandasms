@@ -12,6 +12,9 @@ class KannelTest(FunctionalTestCase):
 
     USER_SETTINGS = {
         'TRANSPORTS': {
+            'dummy': {
+                'TRANSPORT': 'router.tests.transports.Dummy',
+                },
             'kannel': {
                 'TRANSPORT': 'router.transports.Kannel',
                 'SMS_URL': 'http://locahost:13013/cgi-bin/sendsms',
@@ -51,6 +54,19 @@ class KannelTest(FunctionalTestCase):
     def _view(self):
         from ..views import kannel
         return kannel
+
+    def test_start(self):
+        from router.tests import transports
+        reload(transports)
+
+        # transports fire when the incoming message class has been
+        # initialized; we explicitly send a signal in this test
+        from django.db.models import signals
+        from router.models import Incoming
+        signals.post_init.send(Incoming)
+
+        from .transports import Dummy
+        self.assertEqual(Dummy.name, "dummy")
 
     def test_not_acceptable(self):
         request = self._make_request.get("/")

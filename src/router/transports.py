@@ -11,6 +11,7 @@ from django.db.models import signals
 from django.conf import settings
 
 from .parser import Parser
+from .models import Incoming
 from .models import Outgoing
 from .models import Peer
 
@@ -21,6 +22,13 @@ def outgoing(sender, instance=None, created=None, **kwargs):
     if created is True:
         transport = get_transport(instance.transport)
         transport.send(instance)
+
+@partial(signals.post_init.connect, sender=Incoming, weak=False)
+def initialize(sender, **kwargs):
+    """Initialize transports."""
+
+    for name in getattr(settings, "TRANSPORTS", ()):
+        get_transport(name)
 
 def get_transport(name):
     """Look up and return transport given by ``name``.
