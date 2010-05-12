@@ -164,13 +164,12 @@ class Kannel(Transport):
 
         request = Request(
             url+'&'+urlencode({
-                'from': message.ident,
-                'text': message.text
-                }),
-            headers={
-                'X-Kannel-DLR-Url': '%s?status=%%d&id=%d&timestamp=%%T' % (
-                self.dlr_url, message.id),
-                'X-Kannel-DLR-Mask': '3'})
+                'to': message.ident,
+                'text': message.text,
+                'dlr-url': '%s?status=%%d&id=%d&timestamp=%%T' % (
+                    self.dlr_url, message.id),
+                'dlr-mask': '3'})
+            )
 
         response = self.fetch(request, timeout=self.timeout)
         message.time = datetime.now()

@@ -1,5 +1,7 @@
-import time
+import cgi
 import datetime
+import time
+import urllib
 
 from ..testing import FunctionalTestCase
 
@@ -89,25 +91,24 @@ class KannelTest(FunctionalTestCase):
                 datetime.datetime(1999, 12, 31).timetuple())),
             })
 
-        headers = {}
+        query = {}
         def fetch(request, **kwargs):
-            headers.update(request.headers)
+            query.update(cgi.parse_qsl(request.get_full_url()))
         kannel.fetch = fetch
         from django.conf import settings
         settings.TRANSPORTS['kannel']['DLR_URL'] = 'http://localhost'
 
         response = self._view(request)
+        args = urllib.urlencode(query)
         self.assertEqual(response.status_code, 200)
 
-        dlr_url = headers.get('X-kannel-dlr-url', None)
+        dlr_url = query.pop('dlr-url', "")
         self.assertNotEqual(dlr_url, None)
 
-        query_string = dlr_url.split('?')[1]
         delivery = datetime.datetime(2000, 1, 1)
-
-        # fill in the blanks
-        request = self._make_request.get("?" + query_string.replace(
-            '%d', '1').replace('%T', str(time.mktime(delivery.timetuple()))))
+        request = self._make_request.get(
+            dlr_url.replace(
+                '%d', '1').replace('%T', str(time.mktime(delivery.timetuple()))) + '&' + args)
         response = self._view(request)
         self.assertEqual("".join(response), "")
 
