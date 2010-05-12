@@ -31,7 +31,7 @@ Add the following model to your Django ``models.py``::
            caseless_string("+echo")
            whitespace1()
            return {
-               'text': remaining()
+               'text': "".join(remaining())
                }
 
        def handle(self):
