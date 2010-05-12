@@ -97,6 +97,8 @@ class Transport(object):
             setattr(self, key.lower(), value)
 
     def incoming(self, ident, text, time=None):
+        """Handle incoming message."""
+
         message = self.parse(text)
         message.time = time or datetime.now()
         message.uri = uri="%s://%s" % (self.name, ident)
@@ -112,33 +114,13 @@ class Transport(object):
         message.handle()
 
     def send(self, message):
-        pass
+        """Send message using transport."""
 
 class Kannel(Transport):
     """Kannel transport.
 
-    Configuration options:
-
-      SMS_URL   The URL for the ``sendsms`` service
-      DLR_URL   The URL for the delivery confirmation reply
-
-    The ``handle`` method accepts HTTP requests with CGI parameters
-    defined as follows:
-
-    Always:
-
-      timestamp  integer epoch value
-
-    Incoming text:
-
-      sender     telephone number
-      text       message text
-
-    Delivery confirmation:
-
-      status     positive integer value means this is a delivery confirmation
-      id         delivery confirmation id
-
+    :param name: Transport name
+    :param options: Dictionary; define ``'SMS_URL'`` for the URL for the *sendsms* service and ``'DLR_URL'`` to set the delivery confirmation reply
     """
 
     sms_url = None
@@ -147,9 +129,40 @@ class Kannel(Transport):
     timeout = 30.0
 
     def fetch(self, request, **kwargs):
+        """Fetch HTTP request.
+
+        Used internally by the Kannel transport.
+
+        This method operates synchronously. Note that the method is a
+        convenience for writing tests without setting up an HTTP
+        server (replace with a mock implementation).
+        """
+
         return urlopen(request, **kwargs)
 
     def handle(self, request):
+        """
+        Accepts Django HTTP requests (method ``GET``) with CGI
+        parameters defined as follows:
+
+        Requests can be incoming messages or delivery confirmation
+        receipts.
+
+        Required:
+
+        :param timestamp: Epoch integer timestamp (any)
+
+        Incoming messages:
+
+        :param sender: Mobile number
+        :param text: Message body
+
+        Delivery confirmation (DLR):
+
+        :param status: Positive integer value means this is a delivery confirmation
+        :param id: Message id
+        """
+
         status = int(request.GET.get('status', 0))
         time = datetime.fromtimestamp(
             float(request.GET['timestamp']))

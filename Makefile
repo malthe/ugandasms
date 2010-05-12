@@ -3,7 +3,7 @@
 
 # You can set these variables from the command line.
 SPHINXOPTS    = docs
-SPHINXBUILD   = /usr/bin/env sphinx-build
+SPHINXBUILD   = DJANGO_SETTINGS_MODULE=django.conf.global_settings /usr/bin/env sphinx-build
 PAPER         =
 BUILDDIR      = build
 

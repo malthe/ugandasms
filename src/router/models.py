@@ -14,7 +14,8 @@ def camelcase_to_dash(str):
 class User(Model):
     """Identified user.
 
-    The instrumented ``peers`` list can be used for identification.
+    The user is authenticated for the set of peers defined in the
+    ``peers`` attribute.
     """
 
     name = models.CharField(max_length=50, null=True)
@@ -69,6 +70,8 @@ class Message(Model):
     peer = CustomForeignKey(Peer, column="uri", related_name="messages", null=True)
 
     def get_user(self):
+        """Return user object, or ``None`` if not available."""
+
         try:
             return self.peer.user
         except ObjectDoesNotExist:
@@ -80,11 +83,22 @@ class Message(Model):
     user = property(get_user, set_user)
 
     @property
+    def anonymous(self):
+        try:
+            return self.user is None
+        except ObjectDoesNotExist:
+            return True
+
+    @property
     def transport(self):
+        """Return transport name."""
+
         return self.uri.split('://', 1)[0]
 
     @property
     def ident(self):
+        """Return ident string."""
+
         return self.uri.split('://', 1)[1]
 
     class Meta:
@@ -95,13 +109,6 @@ class Incoming(Message):
 
     parse = None
     replies = ()
-
-    @property
-    def anonymous(self):
-        try:
-            return self.user is None
-        except ObjectDoesNotExist:
-            return True
 
     def handle(self):
         """Handle incoming message.
@@ -127,6 +134,8 @@ class Outgoing(Message):
 
     @property
     def delivered(self):
+        """Return ``True`` if message was confirmed delivered."""
+
         return self.delivery is not None
 
 class Echo(Incoming):

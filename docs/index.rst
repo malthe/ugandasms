@@ -79,6 +79,7 @@ Contents
    getting_started.rst
    architecture.rst
    wsgi.rst
+   api.rst
    glossary.rst
 
 Indices and tables
