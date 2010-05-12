@@ -107,9 +107,13 @@ class DoctestCase(FunctionalTestCase):
                 gateway.forward(*item)
 
         # set up parser
-        from django.db.models import get_models
+        from health.models import Signup
+        from registration.models import Registration
         from router.parser import Parser
-        parser = Parser(get_models())
+        parser = Parser((
+            Signup,
+            Registration,
+            ))
 
         # set up gateway
         from router.testing import Gateway

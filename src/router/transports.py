@@ -4,9 +4,9 @@ from urllib import urlencode
 from urllib2 import Request
 from urllib2 import urlopen
 
+from django.db.models import get_model
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.importlib import import_module
-from django.db.models import get_models
 from django.db.models import signals
 from django.conf import settings
 
@@ -82,8 +82,17 @@ class Transport(object):
 
     def __init__(self, name, options):
         self.name = name
-        self.parse = Parser(get_models())
 
+        messages = []
+        for path in getattr(settings, "MESSAGES", ()):
+            if path.count('.') != 1:
+                raise ValueError("Specify messages as <app_label>.<model_name>.")
+            model = get_model(*path.split('.'))
+            if model is None:
+                raise ValueError("Can't find model: %s." % path)
+            messages.append(model)
+
+        self.parse = Parser(messages)
         for key, value in options.items():
             setattr(self, key.lower(), value)
 

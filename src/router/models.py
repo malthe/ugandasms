@@ -4,6 +4,7 @@ from django.db import models
 from django.core.exceptions import ObjectDoesNotExist
 from polymorphic import PolymorphicModel as Model
 from picoparse import eof
+from picoparse import remaining
 
 def camelcase_to_dash(str):
     return re.sub(
@@ -128,10 +129,22 @@ class Outgoing(Message):
     def delivered(self):
         return self.delivery is not None
 
+class Echo(Incoming):
+    """An echo message."""
+
+    @staticmethod
+    def parse():
+        remaining()
+
+    def handle(self):
+        self.reply(self.text)
+
 class Empty(Incoming):
     """The empty message."""
 
-    parse = eof
+    @staticmethod
+    def parse():
+        eof()
 
 class NotUnderstood(Incoming):
     """Any message which was not understood."""

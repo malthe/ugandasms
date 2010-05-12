@@ -78,8 +78,11 @@ class Parser(object):
                 return NotUnderstood(text=u"".join(remaining))
 
             try:
-                kwargs.setdefault("text", text)
-                return model(**kwargs)
+                if kwargs is None:
+                    return model(text=text)
+                else:
+                    kwargs.setdefault("text", text)
+                    return model(**kwargs)
             except Exception, exc:
                 return Broken(text=unicode(exc), kind=camelcase_to_dash(model.__name__))
 

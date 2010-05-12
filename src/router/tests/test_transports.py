@@ -19,7 +19,10 @@ class KannelTest(FunctionalTestCase):
                 'TRANSPORT': 'router.transports.Kannel',
                 'SMS_URL': 'http://locahost:13013/cgi-bin/sendsms',
                 }
-            }
+            },
+        'MESSAGES': (
+            'router.Echo',
+            )
         }
 
     @property
@@ -76,7 +79,7 @@ class KannelTest(FunctionalTestCase):
     def test_message_record(self):
         request = self._make_request.get("/", {
             'sender': '456',
-            'text': '+echo test',
+            'text': 'test',
             'timestamp': str(time.mktime(
                 datetime.datetime(1999, 12, 31).timetuple())),
             })
@@ -102,7 +105,7 @@ class KannelTest(FunctionalTestCase):
 
         request = self._make_request.get("/", {
             'sender': '456',
-            'text': '+echo test',
+            'text': 'test',
             'timestamp': str(time.mktime(
                 datetime.datetime(1999, 12, 31).timetuple())),
             })

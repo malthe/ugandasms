@@ -7,21 +7,8 @@ from picoparse import one_of
 from picoparse.text import whitespace1
 from picoparse.text import caseless_string
 
-from ..models import Incoming
+from ..models import Echo
 from ..parser import ParseError
-
-class Echo(Incoming):
-    @staticmethod
-    def parse():
-        one_of('+')
-        caseless_string('echo')
-        whitespace1()
-        return {
-            'text': "".join(many(any_token))
-            }
-
-    def handle(self):
-        self.reply(self.text)
 
 class Error(Echo):
     class Meta:

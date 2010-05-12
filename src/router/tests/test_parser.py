@@ -7,8 +7,8 @@ class ParserTest(FunctionalTestCase):
 
     def test_error(self):
         from ..parser import Parser
-        from django.db.models import get_models
-        parser = Parser(get_models())
+        from .models import Error
+        parser = Parser((Error,))
         message = parser("+error")
         from router.models import NotUnderstood
         self.assertTrue(isinstance(message, NotUnderstood))
@@ -16,8 +16,8 @@ class ParserTest(FunctionalTestCase):
 
     def test_broken(self):
         from ..parser import Parser
-        from django.db.models import get_models
-        parser = Parser(get_models())
+        from .models import Break
+        parser = Parser((Break,))
         message = parser("+break")
         from router.models import Broken
         self.assertTrue(isinstance(message, Broken))
