@@ -111,6 +111,9 @@ class Transport(object):
 
         message.handle()
 
+    def send(self, message):
+        pass
+
 class Kannel(Transport):
     """Kannel transport.
 

@@ -17,10 +17,15 @@ def install_demo():
     settings = conf.Settings("settings")
     conf.settings.configure(settings)
 
-    from django.db.models import get_models
     from router.models import camelcase_to_dash
-    from router.parser import Parser
-    parser = Parser(get_models())
+    from router.models import Incoming
+    from router.transports import Transport
+
+    transport = Transport("fixture", {})
+
+    settings.TRANSPORTS["fixture"] = {
+        'TRANSPORT': transport,
+        }
 
     path = os.path.join(os.path.dirname(__file__), "demo.csv")
     reader = csv.reader(open(path), delimiter='\t')
@@ -38,16 +43,13 @@ def install_demo():
             continue
         time = iso8601.parse_date(date)
 
-        message = parser(text)
-        message.sender = sender
-        message.receiver = receiver
-        message.time = time
-        message.save()
+        transport.incoming(sender, text, time)
+        message = Incoming.objects.order_by('pk')[0]
 
-        response = message.handle()
         print "%s >>> %s [%s]" % (
             sender, text, camelcase_to_dash(message.__class__.__name__))
-        print "%s <<< %s" % (sender, "".join(response))
+        for reply in message.replies.all():
+            print "%s <<< %s" % (sender, reply.text)
 
     from router.models import Message
     print "%d messages recorded." % Message.objects.count()
