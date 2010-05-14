@@ -101,16 +101,12 @@ class Transport(object):
 
         message = self.parse(text)
         message.time = time or datetime.now()
-        message.uri = uri="%s://%s" % (self.name, ident)
+
+        message.peer, created = Peer.objects.get_or_create(uri="%s://%s" % (self.name, ident))
+        if created:
+            message.peer.save()
+
         message.save()
-
-        # ensure that we have a peer record for this sender
-        try:
-            Peer.objects.get(uri=message.uri)
-        except ObjectDoesNotExist:
-            peer = Peer(uri=message.uri)
-            peer.save()
-
         message.handle()
 
     def send(self, message):

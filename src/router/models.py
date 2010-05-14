@@ -19,7 +19,6 @@ class User(Model):
     """
 
     name = models.CharField(max_length=50, null=True)
-    location = models.CharField(max_length=50, null=True)
     peers = ()
 
     def __unicode__(self):
@@ -65,7 +64,7 @@ class Message(Model):
     """
 
     uri = None
-    text = models.CharField(max_length=160)
+    text = models.CharField(max_length=160*3)
     time = models.DateTimeField(null=True)
     peer = CustomForeignKey(Peer, column="uri", related_name="messages", null=True)
 
@@ -123,13 +122,14 @@ class Incoming(Message):
     def reply(self, text):
         """Schedule an outgoing message as reply to this message."""
 
+        assert self.id is not None
         message = Outgoing(text=text, uri=self.uri, in_reply_to=self)
         message.save()
 
 class Outgoing(Message):
     """An outgoing message."""
 
-    in_reply_to = models.ForeignKey(Incoming, related_name="replies")
+    in_reply_to = models.ForeignKey(Incoming, related_name="replies", null=True)
     delivery = models.DateTimeField(null=True)
 
     @property
