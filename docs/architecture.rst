@@ -3,6 +3,25 @@ Architecture
 
 The routing system consists of *messages* and *transports*.
 
+Messages enter and exit the system through one or more
+transports. These are defined in the global Django settings module.
+
+An incoming message is then parsed into exactly one message class
+(possibly one of the system messages ``NotUnderstood`` or
+``Broken``). The handler for that message is then called, which may
+result in zero or more replies.
+
+The signals ``pre_handle`` and ``post_handle`` provide hooks into the
+incoming message flow:
+
+.. function:: router.transports.pre_handle
+
+   Called immediately *before* a message is handled (but after it's been saved).
+
+.. function:: router.transports.post_handle
+
+   Called immediately *after* a message was handled (even if an exception was raised).
+
 Messages
 --------
 

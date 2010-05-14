@@ -5,6 +5,47 @@ import urllib
 
 from ..testing import FunctionalTestCase
 
+class TransportTest(FunctionalTestCase):
+    INSTALLED_APPS = FunctionalTestCase.INSTALLED_APPS + (
+        'router.tests',
+        )
+
+    USER_SETTINGS = {
+        'TRANSPORTS': {
+            'dummy': {
+                'TRANSPORT': 'router.transports.Transport',
+                },
+            },
+        'MESSAGES': (
+            'router.Echo',
+            )
+        }
+
+    def test_signals(self):
+        from router.transports import get_transport
+        from router.transports import pre_handle
+        from router.transports import post_handle
+        from functools import partial
+
+        pre = []
+        post = []
+
+        @partial(pre_handle.connect, weak=False)
+        def before(sender=None, **kwargs):
+            pre.append(sender)
+            self.assertEqual(sender.replies.count(), 0)
+
+        @partial(post_handle.connect, weak=False)
+        def after(sender=None, **kwargs):
+            post.append(sender)
+            self.assertEqual(sender.replies.count(), 1)
+
+        transport = get_transport("dummy")
+        transport.incoming("test", "+echo test")
+
+        self.assertTrue(len(pre), 1)
+        self.assertTrue(len(post), 1)
+
 class KannelTest(FunctionalTestCase):
     INSTALLED_APPS = FunctionalTestCase.INSTALLED_APPS + (
         'router.tests',

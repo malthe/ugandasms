@@ -8,6 +8,7 @@ from django.db.models import get_model
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.importlib import import_module
 from django.db.models import signals
+from django.dispatch import Signal
 from django.conf import settings
 
 from .parser import Parser
@@ -29,6 +30,9 @@ def initialize(sender, **kwargs):
 
     for name in getattr(settings, "TRANSPORTS", ()):
         get_transport(name)
+
+pre_handle = Signal()
+post_handle = Signal()
 
 def get_transport(name):
     """Look up and return transport given by ``name``.
@@ -107,7 +111,12 @@ class Transport(object):
             message.peer.save()
 
         message.save()
-        message.handle()
+
+        pre_handle.send(sender=message)
+        try:
+            message.handle()
+        finally:
+            post_handle.send(sender=message)
 
     def send(self, message):
         """Send message using transport."""
