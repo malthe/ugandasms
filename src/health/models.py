@@ -1,4 +1,3 @@
-from django.db import models
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from polymorphic import PolymorphicModel as Model
@@ -12,10 +11,23 @@ from router.parser import one_of_strings
 from router.parser import digits
 from router.parser import ParseError
 
+from polymorphic.manager import PolymorphicManager
+from django.contrib.gis.db import models
+
+class PolymorphicGeoManager(PolymorphicManager, models.GeoManager):
+    pass
+
+class Location(Model):
+    name = models.CharField(max_length=50)
+    coords = models.PointField(null=True)
+    manager = PolymorphicGeoManager()
+
 class Facility(Model):
     hmis = models.IntegerField(unique=True)
     name = models.CharField(max_length=50, null=True)
-    location = models.CharField(max_length=50, null=True)
+    location = models.ForeignKey(Location)
+    parent = models.ForeignKey("self", related_name="children", null=True)
+    children = ()
 
 class Subscription(Model):
     role = models.CharField(max_length=3)
@@ -57,6 +69,7 @@ class Signup(Incoming):
             except ObjectDoesNotExist:
                 return u"No such facility HMIS code: %d." % self.facility
 
+
             self.user.subscriptions.create(
                 role=self.role,
                 facility=facility)
@@ -67,4 +80,4 @@ class Signup(Incoming):
                 "as a %s for %s in %s. Please resend if "
                 "there is a mistake.") % (
                 getattr(settings, "HEALTH_FACILITY_ROLES", {}).get(self.role, self.role),
-                facility.name, facility.location))
+                facility.name, facility.location.name))

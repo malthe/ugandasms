@@ -26,6 +26,7 @@ class DoctestCase(FunctionalTestCase):
         }
 
     INSTALLED_APPS = FunctionalTestCase.INSTALLED_APPS + (
+        'django.contrib.gis',
         'health',
         'registration',
         )
