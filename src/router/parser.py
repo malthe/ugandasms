@@ -69,8 +69,8 @@ class Parser(object):
             try:
                 kwargs, remaining = run_parser(parser, text)
             except ParseError, error:
-                text = unicode(error)
-                return NotUnderstood(text=unicode(error))
+                msg, = error.args
+                return NotUnderstood(text=unicode(msg))
             except NoMatch:
                 continue
 
