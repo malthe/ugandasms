@@ -71,61 +71,69 @@ class DoctestCase(FunctionalTestCase):
     def setUp(self):
         super(DoctestCase, self).setUp()
 
-        # setup admin user
-        from registration.models import User
-        from router.models import Peer
-        admin = User(
-            id=0,
-            name=u"Administrator",
-            location="Ministry of Health")
+        # handle additional setup in a try-except and make sure we
+        # tear down the test afterwards
+        try:
+            from registration.models import User
+            from router.models import Peer
+            admin = User(id=0, name=u"Administrator")
+            admin.save()
 
-        admin.peers.add(Peer(uri="mobile://256000000000"))
-        admin.save()
+            admin.peers.add(Peer(uri="mobile://256000000000"))
+            admin.save()
 
-        # add health clinic
-        from health.models import Facility
-        patiko = Facility(
-            hmis=50864,
-            name=u"Patiko Health Clinic",
-            location=u"Patiko, Gulu District")
+            # add health clinic
+            from health.models import Facility
+            from health.models import Location
 
-        patiko.save()
+            location = Location(name=u"Patiko, Gulu District")
+            location.save()
 
-        class queue(object):
-            """Mock queue.
+            patiko = Facility(
+                hmis=50864,
+                name=u"Patiko Health Clinic",
+                location=location)
 
-            This class mocks a ``queue.Queue`` object, which allows a
-            waiting thread to process the send request.
+            patiko.save()
 
-            The test implementation forwards all requests to the
-            gateway, which must have previously 'seen' a message from
-            the recipient.
-            """
+            class queue(object):
+                """Mock queue.
 
-            @staticmethod
-            def append(item):
-                gateway.forward(*item)
+                This class mocks a ``queue.Queue`` object, which allows a
+                waiting thread to process the send request.
 
-        # set up parser
-        from health.models import Signup
-        from registration.models import Registration
-        from router.parser import Parser
-        parser = Parser((
-            Signup,
-            Registration,
-            ))
+                The test implementation forwards all requests to the
+                gateway, which must have previously 'seen' a message from
+                the recipient.
+                """
 
-        # set up gateway
-        from router.testing import Gateway
-        gateway = Gateway(parser)
+                @staticmethod
+                def append(item):
+                    gateway.forward(*item)
 
-        # set up test subscribers
-        from router.testing import Subscriber
-        self.globs.update({
-            'admin': Subscriber(gateway, u"mobile://256000000000"),
-            'jonathan': Subscriber(gateway, u"mobile://256000000001"),
-            'sam': Subscriber(gateway, u"mobile://256000000002"),
-            'parse': parser,
-            })
+            # set up parser
+            from health.models import Signup
+            from registration.models import Registration
+            from router.parser import Parser
+            parser = Parser((
+                Signup,
+                Registration,
+                ))
 
-        self.globs.update(self._assertion_helpers)
+            # set up gateway
+            from router.testing import Gateway
+            gateway = Gateway(parser)
+
+            # set up test subscribers
+            from router.testing import Subscriber
+            self.globs.update({
+                'admin': Subscriber(gateway, u"mobile://256000000000"),
+                'jonathan': Subscriber(gateway, u"mobile://256000000001"),
+                'sam': Subscriber(gateway, u"mobile://256000000002"),
+                'parse': parser,
+                })
+
+            self.globs.update(self._assertion_helpers)
+        except:
+            self.tearDown()
+            raise
