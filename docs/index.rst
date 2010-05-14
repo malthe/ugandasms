@@ -50,7 +50,7 @@ Add the following model to your Django ``models.py``::
 To enable this message, add it to the list of messages in your ``settings.py``::
 
   MESSAGES = (
-      "myapp.Incoming",
+      "myapp.Echo",
       )
 
 Testing
