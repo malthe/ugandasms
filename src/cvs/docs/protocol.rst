@@ -32,13 +32,10 @@ The subscription subsystem handles user registration.
 Registration
 ~~~~~~~~~~~~
 
-  *+REGISTER <name>[, <location>]*
+  *+REGISTER <name>*
 
 New users of the system are required to register using the
-``+REGISTER`` command. Users must provide a name and optionally
-location:
-
-.. note:: To harmonize locations, a geocoding system might be employed in the future.
+``+REGISTER`` command.
 
 The idea with a separate registration step is that users might
 subscribe to zero or more services; keeping user registration separate
@@ -48,7 +45,7 @@ Example:
 
 ::
 
-  >>> +REGISTER Jonathan Olel, Awach, Gulu
+  >>> +REGISTER Jonathan Olel
 
 .. -> input
 
@@ -69,7 +66,7 @@ Repeat registrations are interpreted as updates:
 
 ::
 
-  >>> +REGISTER Jonathan Olel, Patiko, Gulu
+  >>> +REGISTER Jonathan Olel
 
 .. -> input
 
@@ -87,7 +84,7 @@ The system replies to inform the user that the update was succesful.
 
 If we register another user, a new registration number is assigned::
 
-  >>> +REGISTER Sam Okoyo, Patiko, Gulu
+  >>> +REGISTER Sam Okoyo
 
 .. -> input
 

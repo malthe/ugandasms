@@ -1,24 +1,21 @@
 from django.db import models
-from router.models import Incoming
-from router.models import User
 
-from picoparse import any_token
 from picoparse import many
 from picoparse import not_one_of
 from picoparse import one_of
-from picoparse import optional
 from picoparse import partial
 from picoparse import remaining
 from picoparse.text import whitespace1
+
 from router.parser import one_of_strings
-from router.parser import next_parameter
 from router.parser import ParseError
+from router.models import Incoming
+from router.models import User
 
 class Registration(Incoming):
     """Register with the system."""
 
     name = models.CharField(max_length=50, null=True)
-    location = models.CharField(max_length=50, null=True)
 
     @staticmethod
     def parse():
@@ -30,18 +27,14 @@ class Registration(Incoming):
         except:
             raise ParseError(u"Must provide a name (got: %s)." % "".join(remaining()))
 
-        location = optional(partial(next_parameter, parser=any_token), None)
-
         return {
             'name': name,
-            'location': location,
             }
 
     def handle(self):
         if self.user is None:
             self.user = User(
                 name = self.name,
-                location = self.location
                 )
 
             self.user.save()
@@ -60,7 +53,6 @@ class Registration(Incoming):
                 })
         else:
             self.user.name = self.name
-            self.user.location = self.location
             self.user.save()
 
             self.reply((

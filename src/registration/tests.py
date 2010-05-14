@@ -9,25 +9,16 @@ class ParserTest(UnitTestCase):
         self.assertEquals(
             run_parser(Registration.parse, "+reg Bob")[0],
             {'name': u'Bob',
-             'location': None,
              })
 
         self.assertEquals(
             run_parser(Registration.parse, "+register Bob")[0],
             {'name': u'Bob',
-             'location': None,
              })
 
         self.assertEquals(
             run_parser(Registration.parse, "+REG Bob")[0],
             {'name': u'Bob',
-             'location': None,
-             })
-
-        self.assertEquals(
-            run_parser(Registration.parse, "+register Bob, Village")[0],
-            {'name': u'Bob',
-             'location': u'Village',
              })
 
     def test_registration_missing_name(self):
