@@ -12,11 +12,6 @@ with a set of Django apps that can be used *as is* or extended:
 
   Allows mobile users to register their names.
 
-*Community Health*
-
-  This app provides a community vulnerability surveillance system. It
-  was designed for use in rural areas of Uganda.
-
 The `Kannel <http://www.kannel.org/>`_ SMS gateway is the default
 option for connectivity, but it's easy to write your own message
 transport.
