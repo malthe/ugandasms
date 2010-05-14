@@ -12,12 +12,14 @@ implement two methods::
   @staticmethod
   def parse():
       # use picoparse here and return message initialization kwargs
+      pass
 
   def handle(self):
       # use ``self.reply(text)`` here to send one or more replies to
       # this message, and/or create new database objects.
+      pass
 
-For a reference on the ``picoparse`` library, see its `readme
+For a reference on the :mod:`picoparse` library, see its `readme
 <http://github.com/brehaut/picoparse/blob/master/README.markdown>`_
 document. Here's a basic example of a ``parse`` method::
 
