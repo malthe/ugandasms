@@ -1,15 +1,25 @@
 Overview
 ========
 
-UgandaSMS is an SMS application server. It includes a set of
-applications that can be used directly or built upon:
+UgandaSMS is an open-source SMS application server licensed under the
+BSD license.
 
-- Registration
-- Community Health
+The system is written in `Python <http://www.python.org>`_ and uses
+the `Django <http://www.djangoproject.com>`_ web framework. It comes
+with a set of Django apps that can be used *as is* or extended:
 
-The system is written in Python and uses the Django web framework. It
-comes with support for the `Kannel <http://www.kannel.org/>`_
-SMS gateway.
+*Registration*
+
+  Allows mobile users to register their names.
+
+*Community Health*
+
+  This app provides a community vulnerability surveillance system. It
+  was designed for use in rural areas of Uganda.
+
+The `Kannel <http://www.kannel.org/>`_ SMS gateway is the default
+option for connectivity, but it's easy to write your own message
+transport.
 
 Example
 -------
@@ -54,11 +64,15 @@ Running all tests::
   $ easy_install nose
   $ python setup.py nosetests
 
+To use PostgreSQL, set the ``WITH_POSTGRESQL`` environment variable to
+any true value.
+
+See the chapter on :ref:`testing` to learn how to write your own tests.
+
 Documentation
 -------------
 
-The system comes with documentation. To build the outputs (HTML and
-PDF formats)::
+To build the documentation outputs (HTML and PDF formats)::
 
   $ make html
   $ make latex
@@ -78,6 +92,7 @@ Contents
 
    getting_started.rst
    architecture.rst
+   testing.rst
    wsgi.rst
    api.rst
    glossary.rst
