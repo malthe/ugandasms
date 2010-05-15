@@ -12,6 +12,12 @@ from router.parser import ParseError
 from router.models import Incoming
 from router.models import User
 
+class Reporter(User):
+    name = models.CharField(max_length=50)
+
+    def __unicode__(self):
+        return self.name
+
 class Registration(Incoming):
     """Register with the system."""
 
@@ -33,7 +39,7 @@ class Registration(Incoming):
 
     def handle(self):
         if self.user is None:
-            self.user = User(
+            self.user = Reporter(
                 name = self.name,
                 )
 
@@ -52,6 +58,7 @@ class Registration(Incoming):
                 'id': self.user.id,
                 })
         else:
+            self.user, created = Reporter.objects.get_or_create(pk=self.user.pk)
             self.user.name = self.name
             self.user.save()
 

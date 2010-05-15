@@ -19,11 +19,7 @@ class User(Model):
     record a set of *peers* that authenticate a user.
     """
 
-    name = models.CharField(max_length=50, null=True)
     peers = ()
-
-    def __unicode__(self):
-        return self.name
 
 class CustomForeignKey(models.ForeignKey):
     def __init__(self, *args, **kwargs):

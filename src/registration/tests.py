@@ -32,11 +32,24 @@ class HandlerTest(FunctionalTestCase):
         'registration',
         )
 
-    def test_init(self):
+    def test_initial_registration(self):
         from registration.models import Registration
         from router.models import Peer
-        message = Registration(name="test")
+        message = Registration(name="foo")
         message.peer, created = Peer.objects.get_or_create(uri="test://test")
         message.peer.save()
+        message.save()
+        message.handle()
+
+    def test_registration_update(self):
+        from registration.models import Registration
+        from router.models import Peer
+        message = Registration(name="foo")
+        message.peer, created = Peer.objects.get_or_create(uri="test://test")
+        message.peer.save()
+        message.save()
+        message.handle()
+
+        message.name = "bar"
         message.save()
         message.handle()
