@@ -9,9 +9,9 @@ the `Django <http://www.djangoproject.com>`_ web framework. It comes
 with a set of Django apps that can be used *as is* or be extended to
 meet your requirements:
 
-*Registration*
+*Reporter*
 
-  Allows mobile users to register their name.
+  Allows mobile users to register themselves as reporters.
 
 The `Kannel <http://www.kannel.org/>`_ SMS gateway is the default
 option for connectivity, but it's easy to write your own message

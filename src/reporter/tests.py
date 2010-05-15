@@ -3,7 +3,7 @@ from router.testing import UnitTestCase
 
 class ParserTest(UnitTestCase):
     def test_registration(self):
-        from registration.models import Registration
+        from .models import Registration
         from picoparse import run_parser
 
         self.assertEquals(
@@ -22,18 +22,18 @@ class ParserTest(UnitTestCase):
              })
 
     def test_registration_missing_name(self):
-        from registration.models import Registration
+        from .models import Registration
         from router.parser import ParseError
         from picoparse import run_parser
         self.assertRaises(ParseError, run_parser, Registration.parse, "+register")
 
 class HandlerTest(FunctionalTestCase):
     INSTALLED_APPS = FunctionalTestCase.INSTALLED_APPS + (
-        'registration',
+        'reporter',
         )
 
     def test_initial_registration(self):
-        from registration.models import Registration
+        from .models import Registration
         from router.models import Peer
         message = Registration(name="foo")
         message.peer, created = Peer.objects.get_or_create(uri="test://test")
@@ -42,7 +42,7 @@ class HandlerTest(FunctionalTestCase):
         message.handle()
 
     def test_registration_update(self):
-        from registration.models import Registration
+        from .models import Registration
         from router.models import Peer
         message = Registration(name="foo")
         message.peer, created = Peer.objects.get_or_create(uri="test://test")
