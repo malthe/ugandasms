@@ -97,6 +97,14 @@ class FunctionalTestCase(UnitTestCase):
         'router',
         )
 
+    BASE_SETTINGS = {
+        'TRANSPORTS': {
+            'dummy': {
+                'TRANSPORT': 'router.tests.transports.Dummy',
+                },
+            },
+        }
+
     USER_SETTINGS = {}
 
     def setUp(self):
@@ -123,6 +131,7 @@ class FunctionalTestCase(UnitTestCase):
             'DLR_URL': 'http://host/kannel',
             })
 
+        self.SETTINGS.__dict__.update(deepcopy(self.BASE_SETTINGS))
         self.SETTINGS.__dict__.update(deepcopy(self.USER_SETTINGS))
 
         # reinitialize connections

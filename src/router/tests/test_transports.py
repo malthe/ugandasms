@@ -11,11 +11,6 @@ class TransportTest(FunctionalTestCase):
         )
 
     USER_SETTINGS = {
-        'TRANSPORTS': {
-            'dummy': {
-                'TRANSPORT': 'router.tests.transports.Dummy',
-                },
-            },
         'MESSAGES': (
             'tests.Break',
             'router.Echo',
