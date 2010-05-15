@@ -27,3 +27,16 @@ class ParserTest(UnitTestCase):
         from picoparse import run_parser
         self.assertRaises(ParseError, run_parser, Registration.parse, "+register")
 
+class HandlerTest(FunctionalTestCase):
+    INSTALLED_APPS = FunctionalTestCase.INSTALLED_APPS + (
+        'registration',
+        )
+
+    def test_init(self):
+        from registration.models import Registration
+        from router.models import Peer
+        message = Registration(name="test")
+        message.peer, created = Peer.objects.get_or_create(uri="test://test")
+        message.peer.save()
+        message.save()
+        message.handle()
