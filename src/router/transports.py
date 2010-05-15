@@ -5,7 +5,6 @@ from urllib2 import Request
 from urllib2 import urlopen
 
 from django.db.models import get_model
-from django.core.exceptions import ObjectDoesNotExist
 from django.utils.importlib import import_module
 from django.db.models import signals
 from django.dispatch import Signal
@@ -15,6 +14,8 @@ from .parser import Parser
 from .models import Incoming
 from .models import Outgoing
 from .models import Peer
+from .models import Broken
+from .models import camelcase_to_dash
 
 @partial(signals.post_save.connect, sender=Outgoing, weak=False)
 def outgoing(sender, instance=None, created=None, **kwargs):
@@ -31,6 +32,8 @@ def initialize(sender, **kwargs):
     for name in getattr(settings, "TRANSPORTS", ()):
         get_transport(name)
 
+pre_parse = Signal()
+post_parse = Signal()
 pre_handle = Signal()
 post_handle = Signal()
 
@@ -103,13 +106,27 @@ class Transport(object):
     def incoming(self, ident, text, time=None):
         """Handle incoming message."""
 
-        message = self.parse(text)
-        message.time = time or datetime.now()
+        message = Incoming(text=text, time=time or datetime.now())
 
-        message.peer, created = Peer.objects.get_or_create(uri="%s://%s" % (self.name, ident))
+        pre_parse.send(sender=message)
+        model, kwargs = self.parse(message.text)
+
+        message.__class__ = model
+        try:
+            message.__init__(**kwargs)
+        except Exception, exc:
+            message.__class__ = Broken
+            message.__init__(
+                text=unicode(exc),
+                kind=camelcase_to_dash(model.__name__))
+
+        post_parse.send(sender=message)
+
+        peer, created = Peer.objects.get_or_create(
+            uri="%s://%s" % (self.name, ident))
         if created:
-            message.peer.save()
-
+            peer.save()
+        message.peer = peer
         message.save()
 
         pre_handle.send(sender=message)

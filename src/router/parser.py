@@ -34,25 +34,27 @@ class ParseError(NoMatch):
     as the reply string (as-is)."""
 
 class Parser(object):
-    """Parse text messages into message objects.
+    """Returns ``(model, kwargs)`` for a message body.
 
-    The returned objects are Django database objects that can be
-    stored using ``save()``.
+    The ``model`` is a database message model that inherits from
+    ``Incoming`` and ``kwargs`` are initialization arguments::
+
+    >>> parser = Parser(models)
+    >>> model, kwargs = parser(text)
+    >>> message = model(**kwargs)
 
     Participating models must provide a static method ``parse`` which
     should be a ``picoparse`` parse function.
 
-    Its return value is passed as keyword arguments to the message
-    constructor. The message text can be overrided by including a
-    value for the 'text' key.
+    The returned ``kwargs`` is either the return value of the parse
+    function, or if it returns ``None``, a dictionary containing just
+    an entry for ``'text'``. Note that ``kwargs`` will always return a
+    value for ``'text'`` --- by default the message body.
 
-    If a parser raises a ``ParseError`` exception, the provided string
-    is used as the text for a ``NotUnderstood`` message.
-
-    If the message was not parsed at all, a ``NotUnderstood`` object
-    is also returned. Meanwhile, if a message does parse but
-    construction of the message fails, a ``Broken`` object is
-    returned.
+    If a parser raises a ``ParseError`` exception, the first exception
+    argument is used as the message text for a ``NotUnderstood``
+    message. If the message was not parsed at all, a ``NotUnderstood``
+    object is also returned.
     """
 
     def __init__(self, models):
@@ -69,21 +71,18 @@ class Parser(object):
             try:
                 kwargs, remaining = run_parser(parser, text)
             except ParseError, error:
-                msg, = error.args
-                return NotUnderstood(text=unicode(msg))
+                text = unicode(error.args[0])
+                break
             except NoMatch:
                 continue
 
             if remaining:
-                return NotUnderstood(text=u"".join(remaining))
+                text = u"".join(remaining)
+            elif kwargs is None:
+                kwargs = {'text': text}
+            else:
+                kwargs.setdefault("text", text)
 
-            try:
-                if kwargs is None:
-                    return model(text=text)
-                else:
-                    kwargs.setdefault("text", text)
-                    return model(**kwargs)
-            except Exception, exc:
-                return Broken(text=unicode(exc), kind=camelcase_to_dash(model.__name__))
+            return model, kwargs
 
-        return NotUnderstood(text=text)
+        return NotUnderstood, {'text': text}

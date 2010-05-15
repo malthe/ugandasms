@@ -13,38 +13,64 @@ class TransportTest(FunctionalTestCase):
     USER_SETTINGS = {
         'TRANSPORTS': {
             'dummy': {
-                'TRANSPORT': 'router.transports.Transport',
+                'TRANSPORT': 'router.tests.transports.Dummy',
                 },
             },
         'MESSAGES': (
+            'tests.Break',
             'router.Echo',
             )
         }
 
     def test_signals(self):
         from router.transports import get_transport
+        from router.transports import pre_parse
+        from router.transports import post_parse
         from router.transports import pre_handle
         from router.transports import post_handle
         from functools import partial
 
-        pre = []
-        post = []
+        s1 = []
+        s2 = []
+        s3 = []
+        s4 = []
+
+        @partial(pre_parse.connect, weak=False)
+        def before(sender=None, **kwargs):
+            s1.append(sender)
+            self.assertEqual(sender.id, None)
+
+        @partial(post_parse.connect, weak=False)
+        def after(sender=None, **kwargs):
+            s2.append(sender)
+            self.assertEqual(sender.id, None)
 
         @partial(pre_handle.connect, weak=False)
         def before(sender=None, **kwargs):
-            pre.append(sender)
+            s3.append(sender)
             self.assertEqual(sender.replies.count(), 0)
 
         @partial(post_handle.connect, weak=False)
         def after(sender=None, **kwargs):
-            post.append(sender)
+            s4.append(sender)
             self.assertEqual(sender.replies.count(), 1)
 
         transport = get_transport("dummy")
         transport.incoming("test", "+echo test")
 
-        self.assertTrue(len(pre), 1)
-        self.assertTrue(len(post), 1)
+        self.assertTrue(len(s1), 1)
+        self.assertTrue(len(s2), 1)
+        self.assertTrue(len(s3), 1)
+        self.assertTrue(len(s4), 1)
+
+    def test_broken(self):
+        from router.transports import get_transport
+        transport = get_transport("dummy")
+        transport.incoming("test", "+break")
+
+        from ..models import Broken
+        results = Broken.objects.all()
+        self.assertEquals(len(results), 1)
 
 class KannelTest(FunctionalTestCase):
     INSTALLED_APPS = FunctionalTestCase.INSTALLED_APPS + (

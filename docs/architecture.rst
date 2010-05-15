@@ -1,26 +1,41 @@
 Architecture
 ============
 
+.. highlight:: python
+
 The routing system consists of *messages* and *transports*.
 
 Messages enter and exit the system through one or more
 transports. These are defined in the global Django settings module.
 
-An incoming message is then parsed into exactly one message class
-(possibly one of the system messages ``NotUnderstood`` or
-``Broken``). The handler for that message is then called, which may
-result in zero or more replies.
+The following signals provide hooks into the incoming message flow
+(the ``sender`` of each of the signals is a message instance):
 
-The signals ``pre_handle`` and ``post_handle`` provide hooks into the
-incoming message flow:
+.. function:: router.transports.pre_parse
+
+   Called *before* an incoming message is parsed.
+
+   The ``sender`` of this signal is always of the generic incoming
+   message type ``Incoming``.
+
+   Note that any listener may change the value of the attribute to
+   change what's being parsed in the next step.
+
+.. function:: router.transports.post_parse
+
+   Called *after* an incoming message is parsed. In this step the
+   message instance has been given the message class that was
+   designated during parsing, with all attributes initialized.
 
 .. function:: router.transports.pre_handle
 
-   Called immediately *before* a message is handled (but after it's been saved).
+   Called immediately *before* a message is handled (but after it's
+   been saved).
 
 .. function:: router.transports.post_handle
 
-   Called immediately *after* a message was handled (even if an exception was raised).
+   Called immediately *after* a message was handled (even if an
+   exception was raised).
 
 Messages
 --------
@@ -151,10 +166,15 @@ messages from e.g. a locally attached GSM modem.
 When a transport sees an incoming message, it invokes the message
 parser to determine what kind of message it is::
 
-  message = parse(text)
+  model, kwargs = parse(text)
 
-It then calls the message handler which enqueues zero or more outgoing
-message replies::
+The ``kwargs`` result is a dictionary of keyword arguments that should be used to initialize the message::
+
+  message = model(**kwargs)
+
+The message handler is then called. This is usually where replies will
+be added to the outgoing message queue; the handler may also update
+business data in other tables::
 
   message.handle()
 

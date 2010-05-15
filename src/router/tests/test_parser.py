@@ -9,15 +9,7 @@ class ParserTest(FunctionalTestCase):
         from ..parser import Parser
         from .models import Error
         parser = Parser((Error,))
-        message = parser("+error")
+        model, kwargs = parser("+error")
         from router.models import NotUnderstood
-        self.assertTrue(isinstance(message, NotUnderstood))
-        self.assertEquals(message.text, "error")
-
-    def test_broken(self):
-        from ..parser import Parser
-        from .models import Break
-        parser = Parser((Break,))
-        message = parser("+break")
-        from router.models import Broken
-        self.assertTrue(isinstance(message, Broken))
+        self.assertTrue(model is NotUnderstood)
+        self.assertEquals(kwargs.get('text'), "error")
