@@ -31,7 +31,10 @@ def next_parameter(parser=not_comma):
 class ParseError(NoMatch):
     """Should be raised inside a parser function to return a reply
     that the message was not understood. The provided argument is used
-    as the reply string (as-is)."""
+    as the reply string."""
+
+    def __init__(self, text):
+        NoMatch.__init__(self, text)
 
 class Parser(object):
     """Returns ``(model, kwargs)`` for a message body.
