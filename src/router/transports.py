@@ -224,4 +224,5 @@ class Kannel(Transport):
             )
 
         response = self.fetch(request, timeout=self.timeout)
-        message.time = datetime.now()
+        if response.code // 100 == 2:
+            message.time = datetime.now()

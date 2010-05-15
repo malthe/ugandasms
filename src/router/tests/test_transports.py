@@ -175,6 +175,10 @@ class KannelTest(FunctionalTestCase):
         query = {}
         def fetch(request, **kwargs):
             query.update(cgi.parse_qsl(request.get_full_url()))
+            class response:
+                code = 202
+            return response()
+
         kannel.fetch = fetch
         from django.conf import settings
         settings.TRANSPORTS['kannel']['DLR_URL'] = 'http://localhost'
