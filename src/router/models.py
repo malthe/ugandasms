@@ -12,10 +12,11 @@ def camelcase_to_dash(str):
         str).lower().strip('-')
 
 class User(Model):
-    """Identified user.
+    """Authenticated user.
 
-    The user is authenticated for the set of peers defined in the
-    ``peers`` attribute.
+    The device used to send and receive messages typically provide a
+    means of authentication. Since users may use different devices, we
+    record a set of *peers* that authenticate a user.
     """
 
     name = models.CharField(max_length=50, null=True)
@@ -34,10 +35,10 @@ class CustomForeignKey(models.ForeignKey):
         return self.column
 
 class Peer(Model):
-    """Remote peer object.
+    """Device identification object.
 
-    The ``uri`` attribute identifies the peer in terms of a transport
-    token and an identification string.
+    The ``uri`` attribute identifies the remote device in terms of a
+    transport token and an identification string.
 
     Examples:
 
