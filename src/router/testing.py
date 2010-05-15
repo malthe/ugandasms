@@ -80,16 +80,26 @@ class UnitTestCase(TestCase):
 class FunctionalTestCase(UnitTestCase):
     """Use this test case for tests which require a database.
 
-    The user account that runs the test suite must have the
-    ``CREATEDB`` privilege. When creating test databases, the naming
-    convention is defined by the ``_pg_database_name`` property. By
-    default this uses the test class name in all lower case.
+    With PostgreSQL:
 
-    For GeoDjango support with PostgreSQL, a PostGIS template with the
-    name ``'template_postgis'`` must be installed. If you run the
-    tests as a non-superuser, the ``datistemplate`` flag must be set.
+        Set the environ variable ``WITH_POSTGRESQL`` to a true value
+        to run tests using this backend.
 
-    Spatialite is also supported.
+        The user account that runs the test suite must have the
+        ``CREATEDB`` privilege. When the test harness creates a test
+        database, it uses the naming convention defined by the
+        ``_pg_database_name`` property. By default this simply
+        lower-cases the class name of the test case.
+
+        For GeoDjango support with PostgreSQL, a PostGIS template with the
+        name ``'template_postgis'`` must be installed. If you run the
+        tests as a non-superuser, the ``datistemplate`` flag must be set.
+
+    With SQLite:
+
+        No custom configuration needed; Spatialite is also supported
+        (just add ``"django.contrib.gis`` to the apps list).
+
     """
 
     INSTALLED_APPS = (
