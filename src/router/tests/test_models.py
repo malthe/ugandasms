@@ -1,11 +1,7 @@
 from ..testing import FunctionalTestCase
 
-class HandlerTest(FunctionalTestCase):
-    INSTALLED_APPS = FunctionalTestCase.INSTALLED_APPS + (
-        'router.tests',
-        )
-
-    def test_polymorphic(self):
+class PolymorphicTest(FunctionalTestCase):
+    def test_polymorphic_message(self):
         from router import models
         message = models.Incoming(text=u"test")
         message.save()
