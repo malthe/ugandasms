@@ -136,7 +136,19 @@ class Transport(object):
             post_handle.send(sender=message)
 
     def send(self, message):
-        """Send message using transport."""
+        """Send message using transport.
+
+        This method should be overriden by any transport that wants to
+        send outgoing messages.
+
+        The implementation in the base class does nothing (although
+        outgoing messages are always stored in the database).
+
+        Only outgoing messages that have been sent should have a
+        defined ``time`` (this is a record of when a message
+        left the system, not when it was merely queued). It's up to
+        the ``send`` method to set this value.
+        """
 
 class Kannel(Transport):
     """Kannel transport.
