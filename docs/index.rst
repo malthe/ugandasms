@@ -6,12 +6,8 @@ BSD license.
 
 The system is written in `Python <http://www.python.org>`_ and uses
 the `Django <http://www.djangoproject.com>`_ web framework. It comes
-with a set of Django apps that can be used *as is* or be extended to
-meet your requirements:
-
-*Reporter*
-
-  Allows mobile users to register themselves as reporters.
+with a :ref:`set of apps <applications>` that can be used *as is* or
+be extended to meet your requirements.
 
 The `Kannel <http://www.kannel.org/>`_ SMS gateway is the default
 option for connectivity, but it's easy to write your own message
@@ -120,6 +116,7 @@ Contents
    testing.rst
    wsgi.rst
    api.rst
+   apps.rst
    glossary.rst
 
 Indices and tables

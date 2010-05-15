@@ -2,7 +2,13 @@ from router.testing import FunctionalTestCase
 from router.testing import UnitTestCase
 
 class ParserTest(UnitTestCase):
-    def test_registration(self):
+    def test_empty(self):
+        from .models import Registration
+        from picoparse import run_parser
+
+        self.assertEquals(run_parser(Registration.parse, "+reg")[0], None)
+
+    def test_name(self):
         from .models import Registration
         from picoparse import run_parser
 
@@ -21,35 +27,55 @@ class ParserTest(UnitTestCase):
             {'name': u'Bob',
              })
 
-    def test_registration_missing_name(self):
+    def test_user_id(self):
         from .models import Registration
-        from router.parser import ParseError
         from picoparse import run_parser
-        self.assertRaises(ParseError, run_parser, Registration.parse, "+register")
+
+        self.assertEquals(run_parser(Registration.parse, "+reg 123")[0], {
+            'user_id': 123})
+        self.assertEquals(run_parser(Registration.parse, "+reg #123")[0], {
+            'user_id': 123})
+
+        from router.parser import ParseError
+        self.assertRaises(ParseError, run_parser, Registration.parse, "+reg #")
 
 class HandlerTest(FunctionalTestCase):
     INSTALLED_APPS = FunctionalTestCase.INSTALLED_APPS + (
         'reporter',
         )
 
-    def test_initial_registration(self):
+    @staticmethod
+    def _handle(uri="test://test", **kwargs):
         from .models import Registration
         from router.models import Peer
-        message = Registration(name="foo")
-        message.peer, created = Peer.objects.get_or_create(uri="test://test")
+        message = Registration(**kwargs)
+        message.peer, created = Peer.objects.get_or_create(uri=uri)
         message.peer.save()
         message.save()
         message.handle()
+        return message
+
+    def test_initial_registration(self):
+        self._handle(name="foo")
+        from .models import Reporter
+        self.assertEqual(Reporter.objects.get().name, "foo")
+
+    def test_inquire_for_id(self):
+        self._handle(name="foo")
+        inquiry = self._handle()
+        self.assertTrue(str(inquiry.user.id) in inquiry.replies.get().text)
 
     def test_registration_update(self):
-        from .models import Registration
-        from router.models import Peer
-        message = Registration(name="foo")
-        message.peer, created = Peer.objects.get_or_create(uri="test://test")
-        message.peer.save()
-        message.save()
-        message.handle()
+        self._handle(name="foo")
+        self._handle(name="bar")
+        from .models import Reporter
+        self.assertEqual(Reporter.objects.get().name, "bar")
 
-        message.name = "bar"
-        message.save()
-        message.handle()
+    def test_register_new_device_then_update(self):
+        self._handle(name="foo")
+        from .models import Reporter
+        self.assertEqual(Reporter.objects.count(), 1)
+        self._handle(uri="test://new", user_id=Reporter.objects.get().pk)
+        self.assertEqual(Reporter.objects.count(), 1)
+        self._handle(uri="test://new", name="bar")
+        self.assertEqual(Reporter.objects.get().name, "bar")
