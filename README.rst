@@ -1,13 +1,12 @@
 Overview
 ========
 
-SMS-CVS is an SMS reporting system designed for a pilot deployment
-"Community Vulnerability Surveillance" in the Acholi region of Uganda.
+UgandaSMS is an SMS platform written in Python with the Django Web
+Framework.
 
-It's built using the UgandaSMS application server (see documentation
-in ``./docs`` in reStructuredText format).
-
-The software is developed by the UNICEF Uganda Country Office.
+The software is developed by the UNICEF Uganda Country Office. Please
+consult the `documentation <http://uganda.rapidsms.org/docs/>`_ for
+more information.
 
 License
 -------
