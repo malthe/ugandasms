@@ -1,4 +1,5 @@
 from picoparse import one_of
+from picoparse.text import whitespace
 from picoparse.text import caseless_string
 
 from ..models import Incoming
@@ -19,3 +20,9 @@ class Break(Incoming):
 
     def __init__(self, *args, **kwargs):
         raise RuntimeError("Broken")
+
+class Hello(Incoming):
+    @staticmethod
+    def parse():
+        one_of('+')
+        caseless_string('hello')
