@@ -91,10 +91,51 @@ text.
 To try it out, add the following definition::
 
   MESSAGES = (
-      "router.Echo",
       "router.Empty",
+      "router.Echo",
       )
 
-Any non-trivial message will be returned to you. And if you send an
+.. -> input
+
+  >>> from router.testing import SETTINGS
+  >>> from textwrap import dedent
+  >>> exec dedent(input) in SETTINGS.__dict__
+
+Both of these messages come included with the *router* app. Any
+non-trivial message will be played back to you, and if you send an
 empty message, the system will tell you so.
 
+Let's try it out!
+
+In the following ``>>>`` indicates a message sent to the system and
+``<<<`` indicates a response.
+
+The echo message will respond to any non-trivial input::
+
+  >>> Hello, world!
+
+.. -> input
+
+We get the message played back to us::
+
+  <<< Hello, world!
+
+.. -> output
+
+  >>> bob.send(input)
+  >>> assert_equals(bob.receive(), output)
+
+Or, if we send an empty message::
+
+  >>>
+
+.. -> input
+
+This will prompt a helpful response that the message was empty::
+
+  <<< You sent a message with no text.
+
+.. -> output
+
+  >>> bob.send(input)
+  >>> assert_equals(bob.receive(), output)
