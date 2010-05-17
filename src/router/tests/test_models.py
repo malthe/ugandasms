@@ -8,3 +8,9 @@ class PolymorphicTest(FunctionalTestCase):
         message = models.Message.objects.get()
         self.failIf(message is None)
         self.failUnless(isinstance(message, models.Incoming))
+
+class MessageTest(FunctionalTestCase):
+    def test_user(self):
+        from router.models import Message
+        message = Message(uri="test://test")
+        self.assertEqual(message.user, None)
