@@ -1,8 +1,10 @@
 from picoparse import choice
+from picoparse import commit
 from picoparse import many
 from picoparse import many1
 from picoparse import one_of
 from picoparse import not_one_of
+from picoparse import optional
 from picoparse import partial
 from picoparse import run_parser
 from picoparse import tri
@@ -12,8 +14,40 @@ from picoparse.text import whitespace
 from string import digits as digit_chars
 
 comma = partial(one_of, ',')
+dot = partial(one_of, '.')
 not_comma = partial(not_one_of, ',')
 digits = partial(many1, partial(one_of, digit_chars))
+
+def float_digits():
+    """Parses a floating point number.
+
+    >>> run_parser(float_digits, '123')[0]
+    123.0
+
+    >>> run_parser(float_digits, '123.0')[0]
+    123.0
+
+    >>> run_parser(float_digits, '.123')[0]
+    0.123
+    """
+
+    number = "".join(optional(digits, ()))
+
+    @tri
+    def decimals():
+        sep = choice(comma, dot)
+        commit()
+        try:
+            return sep + "".join(digits())
+        except:
+            raise ParseError("Expected decimals after '%s'." % sep)
+
+    if not number:
+        number = "0" + decimals()
+    else:
+        number += optional(decimals, "")
+
+    return float(number.replace(',', '.'))
 
 def one_of_strings(*strings):
     """Parses one of the strings provided, caseless.
@@ -35,11 +69,14 @@ def next_parameter(parser=partial(many, not_comma)):
     >>> "".join(run_parser(next_parameter, ', abc')[0])
     'abc'
 
+    >>> "".join(run_parser(next_parameter, 'abc')[0])
+    'abc'
+
     >>> "".join(run_parser(partial(next_parameter, digits), ', 123')[0])
     '123'
     """
 
-    comma()
+    optional(comma, None)
     whitespace()
     return "".join(parser())
 
