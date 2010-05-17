@@ -32,24 +32,16 @@ def float_digits():
 
     >>> "".join(run_parser(float_digits, '.123')[0])
     '.123'
+
+    >>> "".join(run_parser(float_digits, '123.')[0])
+    '123.'
+
     """
 
     number = optional(digits, [])
-
-    @tri
-    def decimals():
-        sep = choice(comma, dot)
-        commit()
-        try:
-            return ["."] + digits()
-        except:
-            raise ParseError("Expected decimals after '%s'." % sep)
-
-    if not number:
-        number = decimals()
-    else:
-        number += optional(decimals, [])
-
+    if optional(partial(choice, comma, dot), None):
+        number += "."
+    number += optional(digits, [])
     return number
 
 def one_of_strings(*strings):
