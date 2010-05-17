@@ -21,33 +21,36 @@ digits = partial(many1, partial(one_of, digit_chars))
 def float_digits():
     """Parses a floating point number.
 
-    >>> run_parser(float_digits, '123')[0]
-    123.0
+    >>> "".join(run_parser(float_digits, '123')[0])
+    '123'
 
-    >>> run_parser(float_digits, '123.0')[0]
-    123.0
+    >>> "".join(run_parser(float_digits, '123.0')[0])
+    '123.0'
 
-    >>> run_parser(float_digits, '.123')[0]
-    0.123
+    >>> "".join(run_parser(float_digits, '123,0')[0])
+    '123.0'
+
+    >>> "".join(run_parser(float_digits, '.123')[0])
+    '.123'
     """
 
-    number = "".join(optional(digits, ()))
+    number = optional(digits, [])
 
     @tri
     def decimals():
         sep = choice(comma, dot)
         commit()
         try:
-            return sep + "".join(digits())
+            return ["."] + digits()
         except:
             raise ParseError("Expected decimals after '%s'." % sep)
 
     if not number:
-        number = "0" + decimals()
+        number = decimals()
     else:
-        number += optional(decimals, "")
+        number += optional(decimals, [])
 
-    return float(number.replace(',', '.'))
+    return number
 
 def one_of_strings(*strings):
     """Parses one of the strings provided, caseless.
