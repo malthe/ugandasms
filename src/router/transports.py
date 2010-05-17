@@ -5,15 +5,20 @@ from urllib2 import Request
 from urllib2 import urlopen
 
 from django.db.models import get_model
-from django.core.exceptions import ObjectDoesNotExist
 from django.utils.importlib import import_module
+from django.utils.functional import memoize
 from django.db.models import signals
+from django.dispatch import Signal
 from django.conf import settings
 
 from .parser import Parser
+from .parser import ParseError
 from .models import Incoming
 from .models import Outgoing
 from .models import Peer
+from .models import Broken
+from .models import NotUnderstood
+from .models import camelcase_to_dash
 
 @partial(signals.post_save.connect, sender=Outgoing, weak=False)
 def outgoing(sender, instance=None, created=None, **kwargs):
@@ -29,6 +34,11 @@ def initialize(sender, **kwargs):
 
     for name in getattr(settings, "TRANSPORTS", ()):
         get_transport(name)
+
+pre_parse = Signal()
+post_parse = Signal(providing_args=["data"])
+pre_handle = Signal()
+post_handle = Signal()
 
 def get_transport(name):
     """Look up and return transport given by ``name``.
@@ -48,17 +58,17 @@ def get_transport(name):
 
     try:
         transports = settings.TRANSPORTS
-    except AttributeError:
+    except AttributeError: # PRAGMA: nocover
         raise RuntimeError("No transports defined.")
 
-    if name not in transports:
+    if name not in transports: # PRAGMA: nocover
         raise ValueError("No such transport: %s." % name)
 
     configuration = transports[name]
 
     try:
         transport = configuration["TRANSPORT"]
-    except KeyError:
+    except KeyError: # PRAGMA: nocover
         raise ValueError("Must set value for ``TRANSPORT``.")
 
     if isinstance(transport, basestring):
@@ -80,37 +90,104 @@ class Transport(object):
     to spawn a daemon-thread upon initialization.
     """
 
+    _parser_cache = {}
+
     def __init__(self, name, options):
         self.name = name
 
-        messages = []
-        for path in getattr(settings, "MESSAGES", ()):
-            if path.count('.') != 1:
-                raise ValueError("Specify messages as <app_label>.<model_name>.")
-            model = get_model(*path.split('.'))
-            if model is None:
-                raise ValueError("Can't find model: %s." % path)
-            messages.append(model)
-
-        self.parse = Parser(messages)
         for key, value in options.items():
             setattr(self, key.lower(), value)
 
+    @property
+    def parse(self):
+        paths = getattr(settings, "MESSAGES", ())
+        return self._get_parser(paths)
+
+    def _get_parser(self, paths):
+        messages = []
+        for path in paths:
+            if path.count('.') != 1: # PRAGMA: nocover
+                raise ValueError("Specify messages as <app_label>.<model_name>.")
+            model = get_model(*path.split('.'))
+            if model is None: # PRAGMA: nocover
+                raise ValueError("Can't find model: %s." % path)
+            messages.append(model)
+
+        return Parser(messages)
+    _get_parser = memoize(_get_parser, _parser_cache, 1)
+
     def incoming(self, ident, text, time=None):
-        """Handle incoming message."""
+        """Invoked when a transport receives an incoming text message.
 
-        message = self.parse(text)
-        message.time = time or datetime.now()
+        The method uses its message parser on ``text`` to receive a
+        message model and a parser result dictionary::
 
-        message.peer, created = Peer.objects.get_or_create(uri="%s://%s" % (self.name, ident))
+          model, data = self.parse(text)
+
+        The message model is instantiated and the parse result data is
+        passed to the message handler as keyword arguments::
+
+          message = model(text=text)
+          message.handle(**data)
+
+        If the message parser throws a parse error, the message class
+        will be of type ``NotUnderstood``. The error message will be
+        set in the ``help`` attribute.
+
+        Note that signals are provided to hook into the flow of
+        operations of this method:: ``pre_parse``, ``post_parse``,
+        ``pre_handle`` and ``post_handle``.
+        """
+
+        message = Incoming(text=text, time=time or datetime.now())
+
+        pre_parse.send(sender=message)
+
+        try:
+            model, data = self.parse(message.text)
+        except ParseError, error:
+            model, data = NotUnderstood, {
+                'help': error.args[0],
+                }
+
+        message.__class__ = model
+        try:
+            message.__init__(text=message.text)
+        except Exception, exc:
+            message.__class__ = Broken
+            message.__init__(
+                text=unicode(exc),
+                kind=camelcase_to_dash(model.__name__))
+
+        post_parse.send(sender=message, data=data)
+
+        peer, created = Peer.objects.get_or_create(
+            uri="%s://%s" % (self.name, ident))
         if created:
-            message.peer.save()
-
+            peer.save()
+        message.peer = peer
         message.save()
-        message.handle()
+
+        pre_handle.send(sender=message)
+        try:
+            message.handle(**data)
+        finally:
+            post_handle.send(sender=message)
 
     def send(self, message):
-        """Send message using transport."""
+        """Send message using transport.
+
+        This method should be overriden by any transport that wants to
+        send outgoing messages.
+
+        The implementation in the base class does nothing (although
+        outgoing messages are always stored in the database).
+
+        Only outgoing messages that have been sent should have a
+        defined ``time`` (this is a record of when a message
+        left the system, not when it was merely queued). It's up to
+        the ``send`` method to set this value.
+        """
 
 class Kannel(Transport):
     """Kannel transport.
@@ -182,7 +259,7 @@ class Kannel(Transport):
 
     def send(self, message):
         url = self.sms_url
-        if url is None:
+        if url is None: # PRAGMA: nocover
             raise ValueError("Must set ``SMS_URL`` parameter for transport: %s." % self.name)
 
         if '?' not in url:
@@ -198,4 +275,5 @@ class Kannel(Transport):
             )
 
         response = self.fetch(request, timeout=self.timeout)
-        message.time = datetime.now()
+        if response.code // 100 == 2:
+            message.time = datetime.now()

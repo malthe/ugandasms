@@ -5,3 +5,4 @@ class Dummy(Transport):
 
     def __init__(self, name, options):
         type(self).name = name
+        Transport.__init__(self, name, options)

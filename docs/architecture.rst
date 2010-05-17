@@ -1,7 +1,51 @@
 Architecture
 ============
 
+.. highlight:: python
+
 The routing system consists of *messages* and *transports*.
+
+Messages enter and exit the system through one or more transports
+(defined in the global Django settings module).
+
+Signals
+-------
+
+The following signals provide hooks into the incoming message flow
+(the ``sender`` of each of the signals is a message instance):
+
+.. function:: router.transports.pre_parse(sender=None, **kwargs)
+
+   Called *before* an incoming message is parsed.
+
+   The ``sender`` of this signal is always of the generic incoming
+   message type ``Incoming``.
+
+   Changing the value of the ``text`` attribute in this step will
+   directly control the parser input before next step.
+
+.. function:: router.transports.post_parse(sender=None, data=None, **kwargs)
+
+   Called *after* an incoming message is parsed. In this step the
+   message instance has been initialized with the class that was given
+   by the parser.
+
+   This signal sends an additional ``data`` argument which is the
+   return value of the parser function, or if no value was returned,
+   an empty dictionary.
+
+   The ``data`` dictionary is passed into the message handler as
+   keyword arguments after the ``pre_handle`` step.
+
+.. function:: router.transports.pre_handle(sender=None, **kwargs)
+
+   Called immediately *before* a message is handled (but after it's
+   been saved).
+
+.. function:: router.transports.post_handle(sender=None, **kwargs)
+
+   Called immediately *after* a message was handled (even if an
+   exception was raised).
 
 Messages
 --------
@@ -12,12 +56,14 @@ implement two methods::
   @staticmethod
   def parse():
       # use picoparse here and return message initialization kwargs
+      pass
 
   def handle(self):
       # use ``self.reply(text)`` here to send one or more replies to
       # this message, and/or create new database objects.
+      pass
 
-For a reference on the ``picoparse`` library, see its `readme
+For a reference on the :mod:`picoparse` library, see its `readme
 <http://github.com/brehaut/picoparse/blob/master/README.markdown>`_
 document. Here's a basic example of a ``parse`` method::
 
@@ -29,30 +75,22 @@ document. Here's a basic example of a ``parse`` method::
 
   @staticmethod
   def parse():
-      caseless_string("+register")
+      caseless_string("+hello")
       try:
           whitespace1()
           name = "".join(remaining())
       except:
-          raise ParseError(u"Input error. Format: +REGISTER <name>.")
+          raise ParseError(u"Input error. Format: +HELLO <name>.")
 
       return {
           'name': name
           }
 
-Note that the message model must define database fields corresponding
-to the returned dictionary; in this case ``name``::
+The return value of the parser function will be passed into the
+message handler as keyword arguments::
 
-  name = django.db.models.CharField(max_length=30)
-
-Normally, the original message text is preserved in the ``text``
-field. However, this can be overridden by returning a value for the
-``'text'`` key::
-
-  return {
-      'name': name,
-      'text': "register => %s" % name
-      }
+  def handler(self, name=None):
+      self.reply("Hello, %s!" % name)
 
 Identification
 --------------
@@ -127,15 +165,18 @@ messages. This must be configured in your ``urls.py`` file::
 However, some transports will want to start a thread and poll incoming
 messages from e.g. a locally attached GSM modem.
 
-When a transport sees an incoming message, it invokes the message
-parser to determine what kind of message it is::
+Incoming messages
+~~~~~~~~~~~~~~~~~
 
-  message = parse(text)
+Incoming messages are handled by the ``incoming`` method of the
+transport base class:
 
-It then calls the message handler which enqueues zero or more outgoing
-message replies::
+.. automodule:: router.transports
 
-  message.handle()
+   .. automethod:: Transport.incoming
+
+Writing your own transport
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To write your own transport, you must implement the logic required for
 receiving incoming messages from your desired communications channel

@@ -3,7 +3,9 @@ import re
 from django.db import models
 from django.core.exceptions import ObjectDoesNotExist
 from polymorphic import PolymorphicModel as Model
-from picoparse import eof
+from picoparse import any_token
+from picoparse import fail
+from picoparse import optional
 from picoparse import remaining
 
 def camelcase_to_dash(str):
@@ -12,32 +14,29 @@ def camelcase_to_dash(str):
         str).lower().strip('-')
 
 class User(Model):
-    """Identified user.
+    """Authenticated user.
 
-    The user is authenticated for the set of peers defined in the
-    ``peers`` attribute.
+    The device used to send and receive messages typically provide a
+    means of authentication. Since users may use different devices, we
+    record a set of *peers* that authenticate a user.
     """
 
-    name = models.CharField(max_length=50, null=True)
     peers = ()
-
-    def __unicode__(self):
-        return self.name
 
 class CustomForeignKey(models.ForeignKey):
     def __init__(self, *args, **kwargs):
         self.column = kwargs.pop('column')
         kwargs.setdefault('db_column', "%s_id" % self.column)
-        return super(CustomForeignKey, self).__init__(*args, **kwargs)
+        super(CustomForeignKey, self).__init__(*args, **kwargs)
 
     def get_attname(self):
         return self.column
 
 class Peer(Model):
-    """Remote peer object.
+    """Device identification object.
 
-    The ``uri`` attribute identifies the peer in terms of a transport
-    token and an identification string.
+    The ``uri`` attribute identifies the remote device in terms of a
+    transport token and an identification string.
 
     Examples:
 
@@ -52,9 +51,6 @@ class Peer(Model):
 
     uri = models.CharField(max_length=30, primary_key=True)
     user = models.ForeignKey(User, related_name="peers", null=True)
-
-    def __repr__(self):
-        return '<Peer uri="%s" at 0x%x>' % (self.uri, id(self))
 
 class Message(Model):
     """SMS message between a user and the system.
@@ -80,13 +76,6 @@ class Message(Model):
         self.peer.user = user
 
     user = property(get_user, set_user)
-
-    @property
-    def anonymous(self):
-        try:
-            return self.user is None
-        except ObjectDoesNotExist:
-            return True
 
     @property
     def transport(self):
@@ -117,7 +106,7 @@ class Incoming(Message):
         """
 
         raise NotImplementedError(
-            "Message must implement the ``handle`` function.")
+            "Message must implement the ``handle`` function.") # PRAGMA: nocover
 
     def reply(self, text):
         """Schedule an outgoing message as reply to this message."""
@@ -153,16 +142,34 @@ class Empty(Incoming):
 
     @staticmethod
     def parse():
-        eof()
+        """Fail if any token is parsed.
+
+        >>> from picoparse import run_parser
+
+        The empty message parses.
+
+        >>> run_parser(Empty.parse, ('',)) is not None
+        True
+
+        Any non-trivial input fails.
+
+        >>> run_parser(Empty.parse, 'hello') # doctest: +ELLIPSIS
+        Traceback (most recent call last):
+         ...
+        NoMatch: ...
+        """
+
+        if optional(any_token, None):
+            fail()
 
     def handle(self):
-        self.reply(u"You sent a message with no text.")
+        self.reply(u"You sent a message with no text.") # pragma: NOCOVER
 
 class NotUnderstood(Incoming):
     """Any message which was not understood."""
 
-    def handle(self):
-        self.reply("Message not understood: %s." % self.text)
+    def handle(self, help=None):
+        self.reply('Message not understood: %s.' % help)
 
 class Broken(Incoming):
     """Broken message."""

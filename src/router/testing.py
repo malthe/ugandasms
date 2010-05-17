@@ -9,33 +9,27 @@ from StringIO import StringIO
 class Gateway(object):
     """Mobile gateway."""
 
-    def __init__(self, parser):
-        self.parser = parser
+    def __new__(cls, *args):
+        from router.transports import Transport
+        cls = type("Gateway", (cls, Transport), {})
+        return object.__new__(cls)
+
+    def __init__(self, name, options):
         self._subscribers = {}
+        super(Gateway, self).__init__(name, options)
 
-    def send(self, subscriber, text):
-        self._subscribers[subscriber.uri] = subscriber
-        message = self.parser(text)
+    def receive(self, sender, text):
+        self._subscribers[sender.uri] = sender
+        ident = sender.uri.split('://')[1]
+        self.incoming(ident, text)
 
-        from router.models import Peer
-        message.peer, created = Peer.objects.get_or_create(uri=subscriber.uri)
-        if created:
-            message.peer.save()
-
-        message.save()
-        message.handle()
-
-        from router.models import Outgoing
-        replies = Outgoing.objects.filter(in_reply_to=message)
-        for reply in replies:
-            self.deliver(subscriber, reply, message.time)
-
-    def deliver(self, receiver, reply, time):
-        receiver.receive(reply.text)
+    def send(self, message):
+        receiver = self._subscribers[message.uri]
+        receiver.receive(message.text)
 
         # note delivery time
-        reply.delivery = time
-        reply.save()
+        message.delivery = message.in_reply_to.time
+        message.save()
 
 class Subscriber(object):
     """Mobile subscriber."""
@@ -50,7 +44,7 @@ class Subscriber(object):
 
         text = text.lstrip("> ")
         assert len(text) <= 160
-        self.gateway.send(self, text)
+        self.gateway.receive(self, text)
 
     def receive(self, text=None):
         if text is None:
@@ -58,44 +52,62 @@ class Subscriber(object):
         text = "<<< " + text
         self._received.append(text)
 
+class Settings(object):
+    pass
+
+# this is a global!
+SETTINGS = Settings()
+
 class UnitTestCase(TestCase):
     """Use this test case for tests which do not require a database."""
-
-    class Settings(object):
-        pass
-
-    # this is a global!
-    SETTINGS = Settings()
 
     def setUp(self):
         from django.conf import settings
         from django.conf import global_settings
 
         if not settings.configured:
-            settings.configure(self.SETTINGS)
-            self.SETTINGS.__dict__.update(global_settings.__dict__)
+            settings.configure(SETTINGS)
+            SETTINGS.__dict__.update(global_settings.__dict__)
 
         super(UnitTestCase, self).setUp()
 
-class FunctionalTestCase(UnitTestCase):
+class FunctionalTestCase(UnitTestCase):  # pragma: NOCOVER
     """Use this test case for tests which require a database.
 
-    The user account that runs the test suite must have the
-    ``CREATEDB`` privilege. When creating test databases, the naming
-    convention is defined by the ``_pg_database_name`` property. By
-    default this uses the test class name in all lower case.
+    With PostgreSQL:
 
-    For GeoDjango support with PostgreSQL, a PostGIS template with the
-    name ``'template_postgis'`` must be installed. If you run the
-    tests as a non-superuser, the ``datistemplate`` flag must be set.
+        Set the environ variable ``WITH_POSTGRESQL`` to a true value
+        to run tests using this backend.
 
-    Spatialite is also supported.
+        The user account that runs the test suite must have the
+        ``CREATEDB`` privilege. When the test harness creates a test
+        database, it uses the naming convention defined by the
+        ``_pg_database_name`` property. By default this simply
+        lower-cases the class name of the test case.
+
+        For GeoDjango support with PostgreSQL, a PostGIS template with the
+        name ``'template_postgis'`` must be installed. If you run the
+        tests as a non-superuser, the ``datistemplate`` flag must be set.
+
+    With SQLite:
+
+        No custom configuration needed; Spatialite is also supported
+        (just add ``"django.contrib.gis"`` to the apps list).
+
     """
 
     INSTALLED_APPS = (
         'django.contrib.contenttypes',
         'router',
         )
+
+    BASE_SETTINGS = {
+        'TRANSPORTS': {
+            'dummy': {
+                'TRANSPORT': 'router.tests.transports.Dummy',
+                },
+            },
+        }
 
     USER_SETTINGS = {}
 
@@ -115,7 +127,7 @@ class FunctionalTestCase(UnitTestCase):
                 'NAME': ':memory:',
                 }
 
-        self.SETTINGS.__dict__.update({
+        SETTINGS.__dict__.update({
             'DATABASES': {
                 'default': DATABASE,
                 },
@@ -123,11 +135,12 @@ class FunctionalTestCase(UnitTestCase):
             'DLR_URL': 'http://host/kannel',
             })
 
-        self.SETTINGS.__dict__.update(deepcopy(self.USER_SETTINGS))
+        SETTINGS.__dict__.update(deepcopy(self.BASE_SETTINGS))
+        SETTINGS.__dict__.update(deepcopy(self.USER_SETTINGS))
 
         # reinitialize connections
         from django import db
-        db.connections.__init__(self.SETTINGS.DATABASES)
+        db.connections.__init__(SETTINGS.DATABASES)
         db.connection = db.connections[db.DEFAULT_DB_ALIAS]
 
         # if we're using gis and sqlite, initialize the database

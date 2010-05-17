@@ -23,7 +23,7 @@ class Location(Model):
     manager = PolymorphicGeoManager()
 
 class Facility(Model):
-    hmis = models.IntegerField(unique=True)
+    code = models.IntegerField(unique=True, primary_key=True)
     name = models.CharField(max_length=50, null=True)
     location = models.ForeignKey(Location)
     parent = models.ForeignKey("self", related_name="children", null=True)
@@ -35,11 +35,15 @@ class Subscription(Model):
     user = models.ForeignKey(User, related_name="subscriptions", null=True)
 
 class Signup(Incoming):
-    """Message to register as health worker."""
+    """Message to register as health worker.
 
-    role = models.CharField(max_length=3)
-    facility = models.IntegerField()
-    registration_required = True
+    New signups use the format::
+
+      +[VHT|CHW|HCS|HCW] <code>
+
+    The first three letter token is the role name, while the code is
+    an integer facility code.
+    """
 
     @staticmethod
     def parse():
@@ -48,36 +52,32 @@ class Signup(Incoming):
 
         try:
             whitespace1()
-            facility = int(u"".join(digits()))
+            code = int(u"".join(digits()))
         except:
-            raise ParseError(u"Expected an HMIS facility number (got: %s)." %
+            raise ParseError(u"Expected an HMIS facility code (got: %s)." %
                              "".join(remaining()))
 
         return {
             'role': role,
-            'facility': facility
+            'code': code,
             }
 
-    def handle(self):
-        if self.anonymous:
+    def handle(self, role=None, code=None):
+        if self.user is None:
             self.reply(getattr(
                 settings, "REGISTERED_USERS_ONLY_MESSAGE",
                 u"You must be registered to use this service."))
         else:
             try:
-                facility = Facility.objects.filter(hmis=self.facility).get()
+                facility = Facility.objects.filter(code=code).get()
             except ObjectDoesNotExist:
-                return u"No such facility HMIS code: %d." % self.facility
+                self.reply(u"No such facility code: %d." % code)
+            else:
+                sub = self.user.subscriptions.create(role=role, facility=facility)
+                sub.save()
 
-
-            self.user.subscriptions.create(
-                role=self.role,
-                facility=facility)
-
-            self.reply((
-                "You have joined the "
-                "Community Vulnerability Surveillance System "
-                "as a %s for %s in %s. Please resend if "
-                "there is a mistake.") % (
-                getattr(settings, "HEALTH_FACILITY_ROLES", {}).get(self.role, self.role),
-                facility.name, facility.location.name))
+                self.reply((
+                    "You have joined the system as %s for %s in %s. "
+                    "Please resend if there is a mistake.") % (
+                    getattr(settings, "HEALTH_FACILITY_ROLES", {}).get(role, role),
+                    facility.name, facility.location.name))

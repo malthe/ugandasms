@@ -5,6 +5,87 @@ import urllib
 
 from ..testing import FunctionalTestCase
 
+class TransportTest(FunctionalTestCase):
+    INSTALLED_APPS = FunctionalTestCase.INSTALLED_APPS + (
+        'router.tests',
+        )
+
+    USER_SETTINGS = {
+        'MESSAGES': (
+            'tests.Error',
+            'tests.Break',
+            'router.Echo',
+            )
+        }
+
+    def test_signals(self):
+        from router.transports import get_transport
+        from router.transports import pre_parse
+        from router.transports import post_parse
+        from router.transports import pre_handle
+        from router.transports import post_handle
+
+        s1 = []
+        s2 = []
+        s3 = []
+        s4 = []
+
+        def before_parse(sender=None, **kwargs):
+            s1.append(sender)
+            self.assertEqual(sender.id, None)
+        pre_parse.connect(before_parse)
+
+        def after_parse(sender=None, data=None, **kwargs):
+            s2.append(sender)
+            self.assertTrue(isinstance(data, dict))
+            self.assertEqual(sender.id, None)
+        post_parse.connect(after_parse)
+
+        def before_handle(sender=None, **kwargs):
+            s3.append(sender)
+            self.assertEqual(sender.replies.count(), 0)
+        pre_handle.connect(before_handle)
+
+        def after_handle(sender=None, **kwargs):
+            s4.append(sender)
+            self.assertEqual(sender.replies.count(), 1)
+        post_handle.connect(after_handle)
+
+        transport = get_transport("dummy")
+        transport.incoming("test", "+echo test")
+
+        self.assertTrue(len(s1), 1)
+        self.assertTrue(len(s2), 1)
+        self.assertTrue(len(s3), 1)
+        self.assertTrue(len(s4), 1)
+
+    def test_parse_error(self):
+        from router.transports import post_parse
+
+        def check_type(sender=None, data=None, **kwargs):
+            from router.models import NotUnderstood
+            self.assertTrue(isinstance(sender, NotUnderstood),
+                            "Sender was of type: %s." % sender.__class__)
+            self.assertTrue(data.get('help'), 'error')
+        post_parse.connect(check_type)
+
+        from router.transports import get_transport
+        transport = get_transport("dummy")
+        transport.incoming("test", "+error")
+
+    def test_message_error(self):
+        from router.transports import post_parse
+
+        def check_type(sender=None, data=None, **kwargs):
+            from router.models import Broken
+            self.assertTrue(isinstance(sender, Broken),
+                            "Sender was of type: %s." % sender.__class__)
+        post_parse.connect(check_type)
+
+        from router.transports import get_transport
+        transport = get_transport("dummy")
+        transport.incoming("test", "+break")
+
 class KannelTest(FunctionalTestCase):
     INSTALLED_APPS = FunctionalTestCase.INSTALLED_APPS + (
         'router.tests',
@@ -27,9 +108,6 @@ class KannelTest(FunctionalTestCase):
 
     @property
     def _make_request(self):
-        from django.http import HttpRequest
-        from django.http import QueryDict
-
         from django.test import Client
         from django.core.handlers.wsgi import WSGIRequest
 
@@ -113,6 +191,10 @@ class KannelTest(FunctionalTestCase):
         query = {}
         def fetch(request, **kwargs):
             query.update(cgi.parse_qsl(request.get_full_url()))
+            class response:
+                code = 202
+            return response()
+
         kannel.fetch = fetch
         from django.conf import settings
         settings.TRANSPORTS['kannel']['DLR_URL'] = 'http://localhost'

@@ -37,9 +37,9 @@ install_requires = [
     ]
 
 setup(
-    name="SMS-CVS",
+    name="UgandaSMS",
     version=__version__,
-    description="Community Vulnerability Surveillance using SMS.",
+    description="SMS platform based on Python and the Django Web Framework",
     long_description=long_description,
     classifiers=[
        "Development Status :: 3 - Alpha",

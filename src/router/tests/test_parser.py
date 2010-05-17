@@ -1,4 +1,5 @@
 from router.testing import FunctionalTestCase
+from router.testing import UnitTestCase
 
 class ParserTest(FunctionalTestCase):
     INSTALLED_APPS = FunctionalTestCase.INSTALLED_APPS + (
@@ -7,17 +8,20 @@ class ParserTest(FunctionalTestCase):
 
     def test_error(self):
         from ..parser import Parser
+        from ..parser import ParseError
         from .models import Error
         parser = Parser((Error,))
-        message = parser("+error")
-        from router.models import NotUnderstood
-        self.assertTrue(isinstance(message, NotUnderstood))
-        self.assertEquals(message.text, "error")
+        self.assertRaises(ParseError, parser, "+error")
 
-    def test_broken(self):
+    def test_remaining(self):
         from ..parser import Parser
-        from .models import Break
-        parser = Parser((Break,))
-        message = parser("+break")
-        from router.models import Broken
-        self.assertTrue(isinstance(message, Broken))
+        from ..parser import ParseError
+        from .models import Hello
+        parser = Parser((Hello,))
+        self.assertRaises(ParseError, parser, "+hello world")
+
+    def test_no_match(self):
+        from ..parser import Parser
+        from ..parser import ParseError
+        parser = Parser(())
+        self.assertRaises(ParseError, parser, "")

@@ -11,48 +11,92 @@ from picoparse.text import caseless_string
 from picoparse.text import whitespace
 from string import digits as digit_chars
 
-from .models import Broken
 from .models import NotUnderstood
-from .models import camelcase_to_dash
 
 comma = partial(one_of, ',')
 not_comma = partial(not_one_of, ',')
 digits = partial(many1, partial(one_of, digit_chars))
 
 def one_of_strings(*strings):
+    """Parses one of the strings provided, caseless.
+
+    >>> "".join(run_parser(
+    ...     partial(one_of_strings, 'abc', 'def'), 'abc')[0])
+    'abc'
+
+    >>> "".join(run_parser(
+    ...     partial(one_of_strings, 'abc', 'def'), 'def')[0])
+    'def'
+    """
+
     return choice(*map(tri, map(partial(partial, caseless_string), strings)))
 
-def next_parameter(parser=not_comma):
+def next_parameter(parser=partial(many, not_comma)):
+    """Read the next parameter on a comma-separated input.
+
+    >>> "".join(run_parser(next_parameter, ', abc')[0])
+    'abc'
+
+    >>> "".join(run_parser(partial(next_parameter, digits), ', 123')[0])
+    '123'
+    """
+
     comma()
     whitespace()
-    name = u"".join(many(parser))
-    return name
+    return "".join(parser())
 
 class ParseError(NoMatch):
     """Should be raised inside a parser function to return a reply
     that the message was not understood. The provided argument is used
-    as the reply string (as-is)."""
+    as the reply string."""
+
+    def __init__(self, text):
+        NoMatch.__init__(self, text)
 
 class Parser(object):
-    """Parse text messages into message objects.
+    """Returns ``(model, data)`` for a message body.
 
-    The returned objects are Django database objects that can be
-    stored using ``save()``.
+    The ``model`` is a message model that inherits from ``Incoming``
+    and ``data`` contain keyword arguments for the message handler.
+
+    Models are required to implement parser functions from the
+    :mod:`picoparse` library.
+
+    >>> import picoparse
+    >>> import picoparse.text
+
+    Here's an example of a greeting model:
+
+    >>> class Greeting(object):
+    ...     @staticmethod
+    ...     def parse():
+    ...         one_of('+')
+    ...         picoparse.text.caseless_string('hello')
+    ...         picoparse.text.whitespace1()
+    ...         remaining = picoparse.remaining()
+    ...         return {
+    ...             'name': ''.join(remaining)
+    ...         }
+    ...
+    ...     def handle(self, name=None):
+    ...         return u'Hello, %s!' % name
+
+    You won't usually need to use the ``Parser`` class manually; the
+    *transport* abstraction exposes this component on a higher
+    level. However, the following snippet outlines its operation:
+
+    >>> parser = Parser((Greeting,))          # set up parser
+    >>> model, data = parser('+hello world')  # parse text
+    >>> message = model()                     # create message
+    >>> message.handle(**data)                # handle message
+    u'Hello, world!'
 
     Participating models must provide a static method ``parse`` which
-    should be a ``picoparse`` parse function.
+    should be a ``picoparse`` parse function. The result of this
+    function is used as the ``data`` dictionary (although if the
+    function returns ``None``, an empty dictionary is used).
 
-    Its return value is passed as keyword arguments to the message
-    constructor. The message text can be overrided by including a
-    value for the 'text' key.
-
-    If a parser raises a ``ParseError`` exception, the provided string
-    is used as the text for a ``NotUnderstood`` message.
-
-    If the message was not parsed at all, a ``NotUnderstood`` object
-    is also returned. Meanwhile, if a message does parse but
-    construction of the message fails, a ``Broken`` object is
-    returned.
+    Raises ``ParseError`` if no parser matched the input text.
     """
 
     def __init__(self, models):
@@ -61,29 +105,27 @@ class Parser(object):
     def __call__(self, text):
         text = text.strip()
         text = unicode(text)
+        source = tuple(text) or ("", )
 
         for model in self.models:
             parser = model.parse
-            if parser is None:
-                continue
+
             try:
-                kwargs, remaining = run_parser(parser, text)
-            except ParseError, error:
-                text = unicode(error)
-                return NotUnderstood(text=unicode(error))
+                kwargs, remaining = run_parser(parser, source)
+            except ParseError:
+                raise
             except NoMatch:
                 continue
+            except Exception, exc: # pragma: NOCOVER
+                # backwards compatible with older version of picoparse
+                if 'Commit / cut called' in str(exc):
+                    raise ParseError(text)
+                raise
 
             if remaining:
-                return NotUnderstood(text=u"".join(remaining))
+                msg = "".join(remaining)
+                raise ParseError(msg)
 
-            try:
-                if kwargs is None:
-                    return model(text=text)
-                else:
-                    kwargs.setdefault("text", text)
-                    return model(**kwargs)
-            except Exception, exc:
-                return Broken(text=unicode(exc), kind=camelcase_to_dash(model.__name__))
+            return model, kwargs or {}
 
-        return NotUnderstood(text=text)
+        raise ParseError(text)

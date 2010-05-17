@@ -4,7 +4,7 @@ from .transports import get_transport
 def kannel(request, name='kannel'):
     """Kannel incoming view.
 
-    The default transport name is 'kannel'; to use this view with a
+    The default transport name is "kannel"; to use this view with a
     different transport name, simply define a wrapper view function that
     calls this function with the right ``name`` argument.
 
