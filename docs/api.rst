@@ -23,7 +23,15 @@ Models
 .. automodule:: router.models
 
   .. autoclass:: Message
-     :members:   uri, text, time, user, anonymous, transport, ident
+     :members:   user, transport, ident
+
+     .. attribute:: text
+
+        The message body string.
+
+     .. attribute:: time
+
+        The time a message was received.
 
   .. autoclass:: Incoming
      :members:   handle, reply
