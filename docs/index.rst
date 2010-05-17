@@ -90,6 +90,19 @@ any true value.
 
 See the chapter on :ref:`testing` to learn how to write your own tests.
 
+Contribution
+------------
+
+If you find this software useful, please feel welcome and encouraged
+to contribute with bug fixes, documentation or new features.
+
+The most important requirement for a change to be merged into the
+``master`` branch of the repository is that test coverage remains at
+full coverage -- 100%. However, we also ask that all new features are
+documented.
+
+Repository: `http://github.com/malthe/ugandasms <http://github.com/malthe/ugandasms>`_
+
 Documentation
 -------------
 
