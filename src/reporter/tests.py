@@ -45,14 +45,14 @@ class HandlerTest(FunctionalTestCase):
         )
 
     @staticmethod
-    def _handle(uri="test://test", **kwargs):
+    def _handle(uri="test://test", text="",**kwargs):
         from .models import Registration
         from router.models import Peer
-        message = Registration(**kwargs)
+        message = Registration(text=text)
         message.peer, created = Peer.objects.get_or_create(uri=uri)
         message.peer.save()
         message.save()
-        message.handle()
+        message.handle(**kwargs)
         return message
 
     def test_initial_registration(self):

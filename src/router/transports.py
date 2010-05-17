@@ -11,10 +11,12 @@ from django.dispatch import Signal
 from django.conf import settings
 
 from .parser import Parser
+from .parser import ParseError
 from .models import Incoming
 from .models import Outgoing
 from .models import Peer
 from .models import Broken
+from .models import NotUnderstood
 from .models import camelcase_to_dash
 
 @partial(signals.post_save.connect, sender=Outgoing, weak=False)
@@ -33,7 +35,7 @@ def initialize(sender, **kwargs):
         get_transport(name)
 
 pre_parse = Signal()
-post_parse = Signal()
+post_parse = Signal(providing_args=["data"])
 pre_handle = Signal()
 post_handle = Signal()
 
@@ -109,18 +111,22 @@ class Transport(object):
         message = Incoming(text=text, time=time or datetime.now())
 
         pre_parse.send(sender=message)
-        model, kwargs = self.parse(message.text)
+
+        try:
+            model, data = self.parse(message.text)
+        except ParseError:
+            model, data = NotUnderstood,{}
 
         message.__class__ = model
         try:
-            message.__init__(**kwargs)
+            message.__init__(text=message.text)
         except Exception, exc:
             message.__class__ = Broken
             message.__init__(
                 text=unicode(exc),
                 kind=camelcase_to_dash(model.__name__))
 
-        post_parse.send(sender=message)
+        post_parse.send(sender=message, data=data)
 
         peer, created = Peer.objects.get_or_create(
             uri="%s://%s" % (self.name, ident))
@@ -131,7 +137,7 @@ class Transport(object):
 
         pre_handle.send(sender=message)
         try:
-            message.handle()
+            message.handle(**data)
         finally:
             post_handle.send(sender=message)
 

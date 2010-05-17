@@ -6,8 +6,8 @@ BSD license.
 
 The system is written in `Python <http://www.python.org>`_ and uses
 the `Django <http://www.djangoproject.com>`_ web framework. It comes
-with a :ref:`set of apps <applications>` that can be used *as is* or
-be extended to meet your requirements.
+with a :ref:`set of apps <applications>` that can be used as is or be
+extended to meet your requirements.
 
 The `Kannel <http://www.kannel.org/>`_ SMS gateway is the default
 option for connectivity, but it's easy to write your own message
@@ -33,11 +33,11 @@ Add the following model to your Django ``models.py``::
            caseless_string("+echo")
            whitespace1()
            return {
-               'text': "".join(remaining())
+               'echo': "".join(remaining())
                }
 
-       def handle(self):
-           self.reply(u"You wrote: %s." % self.text)
+       def handle(self, echo=None):
+           self.reply(u"You wrote: %s." % echo)
 
 To enable this message, add it to the list of messages in your ``settings.py``::
 

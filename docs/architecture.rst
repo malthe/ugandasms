@@ -5,34 +5,44 @@ Architecture
 
 The routing system consists of *messages* and *transports*.
 
-Messages enter and exit the system through one or more
-transports. These are defined in the global Django settings module.
+Messages enter and exit the system through one or more transports
+(defined in the global Django settings module).
+
+Signals
+-------
 
 The following signals provide hooks into the incoming message flow
 (the ``sender`` of each of the signals is a message instance):
 
-.. function:: router.transports.pre_parse
+.. function:: router.transports.pre_parse(sender=None, **kwargs)
 
    Called *before* an incoming message is parsed.
 
    The ``sender`` of this signal is always of the generic incoming
    message type ``Incoming``.
 
-   Note that any listener may change the value of the attribute to
-   change what's being parsed in the next step.
+   Changing the value of the ``text`` attribute in this step will
+   directly control the parser input before next step.
 
-.. function:: router.transports.post_parse
+.. function:: router.transports.post_parse(sender=None, data=None, **kwargs)
 
    Called *after* an incoming message is parsed. In this step the
-   message instance has been given the message class that was
-   designated during parsing, with all attributes initialized.
+   message instance has been initialized with the class that was given
+   by the parser.
 
-.. function:: router.transports.pre_handle
+   This signal sends an additional ``data`` argument which is the
+   return value of the parser function, or if no value was returned,
+   an empty dictionary.
+
+   The ``data`` dictionary is passed into the message handler as
+   keyword arguments after the ``pre_handle`` step.
+
+.. function:: router.transports.pre_handle(sender=None, **kwargs)
 
    Called immediately *before* a message is handled (but after it's
    been saved).
 
-.. function:: router.transports.post_handle
+.. function:: router.transports.post_handle(sender=None, **kwargs)
 
    Called immediately *after* a message was handled (even if an
    exception was raised).
@@ -65,30 +75,22 @@ document. Here's a basic example of a ``parse`` method::
 
   @staticmethod
   def parse():
-      caseless_string("+register")
+      caseless_string("+hello")
       try:
           whitespace1()
           name = "".join(remaining())
       except:
-          raise ParseError(u"Input error. Format: +REGISTER <name>.")
+          raise ParseError(u"Input error. Format: +HELLO <name>.")
 
       return {
           'name': name
           }
 
-Note that the message model must define database fields corresponding
-to the returned dictionary; in this case ``name``::
+The return value of the parser function will be passed into the
+message handler as keyword arguments::
 
-  name = django.db.models.CharField(max_length=30)
-
-Normally, the original message text is preserved in the ``text``
-field. However, this can be overridden by returning a value for the
-``'text'`` key::
-
-  return {
-      'name': name,
-      'text': "register => %s" % name
-      }
+  def handler(self, name=None):
+      self.reply("Hello, %s!" % name)
 
 Identification
 --------------

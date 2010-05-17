@@ -35,27 +35,24 @@ class ParseError(NoMatch):
         NoMatch.__init__(self, text)
 
 class Parser(object):
-    """Returns ``(model, kwargs)`` for a message body.
+    """Returns ``(model, data)`` for a message body.
 
     The ``model`` is a database message model that inherits from
-    ``Incoming`` and ``kwargs`` are initialization arguments::
+    ``Incoming`` and ``data`` contain keyword arguments for the
+    message handler.
 
     >>> parser = Parser(models)
-    >>> model, kwargs = parser(text)
-    >>> message = model(**kwargs)
+    >>> model, data = parser(text)
+    >>> message = model(text=text)
+    >>> message.handle(**data)
 
     Participating models must provide a static method ``parse`` which
-    should be a ``picoparse`` parse function.
+    should be a ``picoparse`` parse function. The result of this
+    function is used as the ``data`` dictionary (although if the
+    function returns ``None``, an empty dictionary is used).
 
-    The returned ``kwargs`` is either the return value of the parse
-    function, or if it returns ``None``, a dictionary containing just
-    an entry for ``'text'``. Note that ``kwargs`` will always return a
-    value for ``'text'`` --- by default the message body.
-
-    If a parser raises a ``ParseError`` exception, the first exception
-    argument is used as the message text for a ``NotUnderstood``
-    message. If the message was not parsed at all, a ``NotUnderstood``
-    object is also returned.
+    If no parser matched the input text, a ``NotUnderstood`` object is
+    returned.
     """
 
     def __init__(self, models):
@@ -71,19 +68,14 @@ class Parser(object):
                 continue
             try:
                 kwargs, remaining = run_parser(parser, text)
-            except ParseError, error:
-                text = unicode(error.args[0])
-                break
+            except ParseError:
+                raise
             except NoMatch:
                 continue
 
             if remaining:
-                text = u"".join(remaining)
-            elif kwargs is None:
-                kwargs = {'text': text}
-            else:
-                kwargs.setdefault("text", text)
+                raise ParseError(remaining)
 
-            return model, kwargs
+            return model, kwargs or {}
 
-        return NotUnderstood, {'text': text}
+        return NotUnderstood, {}

@@ -45,9 +45,6 @@ class Registration(Incoming):
     The hash (``"#"``) prefix is optional.
     """
 
-    name = models.CharField(max_length=50, null=True)
-    user_id = models.IntegerField(null=True)
-
     @staticmethod
     def parse():
         one_of('+')
@@ -76,20 +73,20 @@ class Registration(Incoming):
             'user_id': int("".join(user_id))
             }
 
-    def handle(self):
+    def handle(self, name=None, user_id=None):
         if self.user is None:
-            if self.user_id is not None:
+            if user_id is not None:
                 # add this peer to the referenced user
                 try:
-                    self.user = Reporter.objects.get(pk=self.user_id)
+                    self.user = Reporter.objects.get(pk=user_id)
                 except User.objects.DoesNotExist:
                     self.reply("We could not find a reporter with "
-                               "the id #%04d." % self.user_id)
+                               "the id #%04d." % user_id)
                 else:
                     self.user.peers.add(self.peer)
                     self.user.save()
-            elif self.name is not None:
-                user = Reporter(name=self.name)
+            elif name is not None:
+                user = Reporter(name=name)
                 user.save()
                 self.peer.user = user
                 self.peer.save()
@@ -97,7 +94,7 @@ class Registration(Incoming):
                 self.reply((
                     "Welcome, %(name)s (#%(id)04d). "
                     "You have been registered.") % {
-                    'name': self.name,
+                    'name': name,
                     'id': self.user.id,
                     })
             else:
@@ -105,15 +102,15 @@ class Registration(Incoming):
         else:
             self.user, created = Reporter.objects.get_or_create(pk=self.user.pk)
 
-            if self.name is None:
+            if name is None:
                 self.reply("Your user id is #%04d." % self.user.id)
             else:
-                self.user.name = self.name
+                self.user.name = name
                 self.user.save()
 
                 self.reply((
                     "Hello, %(name)s (#%(id)04d). "
                     "You have updated your information.") % {
-                               'name': self.name,
+                               'name': name,
                                'id': self.user.id,
                                })

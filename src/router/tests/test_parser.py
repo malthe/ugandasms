@@ -7,9 +7,7 @@ class ParserTest(FunctionalTestCase):
 
     def test_error(self):
         from ..parser import Parser
+        from ..parser import ParseError
         from .models import Error
         parser = Parser((Error,))
-        model, kwargs = parser("+error")
-        from router.models import NotUnderstood
-        self.assertTrue(model is NotUnderstood)
-        self.assertEquals(kwargs.get('text'), "error")
+        self.assertRaises(ParseError, parser, "+error")
