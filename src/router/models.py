@@ -50,9 +50,6 @@ class Peer(Model):
     uri = models.CharField(max_length=30, primary_key=True)
     user = models.ForeignKey(User, related_name="peers", null=True)
 
-    def __repr__(self):
-        return '<Peer uri="%s" at 0x%x>' % (self.uri, id(self))
-
 class Message(Model):
     """SMS message between a user and the system.
 
