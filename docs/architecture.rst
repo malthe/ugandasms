@@ -168,17 +168,19 @@ messages from e.g. a locally attached GSM modem.
 When a transport sees an incoming message, it invokes the message
 parser to determine what kind of message it is::
 
-  model, kwargs = parse(text)
+  model, data = parse(text)
 
-The ``kwargs`` result is a dictionary of keyword arguments that should be used to initialize the message::
+The ``model`` value is the message class which matched the text input
+and ``data`` result is a dictionary of keyword arguments that should
+be passed to the message handler.
 
-  message = model(**kwargs)
+  message = model(text=text)
+  message.handle(**data)
 
-The message handler is then called. This is usually where replies will
-be added to the outgoing message queue; the handler may also update
-business data in other tables::
-
-  message.handle()
+If the message was not understood (either no match or an error
+occurred during parsing), the returned model will be of type
+``NotUnderstood``. An error message is contained in the ``help``
+attribute.
 
 To write your own transport, you must implement the logic required for
 receiving incoming messages from your desired communications channel

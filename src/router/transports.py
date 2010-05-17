@@ -114,8 +114,10 @@ class Transport(object):
 
         try:
             model, data = self.parse(message.text)
-        except ParseError:
-            model, data = NotUnderstood,{}
+        except ParseError, error:
+            model, data = NotUnderstood, {
+                'help': error.args[0],
+                }
 
         message.__class__ = model
         try:
