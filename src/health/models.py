@@ -34,12 +34,35 @@ class Subscription(Model):
     facility = models.ForeignKey(Facility, null=True)
     user = models.ForeignKey(User, related_name="subscriptions", null=True)
 
+class Aggregate(Model):
+    code = models.CharField(max_length=2, db_index=True)
+    time = models.DateTimeField(db_index=True)
+    value = models.FloatField()
+
+class Epi(Incoming):
+    """Report on epidemiological data.
+
+    Regular reports should come in with the format::
+
+      +EPI [<token> <value>]+
+
+    Example input for 12 cases of malaria and 4 tuberculous cases.
+
+      +EPI MA 12, TB 4
+
+    """
+
+    TOKENS = {
+        'MA': 'Malaria',
+        'TB': 'Tuberculosis',
+        }
+
 class Signup(Incoming):
     """Message to register as health worker.
 
     New signups use the format::
 
-      +[token] <code>
+      +<token> <code>
 
     The token is the role name (one of ``TOKENS``), while the code is
     an integer facility code.

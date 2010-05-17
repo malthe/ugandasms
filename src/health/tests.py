@@ -22,6 +22,7 @@ class HandlerTest(FunctionalTestCase):
         'django.contrib.gis',
         'health',
         'reporter',
+        'treebeard',
         )
 
     @staticmethod
