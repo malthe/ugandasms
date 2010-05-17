@@ -11,8 +11,6 @@ from picoparse.text import caseless_string
 from picoparse.text import whitespace
 from string import digits as digit_chars
 
-from .models import NotUnderstood
-
 comma = partial(one_of, ',')
 not_comma = partial(not_one_of, ',')
 digits = partial(many1, partial(one_of, digit_chars))
