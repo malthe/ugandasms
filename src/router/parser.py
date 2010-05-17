@@ -1,8 +1,10 @@
 from picoparse import choice
+from picoparse import commit
 from picoparse import many
 from picoparse import many1
 from picoparse import one_of
 from picoparse import not_one_of
+from picoparse import optional
 from picoparse import partial
 from picoparse import run_parser
 from picoparse import tri
@@ -11,11 +13,36 @@ from picoparse.text import caseless_string
 from picoparse.text import whitespace
 from string import digits as digit_chars
 
-from .models import NotUnderstood
-
 comma = partial(one_of, ',')
+dot = partial(one_of, '.')
 not_comma = partial(not_one_of, ',')
 digits = partial(many1, partial(one_of, digit_chars))
+
+def float_digits():
+    """Parses a floating point number.
+
+    >>> "".join(run_parser(float_digits, '123')[0])
+    '123'
+
+    >>> "".join(run_parser(float_digits, '123.0')[0])
+    '123.0'
+
+    >>> "".join(run_parser(float_digits, '123,0')[0])
+    '123.0'
+
+    >>> "".join(run_parser(float_digits, '.123')[0])
+    '.123'
+
+    >>> "".join(run_parser(float_digits, '123.')[0])
+    '123.'
+
+    """
+
+    number = optional(digits, [])
+    if optional(partial(choice, comma, dot), None):
+        number += "."
+    number += optional(digits, [])
+    return number
 
 def one_of_strings(*strings):
     """Parses one of the strings provided, caseless.
@@ -37,11 +64,14 @@ def next_parameter(parser=partial(many, not_comma)):
     >>> "".join(run_parser(next_parameter, ', abc')[0])
     'abc'
 
+    >>> "".join(run_parser(next_parameter, 'abc')[0])
+    'abc'
+
     >>> "".join(run_parser(partial(next_parameter, digits), ', 123')[0])
     '123'
     """
 
-    comma()
+    optional(comma, None)
     whitespace()
     return "".join(parser())
 
