@@ -39,16 +39,18 @@ class Signup(Incoming):
 
     New signups use the format::
 
-      +[VHT|CHW|HCS|HCW] <code>
+      +[token] <code>
 
-    The first three letter token is the role name, while the code is
+    The token is the role name (one of ``TOKENS``), while the code is
     an integer facility code.
     """
 
-    @staticmethod
-    def parse():
+    TOKENS = "VHT", "CHW", "HCS", "HCW"
+
+    @classmethod
+    def parse(cls):
         one_of('+')
-        role = u"".join(one_of_strings('vht', 'chw', 'hcs', 'hcw')).upper()
+        role = u"".join(one_of_strings(*cls.TOKENS)).upper()
 
         try:
             whitespace1()
