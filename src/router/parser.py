@@ -115,6 +115,11 @@ class Parser(object):
                 raise
             except NoMatch:
                 continue
+            except Exception, exc:
+                # backwards compatible with older version of picoparse
+                if 'Commit / cut called' in str(exc):
+                    raise ParseError(text)
+                raise
 
             if remaining:
                 msg = "".join(remaining)
