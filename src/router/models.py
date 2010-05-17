@@ -79,13 +79,6 @@ class Message(Model):
     user = property(get_user, set_user)
 
     @property
-    def anonymous(self):
-        try:
-            return self.user is None
-        except ObjectDoesNotExist:
-            return True
-
-    @property
     def transport(self):
         """Return transport name."""
 
