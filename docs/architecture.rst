@@ -165,22 +165,18 @@ messages. This must be configured in your ``urls.py`` file::
 However, some transports will want to start a thread and poll incoming
 messages from e.g. a locally attached GSM modem.
 
-When a transport sees an incoming message, it invokes the message
-parser to determine what kind of message it is::
+Incoming messages
+~~~~~~~~~~~~~~~~~
 
-  model, data = parse(text)
+Incoming messages are handled by the ``incoming`` method of the
+transport base class:
 
-The ``model`` value is the message class which matched the text input
-and ``data`` result is a dictionary of keyword arguments that should
-be passed to the message handler.
+.. automodule:: router.transports
 
-  message = model(text=text)
-  message.handle(**data)
+   .. automethod:: Transport.incoming
 
-If the message was not understood (either no match or an error
-occurred during parsing), the returned model will be of type
-``NotUnderstood``. An error message is contained in the ``help``
-attribute.
+Writing your own transport
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To write your own transport, you must implement the logic required for
 receiving incoming messages from your desired communications channel

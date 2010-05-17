@@ -106,7 +106,27 @@ class Transport(object):
             setattr(self, key.lower(), value)
 
     def incoming(self, ident, text, time=None):
-        """Handle incoming message."""
+        """Invoked when a transport receives an incoming text message.
+
+        The method uses its message parser on ``text`` to receive a
+        message model and a parser result dictionary::
+
+          model, data = self.parse(text)
+
+        The message model is instantiated and the parse result data is
+        passed to the message handler as keyword arguments::
+
+          message = model(text=text)
+          message.handle(**data)
+
+        If the message parser throws a parse error, the message class
+        will be of type ``NotUnderstood``. The error message will be
+        set in the ``help`` attribute.
+
+        Note that signals are provided to hook into the flow of
+        operations of this method:: ``pre_parse``, ``post_parse``,
+        ``pre_handle`` and ``post_handle``.
+        """
 
         message = Incoming(text=text, time=time or datetime.now())
 
