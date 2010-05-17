@@ -3,8 +3,11 @@ import re
 from django.db import models
 from django.core.exceptions import ObjectDoesNotExist
 from polymorphic import PolymorphicModel as Model
-from picoparse import eof
+from picoparse import any_token
+from picoparse import fail
+from picoparse import optional
 from picoparse import remaining
+from picoparse.text import whitespace
 
 def camelcase_to_dash(str):
     return re.sub(
@@ -104,7 +107,7 @@ class Incoming(Message):
         """
 
         raise NotImplementedError(
-            "Message must implement the ``handle`` function.")
+            "Message must implement the ``handle`` function.") # PRAGMA: nocover
 
     def reply(self, text):
         """Schedule an outgoing message as reply to this message."""
@@ -140,16 +143,35 @@ class Empty(Incoming):
 
     @staticmethod
     def parse():
-        eof()
+        """Fail if any token is parsed.
+
+        >>> from picoparse import run_parser
+
+        The empty message parses (whitespace is ignored).
+
+        >>> run_parser(Empty.parse, ' ') is not None
+        True
+
+        Any non-trivial input fails.
+
+        >>> run_parser(Empty.parse, 'hello') # doctest: +ELLIPSIS
+        Traceback (most recent call last):
+         ...
+        NoMatch: ...
+        """
+
+        whitespace()
+        if optional(any_token, None):
+            fail()
 
     def handle(self):
-        self.reply(u"You sent a message with no text.")
+        self.reply(u"You sent a message with no text.") # pragma: NOCOVER
 
 class NotUnderstood(Incoming):
     """Any message which was not understood."""
 
-    def handle(self):
-        self.reply("Message not understood: %s." % self.text)
+    def handle(self, help=None):
+        self.reply('Message not understood: %s.' % help)
 
 class Broken(Incoming):
     """Broken message."""

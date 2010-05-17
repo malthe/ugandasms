@@ -66,6 +66,7 @@ class TransportTest(FunctionalTestCase):
             from router.models import NotUnderstood
             self.assertTrue(isinstance(sender, NotUnderstood),
                             "Sender was of type: %s." % sender.__class__)
+            self.assertTrue(data.get('help'), 'error')
         post_parse.connect(check_type)
 
         from router.transports import get_transport

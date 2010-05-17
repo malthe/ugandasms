@@ -10,3 +10,8 @@ class DocTests(UnitTestCase):
     def test_parser(cls):
         from router import parser
         return doctest.DocTestSuite(parser)
+
+    @classmethod
+    def test_models(cls):
+        from router import models
+        return doctest.DocTestSuite(models)
