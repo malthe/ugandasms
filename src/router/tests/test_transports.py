@@ -13,6 +13,7 @@ class TransportTest(FunctionalTestCase):
     USER_SETTINGS = {
         'MESSAGES': (
             'tests.Error',
+            'tests.Break',
             'router.Echo',
             )
         }
@@ -70,6 +71,19 @@ class TransportTest(FunctionalTestCase):
         from router.transports import get_transport
         transport = get_transport("dummy")
         transport.incoming("test", "+error")
+
+    def test_message_error(self):
+        from router.transports import post_parse
+
+        def check_type(sender=None, data=None, **kwargs):
+            from router.models import Broken
+            self.assertTrue(isinstance(sender, Broken),
+                            "Sender was of type: %s." % sender.__class__)
+        post_parse.connect(check_type)
+
+        from router.transports import get_transport
+        transport = get_transport("dummy")
+        transport.incoming("test", "+break")
 
 class KannelTest(FunctionalTestCase):
     INSTALLED_APPS = FunctionalTestCase.INSTALLED_APPS + (
