@@ -6,9 +6,14 @@ from router.models import User
 
 from picoparse import remaining
 from picoparse import one_of
+from picoparse import peek
+from picoparse.text import whitespace
 from picoparse.text import whitespace1
+from picoparse.text import caseless_string
 from router.parser import one_of_strings
+from router.parser import next_parameter
 from router.parser import digits
+from router.parser import float_digits
 from router.parser import ParseError
 
 from polymorphic.manager import PolymorphicManager
@@ -56,6 +61,38 @@ class Epi(Incoming):
         'MA': 'Malaria',
         'TB': 'Tuberculosis',
         }
+
+    @classmethod
+    def parse(cls):
+        one_of('+')
+        caseless_string('epi')
+
+        aggregates = {}
+
+        if whitespace():
+            while peek():
+                try:
+                    code = "".join(one_of_strings(*cls.TOKENS))
+                except:
+                    raise ParseError(
+                        "Expected an epidemiological indicator "
+                        "such as TB or MA.")
+
+                if code in aggregates:
+                    raise ParseError("Duplicate value for %s." % code)
+
+                whitespace1()
+                try:
+                    value = float("".join(float_digits()))
+                except:
+                    raise ParseError("Expected a value for %s." % code)
+
+                aggregates[code] = value
+                whitespace()
+
+        return {
+            'aggregates': aggregates
+            }
 
 class Signup(Incoming):
     """Message to register as health worker.
