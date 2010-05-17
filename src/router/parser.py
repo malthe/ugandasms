@@ -105,12 +105,13 @@ class Parser(object):
     def __call__(self, text):
         text = text.strip()
         text = unicode(text)
+        source = tuple(text) or ("", )
 
         for model in self.models:
             parser = model.parse
 
             try:
-                kwargs, remaining = run_parser(parser, text)
+                kwargs, remaining = run_parser(parser, source)
             except ParseError:
                 raise
             except NoMatch:

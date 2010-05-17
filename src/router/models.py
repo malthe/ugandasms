@@ -7,7 +7,6 @@ from picoparse import any_token
 from picoparse import fail
 from picoparse import optional
 from picoparse import remaining
-from picoparse.text import whitespace
 
 def camelcase_to_dash(str):
     return re.sub(
@@ -147,9 +146,9 @@ class Empty(Incoming):
 
         >>> from picoparse import run_parser
 
-        The empty message parses (whitespace is ignored).
+        The empty message parses.
 
-        >>> run_parser(Empty.parse, ' ') is not None
+        >>> run_parser(Empty.parse, ('',)) is not None
         True
 
         Any non-trivial input fails.
@@ -160,7 +159,6 @@ class Empty(Incoming):
         NoMatch: ...
         """
 
-        whitespace()
         if optional(any_token, None):
             fail()
 
