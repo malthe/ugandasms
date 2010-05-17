@@ -8,19 +8,18 @@ from picoparse import not_one_of
 from picoparse import one_of
 from picoparse import optional
 from picoparse import partial
+from picoparse import tri
 from picoparse.text import whitespace1
 
 from router.parser import digits
 from router.parser import one_of_strings
 from router.parser import ParseError
 from router.models import Incoming
+from router.models import Peer
 from router.models import User
 
 class Reporter(User):
     name = models.CharField(max_length=50)
-
-    def __unicode__(self):
-        return self.name
 
 class Registration(Incoming):
     """Register with the system.
@@ -31,60 +30,50 @@ class Registration(Incoming):
 
     At any time, this registration may be updated (change name).
 
-    The user registration carries an integer user id number which is
-    printed in the registration reply. Existing users may inquire for
-    this number at any time using an empty query::
+    Users may add a device or handset to their user account by
+    providing the identification string (usually a phone number)::
+
+       +REG[ISTER] #<ident>
+
+    To query for the identification string of the current device::
 
        +REG[ISTER]
-
-    To register another device for the same user account, provide the
-    user id number::
-
-       +REG[ISTER] [#]<user_id>
-
-    The hash (``"#"``) prefix is optional.
     """
 
     @staticmethod
     def parse():
         one_of('+')
         one_of_strings('register', 'reg')
-        choice(whitespace1, eof)
 
-        def prefixed_digits():
+        result = {}
+
+        @tri
+        def ident():
+            whitespace1()
             one_of('#')
             commit()
-            return digits()
+            result['ident'] = "".join(many1(partial(not_one_of, ',')))
 
-        try:
-            user_id = optional(partial(choice, prefixed_digits, digits), None)
-        except:
-            raise ParseError(u"Please provide a user id number.")
+        @tri
+        def name():
+            whitespace1()
+            result['name'] = "".join(many1(partial(not_one_of, ',')))
 
-        if user_id is None:
-            chars = optional(partial(many1, partial(not_one_of, ',')), None)
-            if chars is not None:
-                return {
-                    'name': "".join(chars),
-                    }
-            return None
+        optional(partial(choice, ident, name), None)
+        return result
 
-        return {
-            'user_id': int("".join(user_id))
-            }
-
-    def handle(self, name=None, user_id=None):
+    def handle(self, name=None, ident=None):
         if self.user is None:
-            if user_id is not None:
-                # add this peer to the referenced user
-                try:
-                    self.user = Reporter.objects.get(pk=user_id)
-                except User.objects.DoesNotExist:
-                    self.reply("We could not find a reporter with "
-                               "the id #%04d." % user_id)
+            if ident is not None:
+                # identify user using ``ident`` and add this peer
+                peer = Peer.objects.get(uri__endswith="://%s" % ident)
+                if peer.user is None:
+                    self.reply("We did not find an existing registration "
+                               "identified by: %s." % ident)
                 else:
-                    self.user.peers.add(self.peer)
-                    self.user.save()
+                    peer.user.peers.add(self.peer)
+                    self.peer.save()
+                    self.reply("Thank you for your registration.")
             elif name is not None:
                 user = Reporter(name=name)
                 user.save()
@@ -103,7 +92,7 @@ class Registration(Incoming):
             self.user, created = Reporter.objects.get_or_create(pk=self.user.pk)
 
             if name is None:
-                self.reply("Your user id is #%04d." % self.user.id)
+                self.reply("Your current identification string is: %s." % self.ident)
             else:
                 self.user.name = name
                 self.user.save()
