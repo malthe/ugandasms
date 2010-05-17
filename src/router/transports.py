@@ -57,17 +57,17 @@ def get_transport(name):
 
     try:
         transports = settings.TRANSPORTS
-    except AttributeError:
+    except AttributeError: # PRAGMA: nocover
         raise RuntimeError("No transports defined.")
 
-    if name not in transports:
+    if name not in transports: # PRAGMA: nocover
         raise ValueError("No such transport: %s." % name)
 
     configuration = transports[name]
 
     try:
         transport = configuration["TRANSPORT"]
-    except KeyError:
+    except KeyError: # PRAGMA: nocover
         raise ValueError("Must set value for ``TRANSPORT``.")
 
     if isinstance(transport, basestring):
@@ -94,10 +94,10 @@ class Transport(object):
 
         messages = []
         for path in getattr(settings, "MESSAGES", ()):
-            if path.count('.') != 1:
+            if path.count('.') != 1: # PRAGMA: nocover
                 raise ValueError("Specify messages as <app_label>.<model_name>.")
             model = get_model(*path.split('.'))
-            if model is None:
+            if model is None: # PRAGMA: nocover
                 raise ValueError("Can't find model: %s." % path)
             messages.append(model)
 
@@ -226,7 +226,7 @@ class Kannel(Transport):
 
     def send(self, message):
         url = self.sms_url
-        if url is None:
+        if url is None: # PRAGMA: nocover
             raise ValueError("Must set ``SMS_URL`` parameter for transport: %s." % self.name)
 
         if '?' not in url:
