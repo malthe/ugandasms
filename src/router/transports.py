@@ -6,6 +6,7 @@ from urllib2 import urlopen
 
 from django.db.models import get_model
 from django.utils.importlib import import_module
+from django.utils.functional import memoize
 from django.db.models import signals
 from django.dispatch import Signal
 from django.conf import settings
@@ -89,11 +90,22 @@ class Transport(object):
     to spawn a daemon-thread upon initialization.
     """
 
+    _parser_cache = {}
+
     def __init__(self, name, options):
         self.name = name
 
+        for key, value in options.items():
+            setattr(self, key.lower(), value)
+
+    @property
+    def parse(self):
+        paths = getattr(settings, "MESSAGES", ())
+        return self._get_parser(paths)
+
+    def _get_parser(self, paths):
         messages = []
-        for path in getattr(settings, "MESSAGES", ()):
+        for path in paths:
             if path.count('.') != 1: # PRAGMA: nocover
                 raise ValueError("Specify messages as <app_label>.<model_name>.")
             model = get_model(*path.split('.'))
@@ -101,9 +113,8 @@ class Transport(object):
                 raise ValueError("Can't find model: %s." % path)
             messages.append(model)
 
-        self.parse = Parser(messages)
-        for key, value in options.items():
-            setattr(self, key.lower(), value)
+        return Parser(messages)
+    _get_parser = memoize(_get_parser, _parser_cache, 1)
 
     def incoming(self, ident, text, time=None):
         """Invoked when a transport receives an incoming text message.
