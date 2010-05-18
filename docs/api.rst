@@ -3,19 +3,58 @@ API Reference
 
 This is a reference on public classes and functions in the system.
 
-Base system
------------
-
 This section details the API of the base system.
 
 Parser
 ~~~~~~
 
+The parser module provides the ``Parser`` class which wraps a list of
+models and provides a function that matches a text against them:
+
+.. autoclass:: router.parser.Parser
+
+Helper functions
+----------------
+
+The :mod:`router.parser:` module also contains a number of utility
+parser functions that you are encouraged to make use of:
+
 .. automodule:: router.parser
 
-  .. autoclass:: Parser
+   .. function:: comma()
 
-  .. autoclass:: ParseError
+      Parses a comma.
+
+   .. autofunction:: date
+
+   .. function:: dot()
+
+      Parses a period (dot).
+
+   .. function:: digit()
+
+      Parses a single digit.
+
+   .. function:: digits()
+
+      Parses one or more digits.
+
+   .. autofunction:: floating
+
+   .. autofunction:: next_parameter
+
+   .. autofunction:: one_of_strings
+
+   .. autofunction:: separator(parser=comma)
+
+   .. autofunction:: tags
+
+   .. autofunction:: timedelta
+
+Exceptions
+----------
+
+.. autoclass:: router.parser.ParseError
 
 Models
 ~~~~~~
