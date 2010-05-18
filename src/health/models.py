@@ -58,6 +58,24 @@ class Epi(Incoming):
         'BD': 'Bloody diarrhea',
         'MA': 'Malaria',
         'TB': 'Tuberculosis',
+        'AB': 'Animal Bites',
+        'AF': 'Acute Flaccid Paralysis (Polio)',
+        'MG': 'Meningitis',
+        'ME': 'Measles',
+        'BD': 'Bloody Diarrhea (Dysentery)',
+        'CH': 'Cholera',
+        'GW': 'Guinea Worm',
+        'NT': 'Neonatal Tetanus',
+        'YF': 'Yellow Fever',
+        'OT': 'Other',
+        'PL': 'Plague',
+        'RB': 'Rabies',
+        'VF': 'Other Viral Hemorrhagic Fevers',
+        'EI': 'Other Emerging Infectious Diseases',
+        }
+
+    ALIAS = {
+        'DY': 'BD',
         }
 
     @classmethod
@@ -70,11 +88,15 @@ class Epi(Incoming):
         if whitespace():
             while peek():
                 try:
-                    code = "".join(one_of_strings(*cls.TOKENS))
+                    code = "".join(one_of_strings(*(tuple(cls.TOKENS) + tuple(cls.ALIAS))))
+                    code = code.upper()
                 except:
                     raise ParseError(
                         "Expected an epidemiological indicator "
                         "such as TB or MA.")
+
+                # rewrite alias
+                code = cls.ALIAS.get(code, code)
 
                 if code in aggregates:
                     raise ParseError("Duplicate value for %s." % code)

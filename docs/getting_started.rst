@@ -91,8 +91,8 @@ text.
 To try it out, add the following definition::
 
   MESSAGES = (
-      "router.Empty",
-      "router.Echo",
+      "Empty",
+      "Echo",
       )
 
 .. -> input
@@ -110,9 +110,7 @@ Let's try it out!
 In the following ``>>>`` indicates a message sent to the system and
 ``<<<`` indicates a response.
 
-The echo message will respond to any non-trivial input::
-
-  >>> Hello, world!
+  >>> +ECHO Hello, world!
 
 .. -> input
 

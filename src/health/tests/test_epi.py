@@ -9,7 +9,7 @@ class ParserTest(UnitTestCase):
         from ..models import Epi
         from router.parser import Parser
         parser = Parser((Epi,))
-        return parser(text)
+        return parser(text)[:2]
 
     def test_empty(self):
         model, data = self._epi("+epi")
@@ -25,6 +25,10 @@ class ParserTest(UnitTestCase):
 
     def test_value(self):
         model, data = self._epi("+epi MA 5")
+        self.assertEqual(data['aggregates'], {'MA': 5.0})
+
+    def test_value_lowercase(self):
+        model, data = self._epi("+epi ma 5")
         self.assertEqual(data['aggregates'], {'MA': 5.0})
 
     def test_negative_value(self):
@@ -111,4 +115,5 @@ class HandlerTest(FunctionalTestCase): # pragma: NOCOVER
         from ..models import Aggregate
         self.assertEqual(Aggregate.objects.count(), 3)
         reply = message.replies.get()
-        self.assertTrue('bloody diarrhea 2, malaria 5 and tuberculosis 10' in reply.text)
+        self.assertTrue(
+            'bloody diarrhea (dysentery) 2, malaria 5 and tuberculosis 10' in reply.text)

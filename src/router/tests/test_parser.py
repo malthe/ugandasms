@@ -18,7 +18,8 @@ class ParserTest(FunctionalTestCase):
         from ..parser import ParseError
         from .models import Hello
         parser = Parser((Hello,))
-        self.assertRaises(ParseError, parser, "+hello world")
+        model, data, remaining = parser("+hello world")
+        self.assertEqual(remaining, ' world')
 
     def test_no_match(self):
         from ..parser import Parser

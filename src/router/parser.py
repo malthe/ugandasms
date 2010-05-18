@@ -84,7 +84,7 @@ class ParseError(NoMatch):
         NoMatch.__init__(self, text)
 
 class Parser(object):
-    """Returns ``(model, data)`` for a message body.
+    """Returns ``(model, data, remaining)`` for a message body.
 
     The ``model`` is a message model that inherits from ``Incoming``
     and ``data`` contain keyword arguments for the message handler.
@@ -115,10 +115,10 @@ class Parser(object):
     *transport* abstraction exposes this component on a higher
     level. However, the following snippet outlines its operation:
 
-    >>> parser = Parser((Greeting,))          # set up parser
-    >>> model, data = parser('+hello world')  # parse text
-    >>> message = model()                     # create message
-    >>> message.handle(**data)                # handle message
+    >>> parser = Parser((Greeting,))                    # set up parser
+    >>> model, data, remaining = parser('+hello world') # parse text
+    >>> message = model()                               # create message
+    >>> message.handle(**data)                          # handle message
     u'Hello, world!'
 
     Participating models must provide a static method ``parse`` which
@@ -152,10 +152,6 @@ class Parser(object):
                     raise ParseError(text)
                 raise
 
-            if remaining:
-                msg = "".join(remaining)
-                raise ParseError(msg)
-
-            return model, kwargs or {}
+            return model, kwargs or {}, "".join(remaining)
 
         raise ParseError(text)

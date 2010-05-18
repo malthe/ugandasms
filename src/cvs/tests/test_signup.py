@@ -7,7 +7,7 @@ class ParserTest(UnitTestCase):
         from ..models import Signup
         from router.parser import Parser
         parser = Parser((Signup,))
-        return parser(text)
+        return parser(text)[:2]
 
     def test_code(self):
         model, data = self._signup("+vht 123")

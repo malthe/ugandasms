@@ -34,6 +34,11 @@ class ModuleTests(UnitTestCase):
         return doctest.DocTestSuite(models)
 
 class DocumentationTest(FunctionalTestCase): # pragma: NOCOVER
+    INSTALLED_APPS = FunctionalTestCase.INSTALLED_APPS + (
+        'router',
+        'router.tests',
+        )
+
     GLOBS = {
         'assert_equals': assert_equals,
         'assert_contains': assert_contains,

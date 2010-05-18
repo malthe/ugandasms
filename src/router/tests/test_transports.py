@@ -12,9 +12,11 @@ class TransportTest(FunctionalTestCase):
 
     USER_SETTINGS = {
         'MESSAGES': (
+            'tests.Echo',
             'tests.Error',
             'tests.Break',
-            'router.Echo',
+            'tests.Hello',
+            'tests.Improper',
             )
         }
 
@@ -86,6 +88,42 @@ class TransportTest(FunctionalTestCase):
         transport = get_transport("dummy")
         transport.incoming("test", "+break")
 
+    def test_multiple(self):
+        from router.transports import post_parse
+
+        parsed = []
+        def check(sender=None, data=None, **kwargs):
+            from router.tests.models import Hello
+            self.assertTrue(isinstance(sender, Hello))
+            parsed.append(sender)
+        post_parse.connect(check)
+
+        from router.transports import get_transport
+        transport = get_transport("dummy")
+        transport.incoming("test", "+hello +hello")
+        self.assertEqual(len(parsed), 2)
+
+    def test_configuration_error(self):
+        from router.transports import post_parse
+
+        def check_type(sender=None, data=None, **kwargs):
+            from router.models import Broken
+            self.assertTrue(isinstance(sender, Broken),
+                            "Sender was of type: %s." % sender.__class__)
+        post_parse.connect(check_type)
+
+        from router.transports import get_transport
+        transport = get_transport("dummy")
+
+        import warnings
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            transport.incoming("test", "+improper")
+
+            self.assertEqual(len(w), 1)
+            self.assertTrue('ImproperlyConfigured' in str(w[0]))
+
 class KannelTest(FunctionalTestCase):
     INSTALLED_APPS = FunctionalTestCase.INSTALLED_APPS + (
         'router.tests',
@@ -102,7 +140,7 @@ class KannelTest(FunctionalTestCase):
                 }
             },
         'MESSAGES': (
-            'router.Echo',
+            'Echo',
             )
         }
 
@@ -154,10 +192,20 @@ class KannelTest(FunctionalTestCase):
         response = self._view(request)
         self.assertEqual(response.status_code, "406 Not Acceptable")
 
+    def test_internal_error(self):
+        request = self._make_request.get("/", {
+            'sender': '456',
+            'text': '+break',
+            'timestamp': str(time.mktime(
+                datetime.datetime(1999, 12, 31).timetuple())),
+            })
+        response = self._view(request)
+        self.assertEqual(response.status_code, "500 Internal Server Error")
+
     def test_message_record(self):
         request = self._make_request.get("/", {
             'sender': '456',
-            'text': 'test',
+            'text': '+echo test',
             'timestamp': str(time.mktime(
                 datetime.datetime(1999, 12, 31).timetuple())),
             })
@@ -167,7 +215,7 @@ class KannelTest(FunctionalTestCase):
         from ..models import Incoming
         results = Incoming.objects.all()
         self.assertEquals(len(results), 1)
-        self.assertEquals(results[0].text, u"test")
+        self.assertEquals(results[0].text, u"+echo test")
         self.assertEquals(results[0].uri, u"kannel://456")
 
         from ..models import Outgoing
@@ -183,7 +231,7 @@ class KannelTest(FunctionalTestCase):
 
         request = self._make_request.get("/", {
             'sender': '456',
-            'text': 'test',
+            'text': '+echo test',
             'timestamp': str(time.mktime(
                 datetime.datetime(1999, 12, 31).timetuple())),
             })

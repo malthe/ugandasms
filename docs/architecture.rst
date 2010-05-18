@@ -8,45 +8,6 @@ The routing system consists of *messages* and *transports*.
 Messages enter and exit the system through one or more transports
 (defined in the global Django settings module).
 
-Signals
--------
-
-The following signals provide hooks into the incoming message flow
-(the ``sender`` of each of the signals is a message instance):
-
-.. function:: router.transports.pre_parse(sender=None, **kwargs)
-
-   Called *before* an incoming message is parsed.
-
-   The ``sender`` of this signal is always of the generic incoming
-   message type ``Incoming``.
-
-   Changing the value of the ``text`` attribute in this step will
-   directly control the parser input before next step.
-
-.. function:: router.transports.post_parse(sender=None, data=None, **kwargs)
-
-   Called *after* an incoming message is parsed. In this step the
-   message instance has been initialized with the class that was given
-   by the parser.
-
-   This signal sends an additional ``data`` argument which is the
-   return value of the parser function, or if no value was returned,
-   an empty dictionary.
-
-   The ``data`` dictionary is passed into the message handler as
-   keyword arguments after the ``pre_handle`` step.
-
-.. function:: router.transports.pre_handle(sender=None, **kwargs)
-
-   Called immediately *before* a message is handled (but after it's
-   been saved).
-
-.. function:: router.transports.post_handle(sender=None, **kwargs)
-
-   Called immediately *after* a message was handled (even if an
-   exception was raised).
-
 Messages
 --------
 
@@ -92,8 +53,31 @@ message handler as keyword arguments::
   def handler(self, name=None):
       self.reply("Hello, %s!" % name)
 
+Any remaining text after the parse function completes will be subject
+to another parse loop. This means that a single text message may parse
+into multiple incoming message objects, each of which are handled
+independently, as if they arrived separately.
+
+For this reason it is recommended to use a distinguishable prefix such
+as ``"+"`` in front of any one message e.g. ``"+REGISTER ..."``.
+
+To guard against remaining text being subject to an additional loop, a
+parser may use the following pattern::
+
+  if picoparse.peek():
+      raise ParseError(
+          "Unexpected text: %s." %
+          "".join(picoparse.remaining()))
+
+Note that whitespace is already trimmed before text enters the parser,
+so if ``peek()`` returns any non-trivial value, it means there's
+indeed remaining text which would subject to another parse.
+
+If an additional parse loop fails, the user is still notified of this,
+since the remaining text will parse into a ``NotUnderstood`` message.
+
 Identification
---------------
+~~~~~~~~~~~~~~
 
 Incoming messages are uniquely identified by a URI which is made up
 from the transport name and an identification token (ident).
@@ -126,6 +110,45 @@ in a message handler::
           self.reply(u"Must be a registered user.")
       else:
           self.reply(u"Thank you!")
+
+Signals
+~~~~~~~
+
+The following signals provide hooks into the incoming message flow
+(the ``sender`` of each of the signals is a message instance):
+
+.. function:: router.transports.pre_parse(sender=None, **kwargs)
+
+   Called *before* an incoming message is parsed.
+
+   The ``sender`` of this signal is always of the generic incoming
+   message type ``Incoming``.
+
+   Changing the value of the ``text`` attribute in this step will
+   directly control the parser input before next step.
+
+.. function:: router.transports.post_parse(sender=None, data=None, **kwargs)
+
+   Called *after* an incoming message is parsed. In this step the
+   message instance has been initialized with the class that was given
+   by the parser.
+
+   This signal sends an additional ``data`` argument which is the
+   return value of the parser function, or if no value was returned,
+   an empty dictionary.
+
+   The ``data`` dictionary is passed into the message handler as
+   keyword arguments after the ``pre_handle`` step.
+
+.. function:: router.transports.pre_handle(sender=None, **kwargs)
+
+   Called immediately *before* a message is handled (but after it's
+   been saved).
+
+.. function:: router.transports.post_handle(sender=None, **kwargs)
+
+   Called immediately *after* a message was handled (even if an
+   exception was raised).
 
 Transports
 ----------
