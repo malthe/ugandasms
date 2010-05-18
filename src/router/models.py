@@ -127,16 +127,6 @@ class Outgoing(Message):
 
         return self.delivery is not None
 
-class Echo(Incoming):
-    """An echo message."""
-
-    @staticmethod
-    def parse():
-        remaining()
-
-    def handle(self):
-        self.reply(self.text)
-
 class Empty(Incoming):
     """The empty message."""
 

@@ -3,13 +3,18 @@ from functools import partial
 from urllib import urlencode
 from urllib2 import Request
 from urllib2 import urlopen
+from traceback import format_exc
+from warnings import warn
 
 from django.db.models import get_model
+from django.db.models import get_models
+from django.http import HttpResponse as Response
 from django.utils.importlib import import_module
 from django.utils.functional import memoize
 from django.db.models import signals
 from django.dispatch import Signal
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 
 from .parser import Parser
 from .parser import ParseError
@@ -59,17 +64,17 @@ def get_transport(name):
     try:
         transports = settings.TRANSPORTS
     except AttributeError: # PRAGMA: nocover
-        raise RuntimeError("No transports defined.")
+        raise ImproperlyConfigured("No transports defined.")
 
     if name not in transports: # PRAGMA: nocover
-        raise ValueError("No such transport: %s." % name)
+        raise ImproperlyConfigured("No such transport: %s." % name)
 
     configuration = transports[name]
 
     try:
         transport = configuration["TRANSPORT"]
     except KeyError: # PRAGMA: nocover
-        raise ValueError("Must set value for ``TRANSPORT``.")
+        raise ImproperlyConfigured("Must set value for ``TRANSPORT``.")
 
     if isinstance(transport, basestring):
         module_name, class_name = transport.rsplit('.', 1)
@@ -82,12 +87,21 @@ def get_transport(name):
 class Transport(object):
     """Transport base class.
 
-    The ``incoming`` method is a convenience method for transport
-    implementations to handle an incoming message. Similarly, delivery
-    reports are handled by the ``delivery`` method.
+    All transport implementations should inherit from this class and
+    implement the ``send`` method. If an implementation needs to
+    operate in a separate thread, this should be set up in the class
+    constructor.
 
-    Transports that receive incoming communication will typically want
-    to spawn a daemon-thread upon initialization.
+    When the transport receives an incoming message it should call the
+    ``incoming`` method for processing.
+
+    The default ``parse`` method draws its list of enabled message
+    models from the global ``MESSAGES`` setting in Django's settings
+    module. This should be a list of strings on the following format::
+
+      [<app_label>.]<model_name>
+
+    The application label may be omitted if there's no ambiguity.
     """
 
     _parser_cache = {}
@@ -105,12 +119,20 @@ class Transport(object):
 
     def _get_parser(self, paths):
         messages = []
+        models = get_models()
         for path in paths:
-            if path.count('.') != 1: # PRAGMA: nocover
-                raise ValueError("Specify messages as <app_label>.<model_name>.")
-            model = get_model(*path.split('.'))
+            if path.count('.') == 0:
+                for model in models:
+                    if model.__name__ == path:
+                        break
+                else: # PRAGMA: nocover
+                    raise ImproperlyConfigured("Model not found: %s." % path)
+            elif path.count('.') == 1:
+                model = get_model(*path.split('.'))
+            else: # PRAGMA: nocover
+                raise ImproperlyConfigured("Specify messages as [<app_label>.]<model_name>.")
             if model is None: # PRAGMA: nocover
-                raise ValueError("Can't find model: %s." % path)
+                raise ImproperlyConfigured("Can't find model: %s." % path)
             messages.append(model)
 
         return Parser(messages)
@@ -139,12 +161,20 @@ class Transport(object):
         ``pre_handle`` and ``post_handle``.
         """
 
-        message = Incoming(text=text, time=time or datetime.now())
+        time = time or datetime.now()
+        message = Incoming(text=text, time=time)
 
         pre_parse.send(sender=message)
 
         try:
             model, data = self.parse(message.text)
+        except ImproperlyConfigured, exc:
+            warn("%s ERROR [%s] - %s.\n\n%s" % (
+                time.isoformat(),
+                type(exc).__name__,
+                repr(message.text.encode('utf-8')),
+                format_exc(exc)))
+            model, data = Broken, {}
         except ParseError, error:
             model, data = NotUnderstood, {
                 'help': error.args[0],
@@ -236,15 +266,21 @@ class Kannel(Transport):
         :param id: Message id
         """
 
-        status = int(request.GET.get('status', 0))
-        time = datetime.fromtimestamp(
-            float(request.GET['timestamp']))
+        try:
+            status = int(request.GET.get('status', 0))
+            time = datetime.fromtimestamp(
+                float(request.GET['timestamp']))
 
-        if status:
-            message_id = int(request.GET['id'])
-        else:
-            sender = request.GET['sender']
-            text = request.GET['text']
+            if status:
+                message_id = int(request.GET['id'])
+            else:
+                sender = request.GET['sender']
+                text = request.GET['text']
+        except Exception, exc:
+            return Response(
+                "There was an error (``%s``) processing the request: %s." % (
+                    type(exc).__name__, str(exc)), content_type="text/plain",
+                status="406 Not Acceptable")
 
         # the statuses are used by kannel; 1: Delivered to phone, 2:
         # Non-Delivered to Phone, 4: Queued on SMSC, 8: Delivered to
@@ -255,7 +291,16 @@ class Kannel(Transport):
             message.delivery = time
             message.save()
         else:
-            self.incoming(sender, text, time)
+            try:
+                self.incoming(sender, text, time)
+            except Exception, exc:
+                return Response(
+                    "There was an internal error (``%s``) processing "
+                    "the request: %s." % (
+                        type(exc).__name__, str(exc)), content_type="text/plain",
+                    status="500 Internal Server Error")
+
+        return Response(u"")
 
     def send(self, message):
         url = self.sms_url

@@ -1,4 +1,3 @@
-from django.http import HttpResponse as Response
 from .transports import get_transport
 
 def kannel(request, name='kannel'):
@@ -18,13 +17,4 @@ def kannel(request, name='kannel'):
     """
 
     transport = get_transport('kannel')
-
-    try:
-        transport.handle(request)
-    except Exception, e:
-        return Response(
-            "There was an error (``%s``) processing the request: %s." % (
-                type(e).__name__, str(e)), content_type="text/plain",
-            status="406 Not Acceptable")
-
-    return Response(u"")
+    return transport.handle(request)
