@@ -27,6 +27,10 @@ class ParserTest(UnitTestCase):
         model, data = self._epi("+epi MA 5")
         self.assertEqual(data['aggregates'], {'MA': 5.0})
 
+    def test_value_lowercase(self):
+        model, data = self._epi("+epi ma 5")
+        self.assertEqual(data['aggregates'], {'MA': 5.0})
+
     def test_negative_value(self):
         from router.parser import ParseError
         self.assertRaises(ParseError, self._epi, "+epi MA -5")
