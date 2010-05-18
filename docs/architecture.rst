@@ -92,6 +92,29 @@ message handler as keyword arguments::
   def handler(self, name=None):
       self.reply("Hello, %s!" % name)
 
+Any remaining text after the parse function completes will be subject
+to another parse loop. This means that a single text message may parse
+into multiple incoming message objects, each of which are handled
+independently, as if they arrived separately.
+
+For this reason it is recommended to use a distinguishable prefix such
+as ``"+"`` in front of any one message e.g. ``"+REGISTER ..."``.
+
+To guard against remaining text being subject to an additional loop, a
+parser may use the following pattern::
+
+  if picoparse.peek():
+      raise ParseError(
+          "Unexpected text: %s." %
+          "".join(picoparse.remaining()))
+
+Note that whitespace is already trimmed before text enters the parser,
+so if ``peek()`` returns any non-trivial value, it means there's
+indeed remaining text which would subject to another parse.
+
+If an additional parse loop fails, the user is still notified of this,
+since the remaining text will parse into a ``NotUnderstood`` message.
+
 Identification
 --------------
 

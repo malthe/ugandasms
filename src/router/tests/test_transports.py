@@ -12,9 +12,10 @@ class TransportTest(FunctionalTestCase):
 
     USER_SETTINGS = {
         'MESSAGES': (
+            'tests.Echo',
             'tests.Error',
             'tests.Break',
-            'tests.Echo',
+            'tests.Hello',
             'tests.Improper',
             )
         }
@@ -86,6 +87,21 @@ class TransportTest(FunctionalTestCase):
         from router.transports import get_transport
         transport = get_transport("dummy")
         transport.incoming("test", "+break")
+
+    def test_multiple(self):
+        from router.transports import post_parse
+
+        parsed = []
+        def check(sender=None, data=None, **kwargs):
+            from router.tests.models import Hello
+            self.assertTrue(isinstance(sender, Hello))
+            parsed.append(sender)
+        post_parse.connect(check)
+
+        from router.transports import get_transport
+        transport = get_transport("dummy")
+        transport.incoming("test", "+hello +hello")
+        self.assertEqual(len(parsed), 2)
 
     def test_configuration_error(self):
         from router.transports import post_parse

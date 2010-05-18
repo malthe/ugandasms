@@ -49,3 +49,6 @@ class Hello(Incoming):
     def parse():
         one_of('+')
         caseless_string('hello')
+
+    def handle(self):
+        pass

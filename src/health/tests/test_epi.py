@@ -9,7 +9,7 @@ class ParserTest(UnitTestCase):
         from ..models import Epi
         from router.parser import Parser
         parser = Parser((Epi,))
-        return parser(text)
+        return parser(text)[:2]
 
     def test_empty(self):
         model, data = self._epi("+epi")
@@ -115,4 +115,5 @@ class HandlerTest(FunctionalTestCase): # pragma: NOCOVER
         from ..models import Aggregate
         self.assertEqual(Aggregate.objects.count(), 3)
         reply = message.replies.get()
-        self.assertTrue('bloody diarrhea 2, malaria 5 and tuberculosis 10' in reply.text)
+        self.assertTrue(
+            'bloody diarrhea (dysentery) 2, malaria 5 and tuberculosis 10' in reply.text)

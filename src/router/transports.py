@@ -142,9 +142,10 @@ class Transport(object):
         """Invoked when a transport receives an incoming text message.
 
         The method uses its message parser on ``text`` to receive a
-        message model and a parser result dictionary::
+        message model, a parser result dictionary and any remaining
+        text.
 
-          model, data = self.parse(text)
+          model, data, remaining = self.parse(text)
 
         The message model is instantiated and the parse result data is
         passed to the message handler as keyword arguments::
@@ -159,50 +160,55 @@ class Transport(object):
         Note that signals are provided to hook into the flow of
         operations of this method:: ``pre_parse``, ``post_parse``,
         ``pre_handle`` and ``post_handle``.
+
+        If there's remaining text, the loop is repeated, possibly
+        resulting in several incoming messages.
         """
 
         time = time or datetime.now()
-        message = Incoming(text=text, time=time)
 
-        pre_parse.send(sender=message)
+        while True:
+            message = Incoming(text=text, time=time)
+            pre_parse.send(sender=message)
 
-        try:
-            model, data = self.parse(message.text)
-        except ImproperlyConfigured, exc:
-            warn("%s ERROR [%s] - %s.\n\n%s" % (
-                time.isoformat(),
-                type(exc).__name__,
-                repr(message.text.encode('utf-8')),
-                format_exc(exc)))
-            model, data = Broken, {}
-        except ParseError, error:
-            model, data = NotUnderstood, {
-                'help': error.args[0],
-                }
+            try:
+                model, data, text = self.parse(message.text)
+            except ImproperlyConfigured, exc:
+                warn("%s ERROR [%s] - %s.\n\n%s" % (
+                    time.isoformat(),
+                    type(exc).__name__,
+                    repr(message.text.encode('utf-8')),
+                    format_exc(exc)))
+                model, data, text = Broken, {}, ""
+            except ParseError, error:
+                model, data, text = NotUnderstood, {'help': error.args[0]}, ""
 
-        message.__class__ = model
-        try:
-            message.__init__(text=message.text)
-        except Exception, exc:
-            message.__class__ = Broken
-            message.__init__(
-                text=unicode(exc),
-                kind=camelcase_to_dash(model.__name__))
+            message.__class__ = model
+            try:
+                message.__init__(text=message.text)
+            except Exception, exc:
+                message.__class__ = Broken
+                message.__init__(
+                    text=unicode(exc),
+                    kind=camelcase_to_dash(model.__name__))
 
-        post_parse.send(sender=message, data=data)
+            post_parse.send(sender=message, data=data)
 
-        peer, created = Peer.objects.get_or_create(
-            uri="%s://%s" % (self.name, ident))
-        if created:
-            peer.save()
-        message.peer = peer
-        message.save()
+            peer, created = Peer.objects.get_or_create(
+                uri="%s://%s" % (self.name, ident))
+            if created:
+                peer.save()
+            message.peer = peer
+            message.save()
 
-        pre_handle.send(sender=message)
-        try:
-            message.handle(**data)
-        finally:
-            post_handle.send(sender=message)
+            pre_handle.send(sender=message)
+            try:
+                message.handle(**data)
+            finally:
+                post_handle.send(sender=message)
+
+            if not text:
+                break
 
     def send(self, message):
         """Send message using transport.
