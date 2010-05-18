@@ -1,7 +1,7 @@
 from router.testing import FunctionalTestCase
 from router.testing import UnitTestCase
 
-class ParserTest(UnitTestCase):
+class SignupParserTest(UnitTestCase):
     @staticmethod
     def _signup(text):
         from .models import Signup
@@ -9,20 +9,51 @@ class ParserTest(UnitTestCase):
         parser = Parser((Signup,))
         return parser(text)
 
-    def test_empty(self):
+    def test_code(self):
+        model, data = self._signup("+vht 123")
+        self.assertEquals(data, {'role': u'VHT', 'code': 123})
+
+    def test_no_code(self):
         from router.parser import ParseError
         self.assertRaises(ParseError, self._signup, "+vht")
 
-    def test_code(self):
-        self.assertEquals(self._signup("+vht 123")[1], {
-            'role': u'VHT', 'code': 123})
+class EpiParserTest(UnitTestCase):
+    @staticmethod
+    def _epi(text):
+        from .models import Epi
+        from router.parser import Parser
+        parser = Parser((Epi,))
+        return parser(text)
 
-class HandlerTest(FunctionalTestCase):
+    def test_empty(self):
+        model, data = self._epi("+epi")
+        self.assertEqual(data['aggregates'], {})
+
+    def test_missing_value(self):
+        from router.parser import ParseError
+        self.assertRaises(ParseError, self._epi, "+epi ma")
+
+    def test_duplicate(self):
+        from router.parser import ParseError
+        self.assertRaises(ParseError, self._epi, "+epi ma 5 ma 10")
+
+    def test_value(self):
+        model, data = self._epi("+epi MA 5")
+        self.assertEqual(data['aggregates'], {'MA': 5.0})
+
+    def test_bad_indicator(self):
+        from router.parser import ParseError
+        self.assertRaises(ParseError, self._epi, "+epi xx 5.0")
+
+    def test_bad_value(self):
+        from router.parser import ParseError
+        self.assertRaises(ParseError, self._epi, "+epi ma five")
+
+class HandlerTest(FunctionalTestCase): # pragma: NOCOVER
     INSTALLED_APPS = FunctionalTestCase.INSTALLED_APPS + (
         'django.contrib.gis',
         'health',
         'reporter',
-        'treebeard',
         )
 
     @staticmethod
@@ -64,6 +95,6 @@ class HandlerTest(FunctionalTestCase):
         self.assertTrue("123" in message.replies.get().text)
 
     def test_signup_must_be_registered(self):
-        message = self._signup(role="VHT", code=123)
+        self._signup(role="VHT", code=123)
         from .models import Subscription
         self.assertEqual(Subscription.objects.count(), 0)
