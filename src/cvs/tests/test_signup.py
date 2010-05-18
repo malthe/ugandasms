@@ -20,8 +20,8 @@ class ParserTest(UnitTestCase):
 class HandlerTest(FunctionalTestCase): # pragma: NOCOVER
     INSTALLED_APPS = FunctionalTestCase.INSTALLED_APPS + (
         'django.contrib.gis',
-        'health',
         'reporter',
+        'cvs',
         )
 
     @staticmethod
