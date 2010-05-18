@@ -181,7 +181,7 @@ class Transport(object):
                     format_exc(exc)))
                 model, data, text = Broken, {}, ""
             except ParseError, error:
-                model, data, text = NotUnderstood, {'help': error.args[0]}, ""
+                model, data, text = NotUnderstood, {'help': error.text}, ""
 
             message.__class__ = model
             try:
