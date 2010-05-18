@@ -127,6 +127,7 @@ Contents
 ========
 
 .. toctree::
+   :numbered:
    :maxdepth: 2
 
    getting_started.rst
