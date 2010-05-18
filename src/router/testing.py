@@ -1,4 +1,5 @@
 import os
+import pwd
 import sys
 
 from copy import deepcopy
@@ -213,7 +214,10 @@ class FunctionalTestCase(UnitTestCase):  # pragma: NOCOVER
         return conn
 
     def _pg_create_database(self):
-        owner = os.getlogin()
+        try:
+            owner = os.getlogin()
+        except OSError:
+            owner = pwd.getpwuid(os.geteuid())[0]
         name = self._pg_database_name
 
         from psycopg2 import ProgrammingError
