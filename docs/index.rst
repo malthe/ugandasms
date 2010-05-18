@@ -13,6 +13,15 @@ The `Kannel <http://www.kannel.org/>`_ SMS gateway is the default
 option for connectivity, but it's easy to write your own message
 transport.
 
+Distinct features:
+
+- Modular architecture
+- Flexible token-based message parsing
+- Support for multiple message payload
+- Follows established Django conventions
+
+All parts of the system are documented and tested.
+
 Example
 -------
 
