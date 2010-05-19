@@ -92,6 +92,11 @@ Transports
   .. autoclass:: Transport
      :members:   incoming, send
 
+GSM
+---
+
+.. autoclass:: router.transports.GSM
+
 Kannel
 ------
 

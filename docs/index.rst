@@ -9,9 +9,9 @@ the `Django <http://www.djangoproject.com>`_ web framework. It comes
 with a :ref:`set of apps <applications>` that can be used as is or be
 extended to meet your requirements.
 
-The `Kannel <http://www.kannel.org/>`_ SMS gateway is the default
-option for connectivity, but it's easy to write your own message
-transport.
+Included with the system is support for the `Kannel
+<http://www.kannel.org/>`_ SMS gateway, as well as GSM modems attached
+on a serial port or logical device [#gsm]_.
 
 Distinct features:
 
@@ -147,3 +147,8 @@ Indices and tables
 
 * :ref:`search`
 * :ref:`glossary`
+
+.. rubric:: Footnotes
+
+.. [#gsm] Requires the `sms <http://pypi.python.org/pypi/sms>`_ package by Amos Latteier.
+

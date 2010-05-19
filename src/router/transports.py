@@ -1,4 +1,15 @@
+import logging
+import sys
+import time
+
+try:
+    import sms
+except ImportError: # pragma: NOCOVER
+    sms = None
+
 from datetime import datetime
+from Queue import Queue
+from threading import Thread
 from urllib import urlencode
 from urllib2 import Request
 from urllib2 import urlopen
@@ -182,6 +193,90 @@ class Transport(object):
         left the system, not when it was merely queued). It's up to
         the ``send`` method to set this value.
         """
+
+class GSM(Transport): # pragma: NOCOVER
+    """GSM transport.
+
+    :param name: Transport name
+
+    :param options: ``DEVICE`` is the modem serial port (e.g. ``\"COM1\"``) or special device path (e.g. ``\"/dev/ttyUSB0\"``); ``LOG_LEVEL`` sets the logging level (default is ``\"WARN\"`` which is quiet unless there's an error).
+
+    Example::
+
+      TRANSPORTS = {
+          'gsm': {
+              'TRANSPORT': 'router.transports.GSM',
+              'DEVICE': '/dev/ttyUSB0',
+          }
+      }
+
+    """
+
+    device = None
+    log_level = "WARN"
+
+    def __init__(self, *args, **kwargs):
+        super(GSM, self).__init__(*args, **kwargs)
+
+        # verify availability of sms module
+        if sms is None:
+            raise ImportError('sms')
+
+        formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        handler = logging.StreamHandler(sys.stderr)
+        handler.setFormatter(formatter)
+        level = getattr(logging, self.log_level.upper())
+        logger = self.logger = logging.Logger(self.name, level=level)
+        logger.addHandler(handler)
+
+        try:
+            self.modem = sms.Modem(self.device)
+        except sms.ModemError, error:
+            logger.error(error)
+        else:
+            self.logger.info("Connected to %s..." % self.device)
+
+            # create queue for outgoing messages
+            self.queue = Queue()
+
+            # start thread
+            thread = Thread(target=self.run)
+            thread.start()
+
+    def run(self):
+        while True:
+            # incoming
+            try:
+                self.modem.wait(1)
+                messages = self.modem.messages()
+            except sms.ModemError, error:
+                self.logger.warn(error)
+                time.sleep(1)
+                continue
+
+            self.logger.debug("Received %d messages." % len(messages))
+
+            for message in messages:
+                self.logger.debug("%s (%s): %s" % (
+                    message.number, message.date.isoformat(), message.text))
+                self.incoming(message.number, message.text, message.date)
+
+            # outgoing
+            while not self.queue.empty():
+                try:
+                    message = self.queue.get_nowait()
+                except:
+                    break
+
+                try:
+                    self.modem.send(*message)
+                except sms.ModemError, error:
+                    self.queue.put(message)
+                    self.logger.critical(error)
+                    time.sleep(1)
+
+    def send(self, message):
+        self.queue.put((message.ident, message.text))
 
 class Kannel(Transport):
     """Kannel transport.
