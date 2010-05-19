@@ -1,6 +1,7 @@
-from .transports import get_transport
+from django.http import HttpResponse as Response
+from .transports import kannel_event
 
-def kannel(request, name='kannel'):
+def kannel(request, name="kannel"):
     """Kannel incoming view.
 
     The default transport name is "kannel"; to use this view with a
@@ -16,5 +17,6 @@ def kannel(request, name='kannel'):
     ``Kannel`` transport.
     """
 
-    transport = get_transport('kannel')
-    return transport.handle(request)
+    response = Response(u"")
+    kannel_event.send(sender=name, request=request, response=response)
+    return response

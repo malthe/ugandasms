@@ -44,14 +44,6 @@ class DocumentationTest(FunctionalTestCase): # pragma: NOCOVER
         'assert_contains': assert_contains,
         }
 
-    USER_SETTINGS = {
-        'TRANSPORTS': {
-            'gateway': {
-                'TRANSPORT': 'router.testing.Gateway',
-                },
-            },
-        }
-
     def __new__(cls, test):
         self = object.__new__(cls)
         self.globs = cls.GLOBS.copy()
@@ -88,12 +80,20 @@ class DocumentationTest(FunctionalTestCase): # pragma: NOCOVER
         # handle additional setup in a try-except and make sure we
         # tear down the test afterwards
         try:
-            from router.transports import get_transport
-            gateway = get_transport('gateway')
-
+            from router.testing import Gateway
             from router.testing import Subscriber
-            self.globs['bob'] = Subscriber(gateway, u"gateway://256000000000")
+            transport = Gateway("gateway")
+            self.globs['bob'] = Subscriber(transport, u"gateway://256000000000")
         except:
             self.tearDown()
             raise
+
+
+    USER_SETTINGS = {
+        'TRANSPORTS': {
+            'gateway': {
+                'TRANSPORT': 'router.testing.Gateway',
+                },
+            },
+        }
 

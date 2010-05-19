@@ -92,12 +92,13 @@ Transports
   .. autoclass:: Transport
      :members:   incoming, send
 
-  .. autoclass:: Kannel
-     :members:   fetch, handle
+Kannel
+------
 
-.. automodule:: router.views
+.. autoclass:: router.transports.Kannel
+   :members:   fetch, handle
 
-   .. autofunction:: kannel
+.. autofunction:: router.views.kannel
 
 Testing
 ~~~~~~~

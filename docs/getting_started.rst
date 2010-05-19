@@ -17,10 +17,13 @@ message transport::
   TRANSPORTS = {
       'kannel': {
           'TRANSPORT': 'router.transports.Kannel',
-          'SMS_URL': 'http://localhost:13013/cgi-bin/sendsms?username=kannel&password=kannel',
+          'SMS_URL': 'http://localhost:13013/cgi-bin/sendsms?' \
+                     'username=kannel&password=kannel',
           'DLR_URL': 'http://localhost:8080/kannel',
           }
       }
+
+Each transport will be started along with the Django WSGI application.
 
 Setting up Kannel
 -----------------

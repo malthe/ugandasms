@@ -15,9 +15,9 @@ class Gateway(object):
         cls = type("Gateway", (cls, Transport), {})
         return object.__new__(cls)
 
-    def __init__(self, name, options):
+    def __init__(self, name):
         self._subscribers = {}
-        super(Gateway, self).__init__(name, options)
+        super(Gateway, self).__init__(name)
 
     def receive(self, sender, text):
         self._subscribers[sender.uri] = sender
@@ -102,14 +102,7 @@ class FunctionalTestCase(UnitTestCase):  # pragma: NOCOVER
         'router',
         )
 
-    BASE_SETTINGS = {
-        'TRANSPORTS': {
-            'dummy': {
-                'TRANSPORT': 'router.tests.transports.Dummy',
-                },
-            },
-        }
-
+    BASE_SETTINGS = {}
     USER_SETTINGS = {}
 
     def setUp(self):

@@ -21,7 +21,6 @@ class TransportTest(FunctionalTestCase):
         }
 
     def test_signals(self):
-        from router.transports import get_transport
         from router.transports import pre_parse
         from router.transports import post_parse
         from router.transports import pre_handle
@@ -53,7 +52,8 @@ class TransportTest(FunctionalTestCase):
             self.assertEqual(sender.replies.count(), 1)
         post_handle.connect(after_handle)
 
-        transport = get_transport("dummy")
+        from router.tests.transports import Dummy
+        transport = Dummy("dummy")
         transport.incoming("test", "+echo test")
 
         self.assertTrue(len(s1), 1)
@@ -71,8 +71,8 @@ class TransportTest(FunctionalTestCase):
             self.assertTrue(data.get('help'), 'error')
         post_parse.connect(check_type)
 
-        from router.transports import get_transport
-        transport = get_transport("dummy")
+        from router.tests.transports import Dummy
+        transport = Dummy("dummy")
         transport.incoming("test", "+error")
 
     def test_message_error(self):
@@ -84,8 +84,8 @@ class TransportTest(FunctionalTestCase):
                             "Sender was of type: %s." % sender.__class__)
         post_parse.connect(check_type)
 
-        from router.transports import get_transport
-        transport = get_transport("dummy")
+        from router.tests.transports import Dummy
+        transport = Dummy("dummy")
         transport.incoming("test", "+break")
 
     def test_multiple(self):
@@ -98,8 +98,8 @@ class TransportTest(FunctionalTestCase):
             parsed.append(sender)
         post_parse.connect(check)
 
-        from router.transports import get_transport
-        transport = get_transport("dummy")
+        from router.tests.transports import Dummy
+        transport = Dummy("dummy")
         transport.incoming("test", "+hello +hello")
         self.assertEqual(len(parsed), 2)
 
@@ -112,8 +112,8 @@ class TransportTest(FunctionalTestCase):
                             "Sender was of type: %s." % sender.__class__)
         post_parse.connect(check_type)
 
-        from router.transports import get_transport
-        transport = get_transport("dummy")
+        from router.tests.transports import Dummy
+        transport = Dummy("dummy")
 
         import warnings
 
@@ -130,19 +130,23 @@ class KannelTest(FunctionalTestCase):
         )
 
     USER_SETTINGS = {
-        'TRANSPORTS': {
-            'dummy': {
-                'TRANSPORT': 'router.tests.transports.Dummy',
-                },
-            'kannel': {
-                'TRANSPORT': 'router.transports.Kannel',
-                'SMS_URL': 'http://locahost:13013/cgi-bin/sendsms',
-                }
-            },
         'MESSAGES': (
             'Echo',
             )
         }
+
+    @staticmethod
+    def _make_kannel(fetch=None, **kwargs):
+        from router.transports import Kannel
+        if fetch is None:
+            def fetch(*args, **kwargs):
+                from django.http import HttpResponse as Response
+                return Response(u"")
+
+        kwargs.setdefault('sms_url', '')
+        transport = Kannel("kannel", kwargs)
+        transport.fetch = fetch
+        return transport
 
     @property
     def _make_request(self):
@@ -170,39 +174,29 @@ class KannelTest(FunctionalTestCase):
         return RequestFactory()
 
     @property
-    def _view(self):
+    def view(self):
         from ..views import kannel
         return kannel
 
-    def test_start(self):
-        from router.tests import transports
-        reload(transports)
-
-        # transports fire when the incoming message class has been
-        # initialized; we explicitly send a signal in this test
-        from django.db.models import signals
-        from router.models import Incoming
-        signals.post_init.send(Incoming)
-
-        from .transports import Dummy
-        self.assertEqual(Dummy.name, "dummy")
-
     def test_not_acceptable(self):
+        kannel = self._make_kannel()
         request = self._make_request.get("/")
-        response = self._view(request)
+        response = self.view(request)
         self.assertEqual(response.status_code, "406 Not Acceptable")
 
     def test_internal_error(self):
+        kannel = self._make_kannel()
         request = self._make_request.get("/", {
             'sender': '456',
             'text': '+break',
             'timestamp': str(time.mktime(
                 datetime.datetime(1999, 12, 31).timetuple())),
             })
-        response = self._view(request)
+        response = self.view(request)
         self.assertEqual(response.status_code, "500 Internal Server Error")
 
     def test_message_record(self):
+        kannel = self._make_kannel()
         request = self._make_request.get("/", {
             'sender': '456',
             'text': '+echo test',
@@ -210,7 +204,7 @@ class KannelTest(FunctionalTestCase):
                 datetime.datetime(1999, 12, 31).timetuple())),
             })
 
-        response = self._view(request)
+        response = self.view(request)
 
         from ..models import Incoming
         results = Incoming.objects.all()
@@ -225,10 +219,6 @@ class KannelTest(FunctionalTestCase):
         self.assertEquals(results[0].uri, u"kannel://456")
 
     def test_message_delivery_success(self):
-        # set up mock sms service
-        from router.transports import get_transport
-        kannel = get_transport('kannel')
-
         request = self._make_request.get("/", {
             'sender': '456',
             'text': '+echo test',
@@ -237,19 +227,17 @@ class KannelTest(FunctionalTestCase):
             })
 
         query = {}
-        def fetch(request, **kwargs):
+        def fetch(request=None, **kwargs):
             query.update(cgi.parse_qsl(request.get_full_url()))
             class response:
                 code = 202
             return response()
 
-        kannel.fetch = fetch
-        from django.conf import settings
-        settings.TRANSPORTS['kannel']['DLR_URL'] = 'http://localhost'
-
-        response = self._view(request)
+        kannel = self._make_kannel(fetch=fetch, dlr_url='http://localhost')
+        response = self.view(request)
+        self.assertNotEqual(query, {})
         args = urllib.urlencode(query)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, '200 OK')
 
         dlr_url = query.pop('dlr-url', "")
         self.assertNotEqual(dlr_url, None)
@@ -258,7 +246,7 @@ class KannelTest(FunctionalTestCase):
         request = self._make_request.get(
             dlr_url.replace(
                 '%d', '1').replace('%T', str(time.mktime(delivery.timetuple()))) + '&' + args)
-        response = self._view(request)
+        response = self.view(request)
         self.assertEqual("".join(response), "")
 
         # verify delivery record

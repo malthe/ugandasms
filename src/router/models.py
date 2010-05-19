@@ -6,7 +6,6 @@ from polymorphic import PolymorphicModel as Model
 from picoparse import any_token
 from picoparse import fail
 from picoparse import optional
-from picoparse import remaining
 
 def camelcase_to_dash(str):
     return re.sub(
@@ -169,4 +168,3 @@ class Broken(Incoming):
     def handle(self):
         self.reply("System error handling message: %s (type: %s)." % (
             self.text, self.kind.replace('-', ' ')))
-

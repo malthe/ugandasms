@@ -1,17 +1,15 @@
 from datetime import datetime
-from functools import partial
 from urllib import urlencode
 from urllib2 import Request
 from urllib2 import urlopen
 from traceback import format_exc
 from warnings import warn
+from weakref import ref as weakref
 
 from django.db.models import get_model
 from django.db.models import get_models
-from django.http import HttpResponse as Response
-from django.utils.importlib import import_module
-from django.utils.functional import memoize
 from django.db.models import signals
+from django.utils.functional import memoize
 from django.dispatch import Signal
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
@@ -25,64 +23,11 @@ from .models import Broken
 from .models import NotUnderstood
 from .models import camelcase_to_dash
 
-@partial(signals.post_save.connect, sender=Outgoing, weak=False)
-def outgoing(sender, instance=None, created=None, **kwargs):
-    """Send outgoing message on first save."""
-
-    if created is True:
-        transport = get_transport(instance.transport)
-        transport.send(instance)
-
-@partial(signals.post_init.connect, sender=Incoming, weak=False)
-def initialize(sender, **kwargs):
-    """Initialize transports."""
-
-    for name in getattr(settings, "TRANSPORTS", ()):
-        get_transport(name)
-
 pre_parse = Signal()
 post_parse = Signal(providing_args=["data"])
 pre_handle = Signal()
 post_handle = Signal()
-
-def get_transport(name):
-    """Look up and return transport given by ``name``.
-
-    Transports must be defined in under the ``TRANSPORTS`` settings
-    key. Each entry is an identifier string that points to a
-    configuration dictionary.
-
-    The only required parameter for any transport is the ``TRANSPORT``
-    key. This must be the dotted path to a factory class.
-
-    The transport will be instantiated on the first lookup. The
-    transport name is passed as the first argument while any
-    additional keys in the configuration dictionary will be provided
-    as the second argument (not as double-star keyword arguments).
-    """
-
-    try:
-        transports = settings.TRANSPORTS
-    except AttributeError: # PRAGMA: nocover
-        raise ImproperlyConfigured("No transports defined.")
-
-    if name not in transports: # PRAGMA: nocover
-        raise ImproperlyConfigured("No such transport: %s." % name)
-
-    configuration = transports[name]
-
-    try:
-        transport = configuration["TRANSPORT"]
-    except KeyError: # PRAGMA: nocover
-        raise ImproperlyConfigured("Must set value for ``TRANSPORT``.")
-
-    if isinstance(transport, basestring):
-        module_name, class_name = transport.rsplit('.', 1)
-        module = import_module(module_name)
-        factory = getattr(module, class_name)
-        transport = configuration["TRANSPORT"] = factory(name, configuration)
-
-    return transport
+kannel_event = Signal(providing_args=["request", "response"])
 
 class Transport(object):
     """Transport base class.
@@ -106,18 +51,31 @@ class Transport(object):
 
     _parser_cache = {}
 
-    def __init__(self, name, options):
+    def __init__(self, name, options={}):
         self.name = name
 
         for key, value in options.items():
             setattr(self, key.lower(), value)
+
+        reference = weakref(self)
+
+        # set up event handler for outgoing messages
+        def on_event(sender=None, instance=None, created=False, **kwargs):
+            transport = reference()
+            if transport is None:
+                kannel_event.disconnect(on_event, sender)
+            else:
+                if created is True and instance.transport == transport.name:
+                    transport.send(instance)
+
+        signals.post_save.connect(on_event, sender=Outgoing, weak=False)
 
     @property
     def parse(self):
         paths = getattr(settings, "MESSAGES", ())
         return self._get_parser(paths)
 
-    def _get_parser(self, paths):
+    def _get_parser(paths):
         messages = []
         models = get_models()
         for path in paths:
@@ -136,7 +94,7 @@ class Transport(object):
             messages.append(model)
 
         return Parser(messages)
-    _get_parser = memoize(_get_parser, _parser_cache, 1)
+    _get_parser = staticmethod(memoize(_get_parser, _parser_cache, 1))
 
     def incoming(self, ident, text, time=None):
         """Invoked when a transport receives an incoming text message.
@@ -237,7 +195,24 @@ class Kannel(Transport):
 
     timeout = 30.0
 
-    def fetch(self, request, **kwargs):
+    def __init__(self, *args, **kwargs):
+        super(Kannel, self).__init__(*args, **kwargs)
+
+        reference = weakref(self)
+
+        # set up event handler for incoming requests
+        def on_event(sender=None, request=None, response=None, **kwargs):
+            transport = reference()
+            if transport is None:
+                kannel_event.disconnect(on_event, sender)
+            else:
+                body, status_code = transport.handle(request)
+                response.write(body)
+                response.status_code = status_code
+
+        kannel_event.connect(on_event, sender=self.name, weak=False)
+
+    def fetch(self, request, **kwargs): # pragma: NOCOVER
         """Fetch HTTP request.
 
         Used internally by the Kannel transport.
@@ -283,10 +258,8 @@ class Kannel(Transport):
                 sender = request.GET['sender']
                 text = request.GET['text']
         except Exception, exc:
-            return Response(
-                "There was an error (``%s``) processing the request: %s." % (
-                    type(exc).__name__, str(exc)), content_type="text/plain",
-                status="406 Not Acceptable")
+            return "There was an error (``%s``) processing the request: %s." % (
+                type(exc).__name__, str(exc)), "406 Not Acceptable"
 
         # the statuses are used by kannel; 1: Delivered to phone, 2:
         # Non-Delivered to Phone, 4: Queued on SMSC, 8: Delivered to
@@ -300,13 +273,11 @@ class Kannel(Transport):
             try:
                 self.incoming(sender, text, time)
             except Exception, exc:
-                return Response(
-                    "There was an internal error (``%s``) processing "
-                    "the request: %s." % (
-                        type(exc).__name__, str(exc)), content_type="text/plain",
-                    status="500 Internal Server Error")
+                return "There was an internal error (``%s``) " \
+                       "processing the request: %s." % (
+                    type(exc).__name__, str(exc)), "500 Internal Server Error"
 
-        return Response(u"")
+        return "", "200 OK"
 
     def send(self, message):
         url = self.sms_url
@@ -316,13 +287,20 @@ class Kannel(Transport):
         if '?' not in url:
             url += "?"
 
-        request = Request(
-            url+'&'+urlencode({
-                'to': message.ident,
-                'text': message.text,
+        query = {
+            'to': message.ident,
+            'text': message.text,
+            }
+
+        if self.dlr_url is not None:
+            query.update({
                 'dlr-url': '%s?status=%%d&id=%d&timestamp=%%T' % (
                     self.dlr_url, message.id),
-                'dlr-mask': '3'})
+                'dlr-mask': '3'
+                })
+
+        request = Request(
+            url+'&'+urlencode(query)
             )
 
         response = self.fetch(request, timeout=self.timeout)
