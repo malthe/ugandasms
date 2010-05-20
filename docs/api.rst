@@ -21,10 +21,6 @@ parser functions that you are encouraged to make use of:
 
 .. automodule:: router.parser
 
-   .. autofunction:: alphanumerical
-
-   .. autofunction:: alphanumerical1
-
    .. function:: comma()
 
       Parses a comma.
@@ -44,6 +40,10 @@ parser functions that you are encouraged to make use of:
       Parses one or more digits.
 
    .. autofunction:: floating
+
+   .. autofunction:: identifier
+
+   .. autofunction:: name
 
    .. autofunction:: next_parameter
 

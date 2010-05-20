@@ -14,6 +14,7 @@ from picoparse import not_one_of
 from picoparse import optional
 from picoparse import partial
 from picoparse import run_parser
+from picoparse import satisfies
 from picoparse import sep
 from picoparse import tri
 from picoparse import NoMatch
@@ -64,19 +65,38 @@ def _parse_date_format(date_format):
 def parse(parser, text):
     return "".join(run_parser(parser, tuple(text))[0])
 
-def alphanumerical():
-    """Expects zero or more alphanumerical characters.
+def identifier(first=partial(one_of, ascii_letters),
+               consecutive=partial(one_of, ascii_letters + digit_chars + '_'),
+               must_contain=set(digit_chars)):
+    """Expects a letter followed by one or more alphanumerical
+    characters. If ``must_contain`` is given, the following letters
+    must include one from this set.
 
-    >>> parse(alphanumerical, 'abc123')
+    The default option is to expect a letter followed by a number of
+    letters and digits, but with a requirement of at least one digit
+    (this allows an easy distinction between names and identifiers).
+
+    >>> parse(identifier, 'abc123')
     'abc123'
+    >>> parse(identifier, 'abc') # doctest: +ELLIPSIS
+    Traceback (most recent call last):
+     ...
+    NoMatch: ...
+    >>> parse(partial(identifier, must_contain=None), 'abc')
+    'abc'
     """
 
-    return many(partial(one_of, ascii_letters + digit_chars))
+    result = [first()]
 
-def alphanumerical1():
-    """Expects one or more alphanumerical characters."""
+    if must_contain is None:
+        chars = many(consecutive)
+    else:
+        chars = many1(partial(choice, consecutive, partial(one_of, must_contain)))
+        if not set(chars) & must_contain:
+            fail()
 
-    return many1(partial(one_of, ascii_letters + digit_chars))
+    result.extend(chars)
+    return result
 
 def separator(parser=comma):
     """Expects a comma separation.
@@ -175,6 +195,25 @@ def next_parameter(parser=partial(many1, not_comma)):
     comma()
     whitespace()
     return parser()
+
+def name():
+    """Parses one or more names separated by whitespace, and
+    concatenates with a single space.
+
+    >>> parse(name, 'John')
+    'John'
+
+    >>> parse(name, 'John Smith')
+    'John Smith'
+
+    >>> parse(name, 'John, Smith')
+    'John'
+
+    """
+    names = map(partial("".join), sep(
+        partial(many1, partial(satisfies, lambda l: l.isalpha())), whitespace))
+
+    return " ".join(names)
 
 def one_of_strings(*strings):
     """Parses one of the strings provided, caseless.
