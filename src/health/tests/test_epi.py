@@ -87,7 +87,7 @@ class HandlerTest(FunctionalTestCase): # pragma: NOCOVER
         message = self._epi(aggregates={'MA': 5})
         from ..models import Aggregate
         self.assertEqual(Aggregate.objects.count(), 1)
-        self.assertEqual(Aggregate.objects.get().user, message.user)
+        self.assertEqual(Aggregate.objects.get().reporter, message.user)
         reply = message.replies.get()
         self.assertTrue('malaria 5' in reply.text)
 

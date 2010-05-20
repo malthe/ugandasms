@@ -18,7 +18,9 @@ Messages
 
 .. automodule:: health.models
 
-  .. autoclass:: Epi(aggregates={})
+  .. autoclass:: Epi(aggregates)
+
+  .. autoclass:: Muac(patient_id, name, sex, age, reading, tags)
 
 Reporter
 --------

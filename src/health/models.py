@@ -1,30 +1,77 @@
 import itertools
+import datetime
+import string
 
 from polymorphic import PolymorphicModel as Model
-from django.db import models
 
+from django.db import models
+from django.conf import settings
+
+from picoparse import any_token
+from picoparse import choice
+from picoparse import many_until
 from picoparse import one_of
 from picoparse import optional
 from picoparse import partial
 from picoparse import peek
+from picoparse import remaining
+from picoparse import tri
 from picoparse.text import whitespace
 from picoparse.text import whitespace1
 from picoparse.text import caseless_string
 
-from router.parser import one_of_strings
+from router.parser import comma
+from router.parser import date
 from router.parser import digits
+from router.parser import identifier
+from router.parser import name
+from router.parser import one_of_strings
+from router.parser import separator
+from router.parser import tags
+from router.parser import timedelta
 from router.parser import ParseError
 from router.models import Incoming
 from router.models import User
 
-class Aggregate(Model):
+date = partial(date, formats=settings.DATE_INPUT_FORMATS)
+
+class Patient(Model):
+    health_id = models.CharField(max_length=30, null=True)
+    name = models.CharField(max_length=50, null=True)
+    sex = models.CharField(max_length=1, null=True)
+    birthdate = models.DateTimeField(null=True)
+
+    @property
+    def age(self):
+        if self.birthdate is not None:
+            return datetime.now() - self.birthdate
+
+class Report(Model):
+    """Health report."""
+
+    reporter = models.ForeignKey(User)
+    tags = ()
+
+class Tag(Model):
+    report = models.ForeignKey(Report, related_name="tags")
+    value = models.CharField(max_length=20)
+
+class Incident(Report):
+    """An incident is a health report tied to an individual."""
+
+    patient = models.ForeignKey(Patient, null=True)
+
+class Aggregate(Report):
     code = models.CharField(max_length=2, db_index=True)
     time = models.DateTimeField(db_index=True)
-    user = models.ForeignKey(User)
     value = models.IntegerField()
 
     class Meta:
         ordering = ['-id']
+
+class Malnutrition(Incident):
+    reading = models.CharField(max_length=1)
+    value = models.FloatField(null=True)
 
 class Epi(Incoming):
     """Report on epidemiological data.
@@ -126,7 +173,7 @@ class Epi(Incoming):
             stats = []
             for code, value in sorted(aggregates.items()):
                 stat = "%s %d" % (self.TOKENS[code].lower(), value)
-                previous = Aggregate.objects.filter(code=code, user=self.user)
+                previous = Aggregate.objects.filter(code=code, reporter=self.user)
                 if len(previous):
                     aggregate = previous[0]
                     if value > 0 and aggregate.value > 0:
@@ -140,7 +187,7 @@ class Epi(Incoming):
                     else:
                         r = "-" + r
                     stat += " (%s)" % r
-                Aggregate(code=code, value=value, time=self.time, user=self.user).save()
+                Aggregate(code=code, value=value, time=self.time, reporter=self.user).save()
                 stats.append(stat)
             sep = [", "] * len(stats)
             if len(stats) > 1:
@@ -150,3 +197,111 @@ class Epi(Incoming):
         else:
             self.reply(u"Please include one or more reports.")
 
+class Muac(Incoming):
+    """MUAC report.
+
+    Formats::
+
+      +MUAC <name>, <sex>, <age>, <reading> [, <tag> ]*
+      +MUAC <patient_id>, <reading> [, <tag> ]*
+      <patient_id> +MUAC <reading> [, <tag> ]*
+
+    Note that a patient id must contain one or more digits (to
+    distinguish a name from a patient id).
+
+    Reading is one of (case-insensitive):
+
+    - ``\"red\"`` (or ``\"r\"``)
+    - ``\"yellow\"`` (or ``\"y\"``)
+    - ``\"green\"`` (or ``\"g\"``)
+
+    Or, alternatively the reading may be a floating point number,
+    e.g. ``\"114 mm\"`` (unit optional; *mm* is default unit for
+    values > 30, otherwise *cm* is assumed). While such a value will
+    be translated into one of the readings above, the given number is
+    still recorded.
+    """
+
+    @staticmethod
+    def get_reading_in_mm(reading):
+        if reading > 30:
+            return reading
+        return reading*10
+
+    @classmethod
+    def parse(cls):
+        result = {}
+
+        prefix = optional(tri(identifier), None)
+        if prefix is not None:
+            result['patient_id'] = "".join(prefix)
+            whitespace()
+
+        one_of('+')
+        caseless_string('muac')
+
+        if prefix is None:
+            try:
+                whitespace1()
+                part = optional(tri(identifier), None)
+                if part is not None:
+                    result['patient_id'] = "".join(part)
+                else:
+                    result['name'] = name()
+            except:
+                raise ParseError("Expected a patient id or name.")
+
+        if 'name' in result:
+            try:
+                separator()
+                result['sex'] = one_of('MmFf').upper()
+            except:
+                raise ParseError("Expected either M or F to indicate the patient's gender.")
+
+            try:
+                separator()
+            except:
+                raise ParseError("Expected age or birthdate of patient.")
+
+            try:
+                result['age'] = choice(*map(tri, (date, timedelta)))
+            except:
+                received, stop = many_until(any_token, comma)
+                raise ParseError("Expected age or birthdate of patient, but "
+                                 "received %s." % "".join(received))
+        try:
+            if prefix is None:
+                separator()
+            else:
+                whitespace1()
+
+            reading = choice(
+                partial(one_of_strings, 'red', 'green', 'yellow', 'r', 'g', 'y'),
+                digits)
+
+            try:
+                reading = int("".join(reading))
+            except:
+                reading = reading[0].upper()
+            else:
+                whitespace()
+                unit = optional(partial(one_of_strings, 'mm', 'cm'), None)
+                if unit is None:
+                    reading = cls.get_reading_in_mm(reading)
+                elif "".join(unit) == 'cm':
+                    reading = reading * 10
+            result['reading'] = reading
+        except:
+            raise ParseError(
+                "Expected MUAC reading (either green, yellow or red), but "
+                "received %s." % "".join(remaining()))
+
+        if optional(separator, None):
+            result['tags'] = tags()
+
+        return result
+
+    @staticmethod
+    def handle(patient_id=None, name=None, sex=None, age=None, reading=None, tags=()):
+        if isinstance(age, datetime.timedelta):
+            age = datetime.now() - age
