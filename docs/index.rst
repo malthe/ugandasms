@@ -10,8 +10,9 @@ with a :ref:`set of apps <applications>` that can be used as is or be
 extended to meet your requirements.
 
 Included with the system is support for the `Kannel
-<http://www.kannel.org/>`_ SMS gateway [#kannel]_, as well as GSM modems attached
-on a serial port or logical device [#gsm]_.
+<http://www.kannel.org/>`_ SMS gateway [#kannel-interface]_, as well
+as GSM modems attached on a serial port or logical device [#gsm]_ (see
+the section on :ref:`transports <transports>` for a detailed description).
 
 Distinct features:
 
@@ -97,7 +98,7 @@ Running all tests::
 To use PostgreSQL, set the ``WITH_POSTGRESQL`` environment variable to
 any true value.
 
-See the chapter on :ref:`testing` to learn how to write your own tests.
+See the API documentation on :ref:`testing` for more information.
 
 Contribution
 ------------
@@ -135,11 +136,12 @@ Contents
    :maxdepth: 2
 
    getting_started.rst
+   apps.rst
    architecture.rst
+   transports.rst
    testing.rst
    wsgi.rst
    api.rst
-   apps.rst
    glossary.rst
 
 Indices and tables
@@ -150,6 +152,7 @@ Indices and tables
 
 .. rubric:: Footnotes
 
-.. [#kannel] Using the HTTP interface provided by the ``sms-service`` and ``sendsms-user`` groups.
+.. [#kannel-interface] Using the HTTP interface provided by the ``sms-service`` and ``sendsms-user`` groups.
+
 .. [#gsm] Requires the `sms <http://pypi.python.org/pypi/sms>`_ package by Amos Latteier.
 
