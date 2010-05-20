@@ -113,19 +113,30 @@ def date(formats=("%m/%d/%Y",)):
     """Parses a date using one of the supplied formats.
 
     To integrate with Django's date format settings, pass in the
-    ``DATE_INPUT_FORMATS`` setting:
+    ``DATE_INPUT_FORMATS`` setting. The default settings is defined in
+    :mod:`django.conf.global_settings` as::
+
+      DATE_INPUT_FORMATS = (
+          '%Y-%m-%d', '%m/%d/%Y', '%m/%d/%y', # '2006-10-25', '10/25/2006', '10/25/06'
+          '%b %d %Y', '%b %d, %Y',            # 'Oct 25 2006', 'Oct 25, 2006'
+          '%d %b %Y', '%d %b, %Y',            # '25 Oct 2006', '25 Oct, 2006'
+          '%B %d %Y', '%B %d, %Y',            # 'October 25 2006', 'October 25, 2006'
+          '%d %B %Y', '%d %B, %Y',            # '25 October 2006', '25 October, 2006'
+      )
+
+    To use this setting, wrap the function like this:
 
     >>> from django.conf import settings
-    >>> django_date_parser = partial(date, formats=settings.DATE_INPUT_FORMATS)
+    >>> date = partial(date, formats=settings.DATE_INPUT_FORMATS)
 
     The standard settings enables a wide set of input formats; we
     demonstrate some of them here:
 
-    >>> run_parser(django_date_parser, '12/31/1999')[0].isoformat()
+    >>> run_parser(date, '12/31/1999')[0].isoformat()
     '1999-12-31T00:00:00'
-    >>> run_parser(django_date_parser, 'December 31, 1999')[0].isoformat()
+    >>> run_parser(date, 'December 31, 1999')[0].isoformat()
     '1999-12-31T00:00:00'
-    >>> run_parser(django_date_parser, '12/31/99')[0].isoformat()
+    >>> run_parser(date, '12/31/99')[0].isoformat()
     '1999-12-31T00:00:00'
     """
 
