@@ -89,8 +89,6 @@ class Registration(Incoming):
             else:
                 self.reply("Please provide your name when registering.")
         else:
-            self.user, created = Reporter.objects.get_or_create(pk=self.user.pk)
-
             if name is None:
                 self.reply("Your current identification string is: %s." % self.ident)
             else:
