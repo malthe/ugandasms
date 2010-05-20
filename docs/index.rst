@@ -10,7 +10,7 @@ with a :ref:`set of apps <applications>` that can be used as is or be
 extended to meet your requirements.
 
 Included with the system is support for the `Kannel
-<http://www.kannel.org/>`_ SMS gateway, as well as GSM modems attached
+<http://www.kannel.org/>`_ SMS gateway [#kannel]_, as well as GSM modems attached
 on a serial port or logical device [#gsm]_.
 
 Distinct features:
@@ -150,5 +150,6 @@ Indices and tables
 
 .. rubric:: Footnotes
 
+.. [#kannel] Using the HTTP interface provided by the ``sms-service`` and ``sendsms-user`` groups.
 .. [#gsm] Requires the `sms <http://pypi.python.org/pypi/sms>`_ package by Amos Latteier.
 
