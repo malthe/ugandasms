@@ -15,6 +15,7 @@ class Command(BaseCommand):
                 model, data, text = transport.parse(text)
             except ParseError, error:
                 print error
+                break
             else:
                 messages.append((model, data))
 
