@@ -21,6 +21,10 @@ parser functions that you are encouraged to make use of:
 
 .. automodule:: router.parser
 
+   .. autofunction:: alphanumerical
+
+   .. autofunction:: alphanumerical1
+
    .. function:: comma()
 
       Parses a comma.

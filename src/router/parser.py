@@ -6,6 +6,7 @@ from string import ascii_letters
 
 from picoparse import choice
 from picoparse import fail
+from picoparse import many
 from picoparse import many1
 from picoparse import n_of
 from picoparse import one_of
@@ -60,12 +61,29 @@ def _parse_date_format(date_format):
     except:
         fail()
 
+def parse(parser, text):
+    return "".join(run_parser(parser, tuple(text))[0])
+
+def alphanumerical():
+    """Expects zero or more alphanumerical characters.
+
+    >>> parse(alphanumerical, 'abc123')
+    'abc123'
+    """
+
+    return many(partial(one_of, ascii_letters + digit_chars))
+
+def alphanumerical1():
+    """Expects one or more alphanumerical characters."""
+
+    return many1(partial(one_of, ascii_letters + digit_chars))
+
 def separator(parser=comma):
     """Expects a comma separation.
 
-    >>> "".join(run_parser(separator, ', ')[0])
+    >>> parse(separator, ', ')
     ','
-    >>> "".join(run_parser(separator, ' ,')[0])
+    >>> parse(separator, ' ,')
     ','
     """
 
@@ -123,15 +141,15 @@ def timedelta():
 def floating():
     """Parses a floating point number.
 
-    >>> "".join(run_parser(floating, '123')[0])
+    >>> parse(floating, '123')
     '123'
-    >>> "".join(run_parser(floating, '123.0')[0])
+    >>> parse(floating, '123.0')
     '123.0'
-    >>> "".join(run_parser(floating, '123,0')[0])
+    >>> parse(floating, '123,0')
     '123.0'
-    >>> "".join(run_parser(floating, '.123')[0])
+    >>> parse(floating, '.123')
     '.123'
-    >>> "".join(run_parser(floating, '123.')[0])
+    >>> parse(floating, '123.')
     '123.'
 
     """
@@ -145,11 +163,11 @@ def floating():
 def next_parameter(parser=partial(many1, not_comma)):
     """Read the next parameter on a comma-separated input.
 
-    >>> "".join(run_parser(next_parameter, ', abc')[0])
+    >>> parse(next_parameter, ', abc')
     'abc'
-    >>> "".join(run_parser(next_parameter, ' , abc')[0])
+    >>> parse(next_parameter, ' , abc')
     'abc'
-    >>> "".join(run_parser(partial(next_parameter, digits), ', 123')[0])
+    >>> parse(partial(next_parameter, digits), ', 123')
     '123'
     """
 
@@ -161,11 +179,9 @@ def next_parameter(parser=partial(many1, not_comma)):
 def one_of_strings(*strings):
     """Parses one of the strings provided, caseless.
 
-    >>> "".join(run_parser(
-    ...     partial(one_of_strings, 'abc', 'def'), 'abc')[0])
+    >>> parse(partial(one_of_strings, 'abc', 'def'), 'abc')
     'abc'
-    >>> "".join(run_parser(
-    ...     partial(one_of_strings, 'abc', 'def'), 'def')[0])
+    >>> parse(partial(one_of_strings, 'abc', 'def'), 'def')
     'def'
     """
 
