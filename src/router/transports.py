@@ -135,6 +135,7 @@ class Transport(object):
         """
 
         time = time or datetime.now()
+        messages = []
 
         while True:
             message = Incoming(text=text, time=time)
@@ -154,7 +155,7 @@ class Transport(object):
 
             message.__class__ = model
             try:
-                message.__init__(text=message.text)
+                message.__init__(text=message.text, time=time)
             except Exception, exc:
                 message.__class__ = Broken
                 message.__init__(
@@ -169,6 +170,7 @@ class Transport(object):
                 peer.save()
             message.peer = peer
             message.save()
+            messages.append(message)
 
             pre_handle.send(sender=message)
             try:
@@ -178,6 +180,8 @@ class Transport(object):
 
             if not text:
                 break
+
+        return messages
 
     def send(self, message):
         """Send message using transport.

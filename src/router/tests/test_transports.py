@@ -210,6 +210,7 @@ class KannelTest(FunctionalTestCase):
         results = Incoming.objects.all()
         self.assertEquals(len(results), 1)
         self.assertEquals(results[0].text, u"+echo test")
+        self.assertNotEqual(results[0].time, None)
         self.assertEquals(results[0].uri, u"kannel://456")
 
         from ..models import Outgoing
