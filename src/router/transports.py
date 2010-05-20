@@ -112,26 +112,15 @@ class Transport(object):
 
         The method uses its message parser on ``text`` to receive a
         message model, a parser result dictionary and any remaining
-        text.
-
-          model, data, remaining = self.parse(text)
-
-        The message model is instantiated and the parse result data is
-        passed to the message handler as keyword arguments::
-
-          message = model(text=text)
-          message.handle(**data)
-
-        If the message parser throws a parse error, the message class
-        will be of type ``NotUnderstood``. The error message will be
-        set in the ``help`` attribute.
+        text. If the message parser throws a parse error, the message
+        class will be of type ``NotUnderstood``. The error message
+        will be set in the ``help`` attribute. If there's remaining
+        text, the loop is repeated, possibly resulting in several
+        incoming messages.
 
         Note that signals are provided to hook into the flow of
         operations of this method:: ``pre_parse``, ``post_parse``,
         ``pre_handle`` and ``post_handle``.
-
-        If there's remaining text, the loop is repeated, possibly
-        resulting in several incoming messages.
         """
 
         time = time or datetime.now()
@@ -287,6 +276,17 @@ class Kannel(Transport):
 
     :param name: Transport name
     :param options: Dictionary; define ``'SMS_URL'`` for the URL for the *sendsms* service and ``'DLR_URL'`` to set the delivery confirmation reply
+
+    Example configuration::
+
+      TRANSPORTS = {
+          'kannel': {
+              'TRANSPORT': 'router.transports.Kannel',
+              'SMS_URL': 'http://localhost:13013/cgi-bin/sendsms?username=kannel&password=kannel',
+              'DLR_URL': 'http://localhost:8080/kannel',
+          }
+      }
+
     """
 
     sms_url = None
