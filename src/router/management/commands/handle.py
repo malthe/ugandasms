@@ -19,12 +19,12 @@ class Command(BaseCommand):
 
         for i, message in enumerate(messages):
             print "%d/%d %s" % (i+1, len(messages), message.time.isoformat())
-            print ">>> %s" % message.text
+            print "--> %s" % message.text
             print "----" + "-"*len(message.text)
 
             replies = message.replies.all()
             for j, reply in enumerate(replies):
                 print "    %d/%d %s" % (j+1, len(replies), reply.uri)
-                print "    <<< %s" % reply.text
+                print "    <-- %s" % reply.text
 
 

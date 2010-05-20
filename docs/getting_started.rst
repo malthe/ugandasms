@@ -282,10 +282,10 @@ methods on the message models:
 
   bash-3.2 $ python manage.py handle "+ECHO Hello world!"
   1/1 2010-05-20T06:40:18.856503
-  >>> +echo hello
+  --> +echo hello
   ---------------
       1/1 script://mborch
-      <<< hello
+      <-- hello
 
 While the ``parse`` command simply shows how the system interprets the
 text messages and translates it into one or more messages, the
