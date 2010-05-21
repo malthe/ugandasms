@@ -256,3 +256,4 @@ class KannelTest(FunctionalTestCase):
         self.assertFalse(message is None)
         self.assertEqual(message.delivery, delivery)
         self.assertEqual(message.delivered, True)
+        self.assertEqual(message.sent, True)

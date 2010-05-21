@@ -80,7 +80,7 @@ Models
      :members:   handle, reply
 
   .. autoclass:: Outgoing
-     :members:   delivered
+     :members:   delivered, sent
 
   .. autoclass:: User
 

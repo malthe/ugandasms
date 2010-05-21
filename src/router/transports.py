@@ -1,5 +1,5 @@
-import logging
 import sys
+import logging
 import time
 
 try:
@@ -304,6 +304,9 @@ class GSM(Transport): # pragma: NOCOVER
                     self.queue.put(message)
                     self.logger.critical(error)
                     time.sleep(1)
+                else:
+                    message.time = datetime.now()
+                    message.save()
 
     def send(self, message):
         self.queue.put((message.ident, message.text))
@@ -448,3 +451,4 @@ class Kannel(Transport):
         response = self.fetch(request, timeout=self.timeout)
         if response.code // 100 == 2:
             message.time = datetime.now()
+            message.save()

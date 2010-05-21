@@ -126,6 +126,12 @@ class Outgoing(Message):
 
         return self.delivery is not None
 
+    @property
+    def sent(self):
+        """Return ``True`` if message was sent."""
+
+        return self.time is not None
+
 class Empty(Incoming):
     """The empty message."""
 
