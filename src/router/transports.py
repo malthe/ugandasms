@@ -234,7 +234,7 @@ class GSM(Transport): # pragma: NOCOVER
             self.modem.conn.flush()
             result = self.modem.conn.readall()
             manufacturer = result.split('AT+GMI')[-1].split('OK')[0].strip()
-            logger.info("%s modem identified." % manufacturer.capitalize())
+            logger.info("%s identified." % manufacturer.capitalize())
 
             # query mode availability
             self.modem.conn.write("AT+CMGF=?\r")
@@ -307,6 +307,12 @@ class GSM(Transport): # pragma: NOCOVER
 
     def send(self, message):
         self.queue.put((message.ident, message.text))
+
+    def ussd(self, request):
+        logger.info("Requesting %s..." % request)
+        self.modem.conn.write("AT+CUSD=1,\"%s\",15\r" % request)
+        self.modem.conn.flush()
+        logger.info(self.modem.conn.readall().strip())
 
 class Kannel(Transport):
     """Kannel transport.
