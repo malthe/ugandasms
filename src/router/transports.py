@@ -234,7 +234,7 @@ class GSM(Transport): # pragma: NOCOVER
             self.modem.conn.flush()
             result = self.modem.conn.readall()
             manufacturer = result.split('AT+GMI')[-1].split('OK')[0].strip()
-            logger.info("%s modem identified." % manufacturer.capitalize())
+            logger.info("%s identified." % manufacturer.capitalize())
 
             # query mode availability
             self.modem.conn.write("AT+CMGF=?\r")
