@@ -229,18 +229,27 @@ class GSM(Transport): # pragma: NOCOVER
         else:
             self.logger.info("Connected to %s..." % self.device)
 
-            # query mode availability
-            self.modem.conn.write("AT+CMGF=?\r\n")
+            # query manufacturer for diagnostics
+            self.modem.conn.write("AT+GMI\r")
             self.modem.conn.flush()
-            if '1' not in self.modem.conn.readall():
-                logger.critical("Modem does not support text mode.")
+            result = self.modem.conn.readall()
+            manufacturer = result.split('AT+GMI')[-1].split('OK')[0].strip()
+            logger.info("%s modem identified." % manufacturer.capitalize())
+
+            # query mode availability
+            self.modem.conn.write("AT+CMGF=?\r")
+            self.modem.conn.flush()
+            modeline = self.modem.conn.readall()
+            if '1' not in modeline:
+                logger.critical("Modem does not support text mode (%s)." % modeline.strip())
                 return
 
             # set text mode
-            self.modem.conn.write("AT+CMGF=1\r\n")
+            self.modem.conn.write("AT+CMGF=1\r")
             self.modem.conn.flush()
-            if 'OK' not in self.modem.conn.readall():
-                logger.critical("Unable to set message mode.")
+            result = self.modem.conn.readall()
+            if 'OK' not in result:
+                logger.critical("Unable to set message mode (%s)." % result.strip())
                 return
 
             # create queue for outgoing messages
@@ -265,8 +274,13 @@ class GSM(Transport): # pragma: NOCOVER
                 self.logger.debug("Received %d messages." % len(messages))
 
             for message in messages:
-                self.logger.debug("%s --> \"%s\"" % message.number, message.text)
-                self.incoming(message.number, message.text, message.date)
+                ignored = ""
+                if len(message.number) < 6:
+                    ignored = " [IGNORED]"
+                self.logger.debug("%s --> %s%s" % (
+                    message.number, repr(message.text.encode('utf-8')), ignored))
+                if not ignored:
+                    self.incoming(message.number, message.text, message.date)
 
             # delete all read (and stored sent) messages
             self.modem.conn.write("AT+CMGD=0,2\r\n")
@@ -283,8 +297,9 @@ class GSM(Transport): # pragma: NOCOVER
                     break
 
                 try:
-                    self.logger.debug("%s <-- \"%s\"" % message)
-                    self.modem.send(*message)
+                    number, text = message
+                    self.logger.debug("%s <-- %s" % (number, repr(text.encode('utf-8'))))
+                    self.modem.send(number, text)
                 except sms.ModemError, error:
                     self.queue.put(message)
                     self.logger.critical(error)
