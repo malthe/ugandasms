@@ -219,7 +219,7 @@ class GSM(Transport): # pragma: NOCOVER
         handler = logging.StreamHandler(sys.stderr)
         handler.setFormatter(formatter)
         level = getattr(logging, self.log_level.upper())
-        logger = self.logger = logging.Logger(self.name, level=level)
+        logger = self.logger = logging.Logger(self.name.upper(), level=level)
         logger.addHandler(handler)
 
         try:
