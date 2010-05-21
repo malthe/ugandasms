@@ -1,6 +1,5 @@
 import itertools
 import datetime
-import string
 
 from polymorphic import PolymorphicModel as Model
 
@@ -70,8 +69,8 @@ class Aggregate(Report):
         ordering = ['-id']
 
 class Malnutrition(Incident):
-    reading = models.CharField(max_length=1)
-    value = models.FloatField(null=True)
+    category = models.CharField(max_length=1)
+    reading = models.FloatField(null=True)
 
 class Epi(Incoming):
     """Report on epidemiological data.
@@ -203,8 +202,8 @@ class Muac(Incoming):
     Formats::
 
       +MUAC <name>, <sex>, <age>, <reading> [, <tag> ]*
-      +MUAC <patient_id>, <reading> [, <tag> ]*
-      <patient_id> +MUAC <reading> [, <tag> ]*
+      +MUAC <health_id>, <reading> [, <tag> ]*
+      <health_id> +MUAC <reading> [, <tag> ]*
 
     Note that a patient id must contain one or more digits (to
     distinguish a name from a patient id).
@@ -234,7 +233,7 @@ class Muac(Incoming):
 
         prefix = optional(tri(identifier), None)
         if prefix is not None:
-            result['patient_id'] = "".join(prefix)
+            result['health_id'] = "".join(prefix)
             whitespace()
 
         one_of('+')
@@ -245,7 +244,7 @@ class Muac(Incoming):
                 whitespace1()
                 part = optional(tri(identifier), None)
                 if part is not None:
-                    result['patient_id'] = "".join(part)
+                    result['health_id'] = "".join(part)
                 else:
                     result['name'] = name()
             except:
@@ -282,7 +281,7 @@ class Muac(Incoming):
             try:
                 reading = int("".join(reading))
             except:
-                reading = reading[0].upper()
+                result['category'] = reading[0].upper()
             else:
                 whitespace()
                 unit = optional(partial(one_of_strings, 'mm', 'cm'), None)
@@ -290,7 +289,7 @@ class Muac(Incoming):
                     reading = cls.get_reading_in_mm(reading)
                 elif "".join(unit) == 'cm':
                     reading = reading * 10
-            result['reading'] = reading
+                result['reading'] = reading
         except:
             raise ParseError(
                 "Expected MUAC reading (either green, yellow or red), but "
@@ -302,6 +301,6 @@ class Muac(Incoming):
         return result
 
     @staticmethod
-    def handle(patient_id=None, name=None, sex=None, age=None, reading=None, tags=()):
+    def handle(health_id=None, name=None, sex=None, age=None, reading=None, tags=()):
         if isinstance(age, datetime.timedelta):
             age = datetime.now() - age
