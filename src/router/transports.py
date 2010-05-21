@@ -308,6 +308,12 @@ class GSM(Transport): # pragma: NOCOVER
     def send(self, message):
         self.queue.put((message.ident, message.text))
 
+    def ussd(self, request):
+        logger.info("Requesting %s..." % request)
+        self.modem.conn.write("AT+CUSD=1,\"%s\",15\r" % request)
+        self.modem.conn.flush()
+        logger.info(self.modem.conn.readall().strip())
+
 class Kannel(Transport):
     """Kannel transport.
 
