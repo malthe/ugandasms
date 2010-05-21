@@ -229,6 +229,20 @@ class GSM(Transport): # pragma: NOCOVER
         else:
             self.logger.info("Connected to %s..." % self.device)
 
+            # query mode availability
+            self.modem.conn.write("AT+CMGF=?\r\n")
+            self.modem.conn.flush()
+            if '1' not in self.modem.conn.readall():
+                logger.critical("Modem does not support text mode.")
+                return
+
+            # set text mode
+            self.modem.conn.write("AT+CMGF=1\r\n")
+            self.modem.conn.flush()
+            if 'OK' not in self.modem.conn.readall():
+                logger.critical("Unable to set message mode.")
+                return
+
             # create queue for outgoing messages
             self.queue = Queue()
 
@@ -247,12 +261,19 @@ class GSM(Transport): # pragma: NOCOVER
                 time.sleep(1)
                 continue
 
-            self.logger.debug("Received %d messages." % len(messages))
+            if len(messages) > 0:
+                self.logger.debug("Received %d messages." % len(messages))
 
             for message in messages:
-                self.logger.debug("%s (%s): %s" % (
-                    message.number, message.date.isoformat(), message.text))
+                self.logger.debug("%s --> \"%s\"" % message.number, message.text)
                 self.incoming(message.number, message.text, message.date)
+
+            # delete all read (and stored sent) messages
+            self.modem.conn.write("AT+CMGD=0,2\r\n")
+            self.modem.conn.flush()
+            if 'OK' not in self.modem.conn.readall():
+                self.logger.critical("Error deleting messages.")
+                return
 
             # outgoing
             while not self.queue.empty():
@@ -262,6 +283,7 @@ class GSM(Transport): # pragma: NOCOVER
                     break
 
                 try:
+                    self.logger.debug("%s <-- \"%s\"" % message)
                     self.modem.send(*message)
                 except sms.ModemError, error:
                     self.queue.put(message)
