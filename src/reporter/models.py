@@ -13,7 +13,7 @@ from picoparse.text import whitespace1
 
 from router.parser import digits
 from router.parser import one_of_strings
-from router.parser import ParseError
+from router.parser import FormatError
 from router.models import Incoming
 from router.models import Peer
 from router.models import User

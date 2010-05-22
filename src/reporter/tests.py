@@ -5,22 +5,21 @@ class ParserTest(UnitTestCase):
     @staticmethod
     def _parse(text):
         from .models import Registration
-        from router.parser import Parser
-        parser = Parser((Registration,))
-        return parser(text)
+        from picoparse import run_parser
+        return run_parser(Registration.parse, text)[0]
 
     def test_empty(self):
-        self.assertEquals(self._parse("+reg")[1], {})
+        self.assertEquals(self._parse("+reg"), {})
 
     def test_name(self):
-        self.assertEquals(self._parse("+reg Bob")[1], {'name': u'Bob'})
-        self.assertEquals(self._parse("+register Bob")[1], {'name': u'Bob'})
-        self.assertEquals(self._parse("+REG Bob")[1], {'name': u'Bob'})
+        self.assertEquals(self._parse("+reg Bob"), {'name': u'Bob'})
+        self.assertEquals(self._parse("+register Bob"), {'name': u'Bob'})
+        self.assertEquals(self._parse("+REG Bob"), {'name': u'Bob'})
 
     def test_ident(self):
-        from router.parser import ParseError
-        self.assertEquals(self._parse("+reg #123")[1], {'ident': '123'})
-        self.assertRaises(ParseError, self._parse, "+reg #")
+        self.assertEquals(self._parse("+reg #123"), {'ident': '123'})
+        from router.parser import NoMatch
+        self.assertRaises(NoMatch, self._parse, "+reg #")
 
 class HandlerTest(FunctionalTestCase):
     INSTALLED_APPS = FunctionalTestCase.INSTALLED_APPS + (

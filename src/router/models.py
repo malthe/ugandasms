@@ -94,13 +94,17 @@ class Message(Model):
 class Incoming(Message):
     """An incoming message."""
 
-    parse = None
     replies = ()
+    erroneous = models.NullBooleanField(null=True)
 
-    def handle(self, **kwargs):
+    def handle(self, **result):
         """Handle incoming message.
 
-        The keyword arguments in ``kwargs`` are provided by the parser.
+        The keyword arguments in ``result`` are provided by the parser.
+
+        Use :meth:`self.reply` to send one or more replies to this message;
+        you may also create other database objects here, or update
+        existing ones.
 
         .. note:: Must be implemented by subclass.
         """
@@ -108,11 +112,12 @@ class Incoming(Message):
         raise NotImplementedError(
             "Message must implement the ``handle`` function.") # PRAGMA: nocover
 
+    @staticmethod
     def parse():
-        """Parse incoming message.
+        """Return either a dictionary or ``None``.
 
-        This is a :mod:`picoparse` function. Return either a
-        dictionary or ``None``.
+        This method takes no arguments; input is acquired through the
+        use of :mod:`picoparse` parser functions.
 
         .. note:: Must be implemented by subclass.
         """
@@ -136,71 +141,13 @@ class Outgoing(Message):
 
     @property
     def delivered(self):
-        """Return ``True`` if message was confirmed delivered."""
+        """Return ``True`` if the message was confirmed delivered."""
 
         return self.delivery is not None
 
     @property
     def sent(self):
-        """Return ``True`` if message was sent."""
+        """Return ``True`` if the message was sent."""
 
         return self.time is not None
 
-class Empty(Incoming):
-    """The empty message."""
-
-    @staticmethod
-    def parse():
-        """Fail if any token is parsed.
-
-        >>> from picoparse import run_parser
-
-        The empty message parses.
-
-        >>> run_parser(Empty.parse, ('',)) is not None
-        True
-
-        Any non-trivial input fails.
-
-        >>> run_parser(Empty.parse, 'hello') # doctest: +ELLIPSIS
-        Traceback (most recent call last):
-         ...
-        NoMatch: ...
-        """
-
-        if optional(any_token, None):
-            fail()
-
-    def handle(self):
-        self.reply(u"You sent a message with no text.") # pragma: NOCOVER
-
-class NotUnderstood(Incoming):
-    """Any message which was not understood."""
-
-    def handle(self, help):
-        """Sends a reply to the user containing the part of the
-        message which was not understood."""
-
-        self.reply('Message not understood: %s.' % help)
-
-class Failure(Incoming):
-    """Any message which resulted in a system failure."""
-
-    def handle(self):
-        self.reply('There was an unexpected system error processing your message.')
-
-class Broken(Incoming):
-    """Broken message.
-
-    This indicates a message that raised an exception during
-    initialization.
-    """
-
-    kind = models.CharField(max_length=30)
-
-    def handle(self):
-        """Sends a reply to the user with the type name of the message
-        that failed as well as the message text."""
-
-        self.reply("System error handling message: %s (type: %s)." % (
-            self.text, self.kind.replace('-', ' ')))

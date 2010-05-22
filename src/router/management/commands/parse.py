@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 from router.transports import Transport
-from router.parser import ParseError
+from router.parser import FormatError
 from pprint import pformat
 
 class Command(BaseCommand):
@@ -13,7 +13,7 @@ class Command(BaseCommand):
         while text:
             try:
                 model, data, text = transport.parse(text)
-            except ParseError, error:
+            except FormatError, error:
                 print error
                 break
             else:

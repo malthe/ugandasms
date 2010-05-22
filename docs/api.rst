@@ -5,18 +5,65 @@ This is a reference on public classes and functions in the system.
 
 This section details the API of the base system.
 
+Models
+~~~~~~
+
+.. automodule:: router.models
+
+  .. autoclass:: Message
+     :members:   user, transport, ident
+
+     .. attribute:: text
+
+        The message body string.
+
+     .. attribute:: time
+
+        The time a message was received.
+
+  .. autoclass:: Incoming
+     :members:   handle, parse, reply
+
+     .. attribute:: erroneous
+
+        Indicates whether this message was marked as erroneous during
+        parsing.
+
+     .. attribute:: replies
+
+        Relation to the replies given for this message.
+
+  .. autoclass:: Outgoing
+     :members:   delivered, sent
+
+     .. attribute:: delivery
+
+        The date when this message was delivered. This field is
+        ``None`` unless a delivery confirmation receipt was provided
+        to the transport.
+
+     .. attribute:: in_reply_to
+
+        The message to which this is a reply, or ``None`` if this is
+        an unsolicited message.
+
+  .. autoclass:: Peer
+
+  .. autoclass:: User
+
+     .. attribute:: peers
+
+        Set of peers which authenticate this user object.
+
 Parser
 ~~~~~~
 
-The parser module provides the ``Parser`` class which wraps a list of
-models and provides a function that matches a text against them:
-
-.. autoclass:: router.parser.Parser
+.. autoclass:: router.parser.FormatError
 
 Helper functions
 ----------------
 
-The :mod:`router.parser:` module also contains a number of utility
+The :mod:`router.parser` module also contains a number of utility
 parser functions that you are encouraged to make use of:
 
 .. automodule:: router.parser
@@ -53,91 +100,16 @@ parser functions that you are encouraged to make use of:
 
    .. autofunction:: timedelta
 
-Exceptions
-----------
-
-.. autoclass:: router.parser.ParseError
-
-Models
-~~~~~~
-
-.. automodule:: router.models
-
-  .. autoclass:: Message
-     :members:   user, transport, ident
-
-     .. attribute:: text
-
-        The message body string.
-
-     .. attribute:: time
-
-        The time a message was received.
-
-  .. autoclass:: Incoming
-     :members:   handle, parse, reply
-
-     .. attribute:: replies
-
-        Relation to the replies given for this message.
-
-  .. autoclass:: Outgoing
-     :members:   delivered, sent
-
-     .. attribute:: delivery
-
-        The date when this message was delivered. This field is
-        ``None`` unless a delivery confirmation receipt was provided
-        to the transport.
-
-     .. attribute:: in_reply_to
-
-        The message to which this is a reply. May be ``None`` if this
-        was an unsolicited message.
-
-  .. autoclass:: Peer
-
-  .. autoclass:: User
-
-     .. attribute:: peers
-
-        Set of peers which authenticate this user object.
-
-Messages
-----------
-
-.. autoclass:: router.models.NotUnderstood(text=None)
-
-   .. autofunction:: handle([help])
-
-.. autoclass:: router.models.Failure(text=None)
-
-   .. autofunction:: handle()
-
-.. autoclass:: router.models.Broken(text=None, kind=None)
-
-   .. automethod:: handle
-
-   .. attribute:: kind
-
-      The name of the message class which failed, converted into a
-      human-readable string.
-
 Transports
 ~~~~~~~~~~
 
 .. automodule:: router.transports
 
   .. autoclass:: Transport
-
-     .. attribute:: name
-
-        Name of the transport.
+     :members:   name
 
   .. autoclass:: router.transports.Message
-     :members:   incoming
-
-     .. automethod:: parse(text)
+     :members:   incoming, models
 
 GSM
 ---
@@ -225,9 +197,9 @@ following framework is available.
 
 .. autoclass:: router.testing.Peer
 
-   .. automethod:: send(text)
+   .. automethod:: router.testing.Peer.send(text)
 
-   .. automethod:: receive()
+   .. automethod:: router.testing.Peer.receive()
 
 Coverage
 --------

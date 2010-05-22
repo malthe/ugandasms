@@ -86,14 +86,5 @@ class DocumentationTest(FunctionalTestCase): # pragma: NOCOVER
             self.globs['bob'] = Peer(transport, u"256000000000")
         except:
             self.tearDown()
+            del self.globs
             raise
-
-
-    USER_SETTINGS = {
-        'TRANSPORTS': {
-            'gateway': {
-                'TRANSPORT': 'router.testing.Gateway',
-                },
-            },
-        }
-

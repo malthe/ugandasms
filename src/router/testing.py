@@ -116,7 +116,10 @@ class FunctionalTestCase(UnitTestCase):  # pragma: NOCOVER
         'router',
         )
 
-    BASE_SETTINGS = {}
+    BASE_SETTINGS = {
+        'DEBUG': True
+        }
+
     USER_SETTINGS = {}
 
     def setUp(self):
@@ -192,6 +195,9 @@ class FunctionalTestCase(UnitTestCase):  # pragma: NOCOVER
             conn = self._pg_connect()
             curs = conn.cursor()
             self._pg_drop_database(curs, self._pg_database_name)
+
+        import gc
+        gc.collect()
 
     @property
     def _pg_enabled(self):

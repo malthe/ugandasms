@@ -1,10 +1,13 @@
+from picoparse import any_token
+from picoparse import fail
 from picoparse import one_of
+from picoparse import optional
 from picoparse import remaining
 from picoparse.text import whitespace
 from picoparse.text import caseless_string
 
 from ..models import Incoming
-from ..parser import ParseError
+from ..parser import FormatError
 
 class Echo(Incoming):
     @staticmethod
@@ -20,12 +23,21 @@ class Echo(Incoming):
     def handle(self, echo=None):
         self.reply(echo)
 
+class Empty(Incoming):
+    @staticmethod
+    def parse():
+        if optional(any_token, None):
+            fail()
+
+    def handle(self):
+        self.reply(u"You sent a message with no text.")
+
 class Error(Incoming):
     @staticmethod
     def parse():
         one_of('+')
         caseless_string('error')
-        raise ParseError("error")
+        raise FormatError("error")
 
 class Break(Incoming):
     @staticmethod
