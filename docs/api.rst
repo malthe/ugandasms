@@ -41,11 +41,9 @@ parser functions that you are encouraged to make use of:
 
    .. autofunction:: floating
 
-   .. autofunction:: identifier
+   .. autofunction:: identifier([first, consecutive, must_contain])
 
    .. autofunction:: name
-
-   .. autofunction:: next_parameter
 
    .. autofunction:: one_of_strings
 

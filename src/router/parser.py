@@ -191,22 +191,6 @@ def floating():
     number += optional(digits, [])
     return number
 
-def next_parameter(parser=partial(many1, not_comma)):
-    """Read the next parameter on a comma-separated input.
-
-    >>> parse(next_parameter, ', abc')
-    'abc'
-    >>> parse(next_parameter, ' , abc')
-    'abc'
-    >>> parse(partial(next_parameter, digits), ', 123')
-    '123'
-    """
-
-    whitespace()
-    comma()
-    whitespace()
-    return parser()
-
 def name():
     """Parses one or more names separated by whitespace, and
     concatenates with a single space.
