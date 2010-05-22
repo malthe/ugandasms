@@ -25,7 +25,7 @@ class User(Model):
 class CustomForeignKey(models.ForeignKey):
     def __init__(self, *args, **kwargs):
         self.column = kwargs.pop('column')
-        kwargs.setdefault('db_column', "%s_id" % self.column)
+        kwargs.setdefault('db_column', self.column)
         super(CustomForeignKey, self).__init__(*args, **kwargs)
 
     def get_attname(self):
