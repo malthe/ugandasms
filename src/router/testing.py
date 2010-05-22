@@ -40,7 +40,7 @@ class Gateway(object):
 class Peer(object):
     """Network peer.
 
-    Each peer is configured for a ``gateway`` with a unique ``ident``
+    Each peer is configured for a :class:`gateway` with a unique ``ident``
     string.
     """
 
