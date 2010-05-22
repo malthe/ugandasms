@@ -116,7 +116,7 @@ class Message(Transport):
         message model, a parser result dictionary and any remaining
         text. If the message parser throws a parse error, the message
         class will be of type
-        :class:`models.router.NotUnderstood`. The error message will
+        :class:`router.models.NotUnderstood`. The error message will
         be set in the ``help`` attribute. If there's remaining text,
         the loop is repeated, possibly resulting in several incoming
         messages.
