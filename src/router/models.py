@@ -13,11 +13,12 @@ def camelcase_to_dash(str):
         str).lower().strip('-')
 
 class User(Model):
-    """Authenticated user.
+    """An authenticated user.
 
     The device used to send and receive messages typically provide a
     means of authentication. Since users may use different devices, we
-    record a set of *peers* that authenticate a user.
+    record a set of :class:`Peer` objects that each
+    authenticate a user.
     """
 
     peers = ()
@@ -32,13 +33,16 @@ class CustomForeignKey(models.ForeignKey):
         return self.column
 
 class Peer(Model):
-    """Device identification object.
+    """Mapping between device and user.
 
-    The ``uri`` attribute identifies the remote device in terms of a
-    transport token and an identification string.
+    The ``uri`` attribute identifies the device in terms of the
+    transport used and the unique identifier within that transport::
 
-    Examples:
+      <transport>://<ident>
 
+    Examples::
+
+      gsm://256703945965
       kannel://256703945965
       twitter://bob
       email://bob@host.com
@@ -52,11 +56,7 @@ class Peer(Model):
     user = models.ForeignKey(User, related_name="peers", null=True)
 
 class Message(Model):
-    """SMS message between a user and the system.
-
-    The ``user`` attribute holds a relation to the user. If the user
-    is not registered, the object may not exist.
-    """
+    """SMS message between a user and the system."""
 
     uri = None
     text = models.CharField(max_length=160*3)
@@ -64,7 +64,7 @@ class Message(Model):
     peer = CustomForeignKey(Peer, column="uri", related_name="messages", null=True)
 
     def get_user(self):
-        """Return user object, or ``None`` if not available."""
+        """Return :class:`User` object, or ``None`` if not available."""
 
         try:
             return self.peer.user
@@ -97,18 +97,32 @@ class Incoming(Message):
     parse = None
     replies = ()
 
-    def handle(self):
+    def handle(self, **kwargs):
         """Handle incoming message.
 
-        The return value is used as the message reply; a ``None``
-        value indicates no reply.
+        The keyword arguments in ``kwargs`` are provided by the parser.
+
+        .. note:: Must be implemented by subclass.
         """
 
         raise NotImplementedError(
             "Message must implement the ``handle`` function.") # PRAGMA: nocover
 
+    def parse():
+        """Parse incoming message.
+
+        This is a :mod:`picoparse` function. Return either a
+        dictionary or ``None``.
+
+        .. note:: Must be implemented by subclass.
+        """
+
     def reply(self, text):
-        """Schedule an outgoing message as reply to this message."""
+        """Reply to this message.
+
+        This method puts an outgoing message into the delivery queue,
+        but does not guarantee immediate delivery.
+        """
 
         assert self.id is not None
         message = Outgoing(text=text, uri=self.uri, in_reply_to=self)
@@ -163,14 +177,30 @@ class Empty(Incoming):
 class NotUnderstood(Incoming):
     """Any message which was not understood."""
 
-    def handle(self, help=None):
+    def handle(self, help):
+        """Sends a reply to the user containing the part of the
+        message which was not understood."""
+
         self.reply('Message not understood: %s.' % help)
 
+class Failure(Incoming):
+    """Any message which resulted in a system failure."""
+
+    def handle(self):
+        self.reply('There was an unexpected system error processing your message.')
+
 class Broken(Incoming):
-    """Broken message."""
+    """Broken message.
+
+    This indicates a message that raised an exception during
+    initialization.
+    """
 
     kind = models.CharField(max_length=30)
 
     def handle(self):
+        """Sends a reply to the user with the type name of the message
+        that failed as well as the message text."""
+
         self.reply("System error handling message: %s (type: %s)." % (
             self.text, self.kind.replace('-', ' ')))
