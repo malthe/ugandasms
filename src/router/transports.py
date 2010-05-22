@@ -8,7 +8,6 @@ except ImportError: # pragma: NOCOVER
     sms = None
 
 from datetime import datetime
-from Queue import Queue
 from threading import Thread
 from urllib import urlencode
 from urllib2 import Request
@@ -67,19 +66,6 @@ class Transport(object):
 
         for key, value in options.items():
             setattr(self, key.lower(), value)
-
-        reference = weakref(self)
-
-        # set up event handler for outgoing messages
-        def on_event(sender=None, instance=None, created=False, **kwargs):
-            transport = reference()
-            if transport is None:
-                kannel_event.disconnect(on_event, sender)
-            else:
-                if created is True and instance.transport == transport.name:
-                    transport.send(instance)
-
-        signals.post_save.connect(on_event, sender=Outgoing, weak=False)
 
     @property
     def parse(self):
@@ -172,21 +158,6 @@ class Transport(object):
 
         return messages
 
-    def send(self, message):
-        """Send message using transport.
-
-        This method should be overriden by any transport that wants to
-        send outgoing messages.
-
-        The implementation in the base class does nothing (although
-        outgoing messages are always stored in the database).
-
-        Only outgoing messages that have been sent should have a
-        defined ``time`` (this is a record of when a message
-        left the system, not when it was merely queued). It's up to
-        the ``send`` method to set this value.
-        """
-
 class GSM(Transport): # pragma: NOCOVER
     """GSM transport.
 
@@ -252,9 +223,6 @@ class GSM(Transport): # pragma: NOCOVER
                 logger.critical("Unable to set message mode (%s)." % result.strip())
                 return
 
-            # create queue for outgoing messages
-            self.queue = Queue()
-
             # start thread
             thread = Thread(target=self.run)
             thread.start()
@@ -290,32 +258,28 @@ class GSM(Transport): # pragma: NOCOVER
                 return
 
             # outgoing
-            while not self.queue.empty():
-                try:
-                    message = self.queue.get_nowait()
-                except:
-                    break
+            messages = Outgoing.objects.filter(
+                time=None, peer__uri__startswith="%s://" % self.name)
+            if len(messages) > 0:
+                self.logger.debug("Sending %d messages..." % len(messages))
 
+            for message in messages.all():
                 try:
-                    number, text = message
-                    self.logger.debug("%s <-- %s" % (number, repr(text.encode('utf-8'))))
-                    self.modem.send(number, text)
+                    self.logger.debug("%s <-- %s" % (
+                        message.ident, repr(message.text.encode('utf-8'))))
+                    self.modem.send(message.ident, message.text)
                 except sms.ModemError, error:
-                    self.queue.put(message)
                     self.logger.critical(error)
                     time.sleep(1)
                 else:
                     message.time = datetime.now()
                     message.save()
 
-    def send(self, message):
-        self.queue.put((message.ident, message.text))
-
     def ussd(self, request):
-        logger.info("Requesting %s..." % request)
+        self.logger.info("Requesting %s..." % request)
         self.modem.conn.write("AT+CUSD=1,\"%s\",15\r" % request)
         self.modem.conn.flush()
-        logger.info(self.modem.conn.readall().strip())
+        self.logger.info(self.modem.conn.readall().strip())
 
 class Kannel(Transport):
     """Kannel transport.
@@ -345,7 +309,7 @@ class Kannel(Transport):
 
         reference = weakref(self)
 
-        # set up event handler for incoming requests
+        # set up event handler for incoming messages
         def on_event(sender=None, request=None, response=None, **kwargs):
             transport = reference()
             if transport is None:
@@ -356,6 +320,17 @@ class Kannel(Transport):
                 response.status_code = status_code
 
         kannel_event.connect(on_event, sender=self.name, weak=False)
+
+        # set up event handler for outgoing messages
+        def on_event(sender=None, instance=None, created=False, **kwargs):
+            transport = reference()
+            if transport is None:
+                kannel_event.disconnect(on_event, sender)
+            else:
+                if created is True and instance.transport == transport.name:
+                    transport.send(instance)
+
+        signals.post_save.connect(on_event, sender=Outgoing, weak=False)
 
     def fetch(self, request, **kwargs): # pragma: NOCOVER
         """Fetch HTTP request.

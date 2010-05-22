@@ -94,7 +94,7 @@ Transports
 .. automodule:: router.transports
 
   .. autoclass:: Transport
-     :members:   incoming, send
+     :members:   incoming
 
 GSM
 ---
