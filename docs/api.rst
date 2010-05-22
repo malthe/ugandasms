@@ -77,10 +77,27 @@ Models
         The time a message was received.
 
   .. autoclass:: Incoming
-     :members:   handle, reply
+     :members:   handle, parse, reply
+
+     .. attribute:: replies
+
+        Relation to the replies given for this message.
 
   .. autoclass:: Outgoing
      :members:   delivered, sent
+
+     .. attribute:: delivery
+
+        The date when this message was delivered. This field is
+        ``None`` unless a delivery confirmation receipt was provided
+        to the transport.
+
+     .. attribute:: in_reply_to
+
+        The message to which this is a reply. May be ``None`` if this
+        was an unsolicited message.
+
+  .. autoclass:: Peer
 
   .. autoclass:: User
 
@@ -88,13 +105,41 @@ Models
 
         Set of peers which authenticate this user object.
 
+Messages
+----------
+
+.. autoclass:: router.models.NotUnderstood(text=None)
+
+   .. autofunction:: handle([help])
+
+.. autoclass:: router.models.Failure(text=None)
+
+   .. autofunction:: handle()
+
+.. autoclass:: router.models.Broken(text=None, kind=None)
+
+   .. automethod:: handle
+
+   .. attribute:: kind
+
+      The name of the message class which failed, converted into a
+      human-readable string.
+
 Transports
 ~~~~~~~~~~
 
 .. automodule:: router.transports
 
   .. autoclass:: Transport
+
+     .. attribute:: name
+
+        Name of the transport.
+
+  .. autoclass:: router.transports.Message
      :members:   incoming
+
+     .. automethod:: parse(text)
 
 GSM
 ---
@@ -160,6 +205,31 @@ Functional tests
 
 The functional test case does not require or load your ``settings.py``
 file. There is currently no support for integration testing.
+
+Configure it this way::
+
+  gateway = Gateway("gateway")
+  bob = Peer(gateway, u"bob")
+
+Bob can now send and receive messages::
+
+  >>> bob.send("+ECHO Hello world+")
+  >>> bob.receive()
+  'Hello world'
+
+Gateway
+-------
+
+To test communication between multiple peers and the system, the
+following framework is available.
+
+.. autoclass:: router.testing.Gateway
+
+.. autoclass:: router.testing.Peer
+
+   .. automethod:: send(text)
+
+   .. automethod:: receive()
 
 Coverage
 --------

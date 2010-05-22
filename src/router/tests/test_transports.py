@@ -107,8 +107,8 @@ class TransportTest(FunctionalTestCase):
         from router.transports import post_parse
 
         def check_type(sender=None, data=None, **kwargs):
-            from router.models import Broken
-            self.assertTrue(isinstance(sender, Broken),
+            from router.models import Failure
+            self.assertTrue(isinstance(sender, Failure),
                             "Sender was of type: %s." % sender.__class__)
         post_parse.connect(check_type)
 

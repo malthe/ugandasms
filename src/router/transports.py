@@ -30,6 +30,7 @@ from .models import Incoming
 from .models import Outgoing
 from .models import Peer
 from .models import Broken
+from .models import Failure
 from .models import NotUnderstood
 from .models import camelcase_to_dash
 
@@ -40,26 +41,18 @@ post_handle = Signal()
 kannel_event = Signal(providing_args=["request", "response"])
 
 class Transport(object):
-    """Transport base class.
+    """Transport.
 
-    All transport implementations should inherit from this class and
-    implement the ``send`` method. If an implementation needs to
-    operate in a separate thread, this should be set up in the class
-    constructor.
+    Shared by all transport implementations.
 
-    When the transport receives an incoming message it should call the
-    ``incoming`` method for processing.
+    :param name: Name
 
-    The default ``parse`` method draws its list of enabled message
-    models from the global ``MESSAGES`` setting in Django's settings
-    module. This should be a list of strings on the following format::
+    :param options: Options; keys may be provided in any case. All
+    options are set as attributes on the transport object.
 
-      [<app_label>.]<model_name>
-
-    The application label may be omitted if there's no ambiguity.
+    If an implementation needs to operate in a separate thread, this
+    should be set up in the class constructor.
     """
-
-    _parser_cache = {}
 
     def __init__(self, name, options={}):
         self.name = name
@@ -67,8 +60,31 @@ class Transport(object):
         for key, value in options.items():
             setattr(self, key.lower(), value)
 
+class Message(Transport):
+    """Message transport.
+
+    This is the base class for all message-based transports.
+
+    When the transport receives an incoming message it should call the
+    :meth:`incoming` method for processing.
+    """
+
+    _parser_cache = {}
+
     @property
     def parse(self):
+        """Message parser.
+
+        Attempts to parse an incoming text message using the list of
+        messages enabled through the ``MESSAGES`` setting in Django's
+        settings module. This should be a list of strings on the
+        following format::
+
+          [<app_label>.]<model_name>
+
+        The application label may be omitted if there's no ambiguity.
+        """
+
         paths = getattr(settings, "MESSAGES", ())
         return self._get_parser(paths)
 
@@ -99,14 +115,15 @@ class Transport(object):
         The method uses its message parser on ``text`` to receive a
         message model, a parser result dictionary and any remaining
         text. If the message parser throws a parse error, the message
-        class will be of type ``NotUnderstood``. The error message
-        will be set in the ``help`` attribute. If there's remaining
-        text, the loop is repeated, possibly resulting in several
-        incoming messages.
+        class will be of type
+        :class:`models.router.NotUnderstood`. The error message will
+        be set in the ``help`` attribute. If there's remaining text,
+        the loop is repeated, possibly resulting in several incoming
+        messages.
 
         Note that signals are provided to hook into the flow of
-        operations of this method:: ``pre_parse``, ``post_parse``,
-        ``pre_handle`` and ``post_handle``.
+        operations of this method:: :data:`pre_parse`, :data:`post_parse`,
+        :data:`pre_handle` and :data:`post_handle`.
         """
 
         time = time or datetime.now()
@@ -118,13 +135,13 @@ class Transport(object):
 
             try:
                 model, data, text = self.parse(message.text)
-            except ImproperlyConfigured, exc:
+            except ImproperlyConfigured, error:
                 warn("%s ERROR [%s] - %s.\n\n%s" % (
                     time.isoformat(),
-                    type(exc).__name__,
+                    type(error).__name__,
                     repr(message.text.encode('utf-8')),
-                    format_exc(exc)))
-                model, data, text = Broken, {}, ""
+                    format_exc(error)))
+                model, data, text = Failure, {}, ""
             except ParseError, error:
                 model, data, text = NotUnderstood, {'help': error.text}, ""
 
@@ -158,7 +175,7 @@ class Transport(object):
 
         return messages
 
-class GSM(Transport): # pragma: NOCOVER
+class GSM(Message): # pragma: NOCOVER
     """GSM transport.
 
     :param name: Transport name
@@ -281,7 +298,7 @@ class GSM(Transport): # pragma: NOCOVER
         self.modem.conn.flush()
         self.logger.info(self.modem.conn.readall().strip())
 
-class Kannel(Transport):
+class Kannel(Message):
     """Kannel transport.
 
     :param name: Transport name
