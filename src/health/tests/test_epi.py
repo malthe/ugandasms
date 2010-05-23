@@ -7,45 +7,44 @@ class ParserTest(UnitTestCase):
     @staticmethod
     def _epi(text):
         from ..models import Epi
-        from router.parser import Parser
-        parser = Parser((Epi,))
-        return parser(text)[:2]
+        from picoparse import run_parser
+        return run_parser(Epi.parse, text)[0]
 
     def test_empty(self):
-        model, data = self._epi("+epi")
+        data = self._epi("+epi")
         self.assertEqual(data['aggregates'], {})
 
     def test_missing_value(self):
-        from router.parser import ParseError
-        self.assertRaises(ParseError, self._epi, "+epi ma")
+        from picoparse import NoMatch
+        self.assertRaises(NoMatch, self._epi, "+epi ma")
 
     def test_duplicate(self):
-        from router.parser import ParseError
-        self.assertRaises(ParseError, self._epi, "+epi ma 5 ma 10")
+        from router.parser import FormatError
+        self.assertRaises(FormatError, self._epi, "+epi ma 5 ma 10")
 
     def test_value(self):
-        model, data = self._epi("+epi MA 5")
+        data = self._epi("+epi MA 5")
         self.assertEqual(data['aggregates'], {'MA': 5.0})
 
     def test_value_lowercase(self):
-        model, data = self._epi("+epi ma 5")
+        data = self._epi("+epi ma 5")
         self.assertEqual(data['aggregates'], {'MA': 5.0})
 
     def test_negative_value(self):
-        from router.parser import ParseError
-        self.assertRaises(ParseError, self._epi, "+epi MA -5")
+        from router.parser import FormatError
+        self.assertRaises(FormatError, self._epi, "+epi MA -5")
 
     def test_values(self):
-        model, data = self._epi("+epi MA 5 TB 10")
+        data = self._epi("+epi MA 5 TB 10")
         self.assertEqual(data['aggregates'], {'MA': 5.0, 'TB': 10.0})
 
     def test_bad_indicator(self):
-        from router.parser import ParseError
-        self.assertRaises(ParseError, self._epi, "+epi xx 5.0")
+        from router.parser import FormatError
+        self.assertRaises(FormatError, self._epi, "+epi xx 5.0")
 
     def test_bad_value(self):
-        from router.parser import ParseError
-        self.assertRaises(ParseError, self._epi, "+epi ma five")
+        from router.parser import FormatError
+        self.assertRaises(FormatError, self._epi, "+epi ma five")
 
 class HandlerTest(FunctionalTestCase): # pragma: NOCOVER
     INSTALLED_APPS = FunctionalTestCase.INSTALLED_APPS + (

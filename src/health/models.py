@@ -28,7 +28,7 @@ from router.parser import one_of_strings
 from router.parser import separator
 from router.parser import tags
 from router.parser import timedelta
-from router.parser import ParseError
+from router.parser import FormatError
 from router.models import Incoming
 from router.models import User
 
@@ -137,7 +137,7 @@ class Epi(Incoming):
                     code = "".join(one_of_strings(*(tuple(cls.TOKENS) + tuple(cls.ALIAS))))
                     code = code.upper()
                 except:
-                    raise ParseError(
+                    raise FormatError(
                         "Expected an epidemiological indicator "
                         "such as TB or MA.")
 
@@ -145,17 +145,17 @@ class Epi(Incoming):
                 code = cls.ALIAS.get(code, code)
 
                 if code in aggregates:
-                    raise ParseError("Duplicate value for %s." % code)
+                    raise FormatError("Duplicate value for %s." % code)
 
                 whitespace1()
                 try:
                     minus = optional(partial(one_of, '-'), '')
                     value = int("".join([minus]+digits()))
                 except:
-                    raise ParseError("Expected a value for %s." % code)
+                    raise FormatError("Expected a value for %s." % code)
 
                 if value < 0:
-                    raise ParseError("Got %d for %s. You must report a positive value." % (
+                    raise FormatError("Got %d for %s. You must report a positive value." % (
                         value, cls.TOKENS[code].lower()))
 
                 aggregates[code] = value
@@ -248,25 +248,25 @@ class Muac(Incoming):
                 else:
                     result['name'] = name()
             except:
-                raise ParseError("Expected a patient id or name.")
+                raise FormatError("Expected a patient id or name.")
 
         if 'name' in result:
             try:
                 separator()
                 result['sex'] = one_of('MmFf').upper()
             except:
-                raise ParseError("Expected either M or F to indicate the patient's gender.")
+                raise FormatError("Expected either M or F to indicate the patient's gender.")
 
             try:
                 separator()
             except:
-                raise ParseError("Expected age or birthdate of patient.")
+                raise FormatError("Expected age or birthdate of patient.")
 
             try:
                 result['age'] = choice(*map(tri, (date, timedelta)))
             except:
                 received, stop = many_until(any_token, comma)
-                raise ParseError("Expected age or birthdate of patient, but "
+                raise FormatError("Expected age or birthdate of patient, but "
                                  "received %s." % "".join(received))
         try:
             if prefix is None:
@@ -291,7 +291,7 @@ class Muac(Incoming):
                     reading = reading * 10
                 result['reading'] = reading
         except:
-            raise ParseError(
+            raise FormatError(
                 "Expected MUAC reading (either green, yellow or red), but "
                 "received %s." % "".join(remaining()))
 
@@ -301,6 +301,7 @@ class Muac(Incoming):
         return result
 
     @staticmethod
-    def handle(health_id=None, name=None, sex=None, age=None, reading=None, tags=()):
+    def handle(health_id=None, name=None, sex=None,
+               age=None, category=None, reading=None, tags=()):
         if isinstance(age, datetime.timedelta):
             age = datetime.now() - age

@@ -9,8 +9,11 @@ through the following loop:
 2) Invoke message handler
 3) If there's remaining text, go to (1)
 
-Meanwhile, the system makes sure that track is kept of incoming and
-outgoing messages.
+If no text matches in (1), then we're done. If parsing fails with a
+formatting error (see :class:`router.parser.FormatError`), the message
+handler is skipped and the error message instead used as reply.
+
+The scheme is supplemented by a set of signals_.
 
 .. _identification:
 
@@ -49,6 +52,8 @@ in a message handler::
       else:
           self.reply(u"Thank you!")
 
+.. _signals:
+
 Signals
 ~~~~~~~
 
@@ -65,26 +70,30 @@ The following signals provide hooks into the incoming message flow
    Changing the value of the ``text`` attribute in this step will
    directly control the parser input before next step.
 
-.. function:: router.transports.post_parse(sender=None, data=None, **kwargs)
+.. function:: router.transports.post_parse(sender=None, error=None, **kwargs)
 
-   Called *after* an incoming message is parsed. In this step the
-   message instance has been initialized with the class that was given
-   by the parser.
+   Called *after* an incoming message matched a parser. In this step
+   the message instance has been initialized with the class that was
+   given by the parser.
 
-   This signal sends an additional ``data`` argument which is the
-   return value of the parser function, or if no value was returned,
-   an empty dictionary.
+   In case a :class:`router.parser.FormatError` was raised during parsing, the
+   ``error`` argument will hold the exception instance. Access the
+   help text through its ``text`` attribute.
 
-   The ``data`` dictionary is passed into the message handler as
-   keyword arguments after the ``pre_handle`` step.
-
-.. function:: router.transports.pre_handle(sender=None, **kwargs)
+.. function:: router.transports.pre_handle(sender=None, result=None, **kwargs)
 
    Called immediately *before* a message is handled (but after it's
    been saved).
 
-.. function:: router.transports.post_handle(sender=None, **kwargs)
+   This signal sends an additional ``result`` argument which is the
+   return value of the parser function, or an empty dictionary if the
+   function had no return value.
 
-   Called immediately *after* a message was handled (even if an
-   exception was raised).
+   Note that any changes made to the result dictionary must conform to
+   the specific message handler signature.
 
+.. function:: router.transports.post_handle(sender=None, error=None, **kwargs)
+
+   Called immediately *after* a message was handled. If an exception
+   was raised, it will be passed as ``error`` (and re-raised
+   immediately after this signal).

@@ -167,30 +167,18 @@ Writing your own messages
 You will almost always want to either write your messages from scratch
 or customize one or more of the messages that come with the system.
 
-Message models all inherit from :class:`router.models.Incoming`. The following methods
-are required:
+Message models all inherit from :class:`router.models.Incoming`. The
+following methods are required:
 
-.. function:: parse()
+.. method:: parse()
 
-   This must be a :mod:`picoparse` parser function. Use statements
-   from this library to parse the incoming text.
+   Parses text input using :mod:`picoparse` functions. See
+   :data:`router.models.Incoming.parse`.
 
-   The return value should be either ``None``, or a dictionary with
-   keyword arguments for the message handler.
+.. method:: handle(**result)
 
-   The ``parse`` function is often a static- or class-method (if it
-   doesn't depend on class- or instance data, respectively).
-
-.. function:: handle(**kwargs)
-
-   This is the message handler. It will be passed any keyword
-   arguments returned from the parser.
-
-   Use ``self.reply(text)`` to send one or more replies to this message; you
-   may also create other database objects here, or update existing
-   ones.
-
-   The method should have no return value.
+   Message handler. This method will be passed the parser result. See
+   :data:`router.models.Incoming.handle`.
 
 For a reference on the :mod:`picoparse` library, see its `readme
 <http://github.com/brehaut/picoparse/blob/master/README.markdown>`_
@@ -200,7 +188,7 @@ document. Here's a basic example of a ``parse`` function::
   from picoparse.text import caseless_string
   from picoparse.text import whitespace1
 
-  from router.parser import ParseError
+  from router.parser import FormatError
 
   def parse_hello_message():
       caseless_string("+hello")
@@ -208,7 +196,7 @@ document. Here's a basic example of a ``parse`` function::
           whitespace1()
           name = "".join(remaining())
       except:
-          raise ParseError(u"Input error. Format: +HELLO <name>.")
+          raise FormatError(u"Input error. Format: +HELLO <name>.")
 
       return {
           'name': name
@@ -225,7 +213,7 @@ To guard against remaining text being subject to an additional loop, a
 parser may use the following pattern::
 
   if picoparse.peek():
-      raise ParseError(
+      raise FormatError(
           "Unexpected text: %s." %
           "".join(picoparse.remaining()))
 
@@ -306,12 +294,11 @@ message::
       @staticmethod
       def parse(text):
           from ..models.tests import Echo
-          from router.parser import Parser
-          parser = Parser((Echo,))
-          return parser(text)[1]
+          from picoparse import run_parser
+          return run_parser(Echo.parse, text)[0]
 
       def test_echo(self):
-          model, data = self.parse("+ECHO Hello world!")
+          data = self.parse("+ECHO Hello world!")
           self.assertEqual(data, {'echo': 'Hello world!'})
 
   class HandlerTest(FunctionalTestCase):

@@ -8,11 +8,14 @@ from traceback import format_exc
 from StringIO import StringIO
 
 class Gateway(object):
-    """Mobile gateway."""
+    """Message gateway.
+
+    Use this transport to test communication between two peers.
+    """
 
     def __new__(cls, *args):
-        from router.transports import Transport
-        cls = type("Gateway", (cls, Transport), {})
+        from router.transports import Message
+        cls = type("Gateway", (cls, Message), {})
         return object.__new__(cls)
 
     def __init__(self, name):
@@ -20,24 +23,30 @@ class Gateway(object):
         super(Gateway, self).__init__(name)
 
     def receive(self, sender, text):
-        self._subscribers[sender.uri] = sender
-        ident = sender.uri.split('://')[1]
-        self.incoming(ident, text)
+        self._subscribers[sender.ident] = sender
+        messages = self.incoming(sender.ident, text)
+        for message in messages:
+            for reply in message.replies.all():
+                self.send(reply)
 
     def send(self, message):
-        receiver = self._subscribers[message.uri]
+        receiver = self._subscribers[message.ident]
         receiver.receive(message.text)
 
         # note delivery time
         message.delivery = message.in_reply_to.time
         message.save()
 
-class Subscriber(object):
-    """Mobile subscriber."""
+class Peer(object):
+    """Network peer.
 
-    def __init__(self, gateway, uri=None):
+    Each peer is configured for a :class:`gateway` with a unique ``ident``
+    string.
+    """
+
+    def __init__(self, gateway, ident):
         self.gateway = gateway
-        self.uri = uri
+        self.ident = ident
         self._received = []
 
     def send(self, text):
@@ -48,6 +57,11 @@ class Subscriber(object):
         self.gateway.receive(self, text)
 
     def receive(self, text=None):
+        """Returns a received message by popping it off the incoming
+        stack. If no message was received, the empty string is
+        returned.
+        """
+
         if text is None:
             return self._received and self._received.pop(0) or u''
         text = "<<< " + text
@@ -102,7 +116,10 @@ class FunctionalTestCase(UnitTestCase):  # pragma: NOCOVER
         'router',
         )
 
-    BASE_SETTINGS = {}
+    BASE_SETTINGS = {
+        'DEBUG': True
+        }
+
     USER_SETTINGS = {}
 
     def setUp(self):
@@ -178,6 +195,9 @@ class FunctionalTestCase(UnitTestCase):  # pragma: NOCOVER
             conn = self._pg_connect()
             curs = conn.cursor()
             self._pg_drop_database(curs, self._pg_database_name)
+
+        import gc
+        gc.collect()
 
     @property
     def _pg_enabled(self):

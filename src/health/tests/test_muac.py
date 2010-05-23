@@ -7,9 +7,8 @@ class ParserTest(UnitTestCase):
     @staticmethod
     def _muac(text):
         from ..models import Muac
-        from router.parser import Parser
-        parser = Parser((Muac,))
-        return parser(text)[1]
+        from picoparse import run_parser
+        return run_parser(Muac.parse, text)[0]
 
     @property
     def _datetime(self):
@@ -22,8 +21,8 @@ class ParserTest(UnitTestCase):
         return timedelta
 
     def test_empty(self):
-        from router.parser import ParseError
-        self.assertRaises(ParseError, self._muac, "+muac")
+        from router.parser import FormatError
+        self.assertRaises(FormatError, self._muac, "+muac")
 
     def test_health_id(self):
         self.assertEqual(self._muac("+muac abc1, red"), {
@@ -37,9 +36,9 @@ class ParserTest(UnitTestCase):
             'category': u'R',
             })
 
-    def test_health_id_without_reading(self):
-        from router.parser import ParseError
-        self.assertRaises(ParseError, self._muac, "+muac abc1")
+    def test_patient_id_without_reading(self):
+        from router.parser import FormatError
+        self.assertRaises(FormatError, self._muac, "+muac abc1")
 
     def test_health_id_with_measurement(self):
         self.assertEqual(self._muac("+muac abc1, 140"), {
@@ -76,10 +75,10 @@ class ParserTest(UnitTestCase):
             })
 
     def test_name_sex_wrong_date(self):
-        from router.parser import ParseError
+        from router.parser import FormatError
         try:
             self._muac("+muac foo, m, 31/12/1999, red")
-        except ParseError, error:
+        except FormatError, error:
             self.assertTrue('31/12/1999' in error.text, error.text)
         else: # pragma: NOCOVER
             self.fail()
@@ -163,7 +162,7 @@ class HandlerTest(FunctionalTestCase): # pragma: NOCOVER
 
     def test_patient_record(self):
         self._register(name='ann')
-        self._muac(health_id='bob123', 'category': 'g')
+        self._muac(health_id='bob123', category='g')
 
         from health.models import Malnutrition
         self.assertTrue(Malnutrition.objects.count(), 1)
@@ -171,7 +170,7 @@ class HandlerTest(FunctionalTestCase): # pragma: NOCOVER
 
     def test_malnutrition_category_reading(self):
         self._register(name='ann')
-        self._muac(name='bob', 'category': 'g')
+        self._muac(name='bob', category='g')
 
         from health.models import Malnutrition
         self.assertTrue(Malnutrition.objects.count(), 1)

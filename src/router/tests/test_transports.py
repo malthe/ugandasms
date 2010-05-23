@@ -36,14 +36,15 @@ class TransportTest(FunctionalTestCase):
             self.assertEqual(sender.id, None)
         pre_parse.connect(before_parse)
 
-        def after_parse(sender=None, data=None, **kwargs):
+        def after_parse(sender=None, error=None, **kwargs):
             s2.append(sender)
-            self.assertTrue(isinstance(data, dict))
+            self.assertEqual(error, None)
             self.assertEqual(sender.id, None)
         post_parse.connect(after_parse)
 
-        def before_handle(sender=None, **kwargs):
+        def before_handle(sender=None, result=None, **kwargs):
             s3.append(sender)
+            self.assertTrue(isinstance(result, dict))
             self.assertEqual(sender.replies.count(), 0)
         pre_handle.connect(before_handle)
 
@@ -62,37 +63,41 @@ class TransportTest(FunctionalTestCase):
         self.assertTrue(len(s4), 1)
 
     def test_parse_error(self):
-        from router.transports import post_parse
-
-        def check_type(sender=None, data=None, **kwargs):
-            from router.models import NotUnderstood
-            self.assertTrue(isinstance(sender, NotUnderstood),
+        def check(sender=None, error=None, **kwargs):
+            from router.tests.models import Error
+            self.assertTrue(isinstance(sender, Error),
                             "Sender was of type: %s." % sender.__class__)
-            self.assertTrue(data.get('help'), 'error')
-        post_parse.connect(check_type)
+            self.assertNotEqual(error, None)
+            self.assertTrue(error.text, 'error')
+        from router.transports import post_parse
+        post_parse.connect(check)
 
         from router.tests.transports import Dummy
         transport = Dummy("dummy")
         transport.incoming("test", "+error")
 
     def test_message_error(self):
-        from router.transports import post_parse
-
-        def check_type(sender=None, data=None, **kwargs):
-            from router.models import Broken
-            self.assertTrue(isinstance(sender, Broken),
-                            "Sender was of type: %s." % sender.__class__)
-        post_parse.connect(check_type)
-
         from router.tests.transports import Dummy
         transport = Dummy("dummy")
-        transport.incoming("test", "+break")
+
+        from django.conf import settings
+        try:
+            settings.DEBUG = False
+            import warnings
+            with warnings.catch_warnings(record=True) as w:
+                warnings.simplefilter("always")
+                transport.incoming("test", "+break")
+
+            self.assertEqual(len(w), 1)
+            self.assertTrue('RuntimeError' in str(w[0]))
+        finally:
+            settings.DEBUG = True
 
     def test_multiple(self):
         from router.transports import post_parse
 
         parsed = []
-        def check(sender=None, data=None, **kwargs):
+        def check(sender=None, result=None, **kwargs):
             from router.tests.models import Hello
             self.assertTrue(isinstance(sender, Hello))
             parsed.append(sender)
@@ -104,25 +109,21 @@ class TransportTest(FunctionalTestCase):
         self.assertEqual(len(parsed), 2)
 
     def test_configuration_error(self):
-        from router.transports import post_parse
-
-        def check_type(sender=None, data=None, **kwargs):
-            from router.models import Broken
-            self.assertTrue(isinstance(sender, Broken),
-                            "Sender was of type: %s." % sender.__class__)
-        post_parse.connect(check_type)
-
         from router.tests.transports import Dummy
         transport = Dummy("dummy")
 
-        import warnings
-
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            transport.incoming("test", "+improper")
+        from django.conf import settings
+        try:
+            settings.DEBUG = False
+            import warnings
+            with warnings.catch_warnings(record=True) as w:
+                warnings.simplefilter("always")
+                transport.incoming("test", "+improper")
 
             self.assertEqual(len(w), 1)
             self.assertTrue('ImproperlyConfigured' in str(w[0]))
+        finally:
+            settings.DEBUG = True
 
 class KannelTest(FunctionalTestCase):
     INSTALLED_APPS = FunctionalTestCase.INSTALLED_APPS + (
@@ -132,6 +133,7 @@ class KannelTest(FunctionalTestCase):
     USER_SETTINGS = {
         'MESSAGES': (
             'Echo',
+            'Break',
             )
         }
 
@@ -184,7 +186,7 @@ class KannelTest(FunctionalTestCase):
         response = self.view(request)
         self.assertEqual(response.status_code, "406 Not Acceptable")
 
-    def test_internal_error(self):
+    def test_internal_error_production_mode(self):
         kannel = self._make_kannel()
         request = self._make_request.get("/", {
             'sender': '456',
@@ -192,6 +194,30 @@ class KannelTest(FunctionalTestCase):
             'timestamp': str(time.mktime(
                 datetime.datetime(1999, 12, 31).timetuple())),
             })
+
+        from django.conf import settings
+        try:
+            settings.DEBUG = False
+            import warnings
+            with warnings.catch_warnings(record=True) as w:
+                warnings.simplefilter("always")
+                response = self.view(request)
+
+            self.assertEqual(len(w), 1)
+            self.assertTrue('RuntimeError' in str(w[0]))
+        finally:
+            settings.DEBUG = True
+        self.assertEqual(response.status_code, "200 OK")
+
+    def test_internal_error_debug_mode(self):
+        kannel = self._make_kannel()
+        request = self._make_request.get("/", {
+            'sender': '456',
+            'text': '+break',
+            'timestamp': str(time.mktime(
+                datetime.datetime(1999, 12, 31).timetuple())),
+            })
+
         response = self.view(request)
         self.assertEqual(response.status_code, "500 Internal Server Error")
 
@@ -236,6 +262,7 @@ class KannelTest(FunctionalTestCase):
 
         kannel = self._make_kannel(fetch=fetch, dlr_url='http://localhost')
         response = self.view(request)
+
         self.assertNotEqual(query, {})
         args = urllib.urlencode(query)
         self.assertEqual(response.status_code, '200 OK')
@@ -256,3 +283,4 @@ class KannelTest(FunctionalTestCase):
         self.assertFalse(message is None)
         self.assertEqual(message.delivery, delivery)
         self.assertEqual(message.delivered, True)
+        self.assertEqual(message.sent, True)

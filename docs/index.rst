@@ -139,9 +139,9 @@ Contents
    apps.rst
    architecture.rst
    transports.rst
-   testing.rst
    wsgi.rst
    api.rst
+   faq.rst
    glossary.rst
 
 Indices and tables
