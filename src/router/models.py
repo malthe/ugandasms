@@ -1,16 +1,6 @@
-import re
-
 from django.db import models
 from django.core.exceptions import ObjectDoesNotExist
 from polymorphic import PolymorphicModel as Model
-from picoparse import any_token
-from picoparse import fail
-from picoparse import optional
-
-def camelcase_to_dash(str):
-    return re.sub(
-        '(((?<=[a-z])[A-Z])|([A-Z](?![A-Z]|$)))', '-\\1',
-        str).lower().strip('-')
 
 class User(Model):
     """An authenticated user.
@@ -63,18 +53,14 @@ class Message(Model):
     time = models.DateTimeField(null=True)
     peer = CustomForeignKey(Peer, column="uri", related_name="messages", null=True)
 
-    def get_user(self):
+    @property
+    def user(self):
         """Return :class:`User` object, or ``None`` if not available."""
 
         try:
             return self.peer.user
         except ObjectDoesNotExist:
             pass
-
-    def set_user(self, user):
-        self.peer.user = user
-
-    user = property(get_user, set_user)
 
     @property
     def transport(self):
@@ -137,6 +123,7 @@ class Outgoing(Message):
     """An outgoing message."""
 
     in_reply_to = models.ForeignKey(Incoming, related_name="replies", null=True)
+    delivery_id = models.IntegerField(null=True)
     delivery = models.DateTimeField(null=True)
 
     @property

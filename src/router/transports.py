@@ -1,3 +1,4 @@
+import re
 import sys
 import logging
 
@@ -12,6 +13,8 @@ from time import sleep
 from urllib import urlencode
 from urllib2 import Request
 from urllib2 import urlopen
+from time import sleep
+from time import time as get_time
 from traceback import format_exc
 from warnings import warn
 from weakref import ref as weakref
@@ -37,6 +40,10 @@ post_parse = Signal(providing_args=["result"])
 pre_handle = Signal()
 post_handle = Signal()
 kannel_event = Signal(providing_args=["request", "response"])
+hangup = Signal()
+
+def shrink(string): # pragma: NOCOVER
+    return string.replace('\r', '').replace('\n', '').strip()
 
 class Transport(object):
     """Transport.
@@ -45,8 +52,7 @@ class Transport(object):
 
     :param name: Name
 
-    :param options: Options; keys may be provided in any case. All
-    options are set as attributes on the transport object.
+    :param options: Options; keys may be provided in any case. All options are set as attributes on the transport object.
 
     If an implementation needs to operate in a separate thread, this
     should be set up in the class constructor.
@@ -212,7 +218,7 @@ class GSM(Message): # pragma: NOCOVER
 
     :param name: Transport name
 
-    :param options: ``DEVICE`` is the modem serial port (e.g. ``\"COM1\"``) or special device path (e.g. ``\"/dev/ttyUSB0\"``); ``LOG_LEVEL`` sets the logging level (default is ``\"WARN\"`` which is quiet unless there's an error).
+    :param options: ``DEVICE`` is the modem serial port (e.g. ``\"COM1\"``) or special device path (e.g. ``\"/dev/ttyUSB0\"``); ``LOG_LEVEL`` sets the logging level (default is ``\"WARN\"`` which is quiet unless there's an error); ``DCS`` is the data coding scheme (default is ``0`` for normal delivery, ``16`` sends flash messages); ``VALIDITY`` sets the message expiration (use ``167`` for one day); ``STORAGE`` sets the preferred message storage (use ``ME`` for internal, ``SM`` for SIM card or ``MT`` for either); set ``DELIVERY`` to a true value to request delivery reports (may incur an extra charge, use with caution).
 
     Example::
 
@@ -226,7 +232,14 @@ class GSM(Message): # pragma: NOCOVER
     """
 
     device = None
+    dcs = 0
+    delivery = None
+    validity = ""
     log_level = "WARN"
+    storage = ""
+    timeout = 3
+
+    _hangup = False
 
     def __init__(self, *args, **kwargs):
         super(GSM, self).__init__(*args, **kwargs)
@@ -248,36 +261,30 @@ class GSM(Message): # pragma: NOCOVER
             logger.error(error)
         else:
             self.logger.info("Connected to %s..." % self.device)
-
-            # query manufacturer for diagnostics
-            self.modem.conn.write("AT+GMI\r")
-            self.modem.conn.flush()
-            result = self.modem.conn.readall()
-            manufacturer = result.split('AT+GMI')[-1].split('OK')[0].strip()
-            logger.info("%s identified." % manufacturer.capitalize())
-
-            # query mode availability
-            self.modem.conn.write("AT+CMGF=?\r")
-            self.modem.conn.flush()
-            modeline = self.modem.conn.readall()
-            if '1' not in modeline:
-                logger.critical("Modem does not support text mode (%s)." % modeline.strip())
+            if not self.setup():
                 return
 
-            # set text mode
-            self.modem.conn.write("AT+CMGF=1\r")
-            self.modem.conn.flush()
-            result = self.modem.conn.readall()
-            if 'OK' not in result:
-                logger.critical("Unable to set message mode (%s)." % result.strip())
-                return
+            # listen to hangup-signal
+            hangup.connect(self.stop)
 
             # start thread
             thread = Thread(target=self.run)
             thread.start()
 
     def run(self):
-        while True:
+        while not self._hangup:
+            # wait for signal
+            strength = self.check_signal_strength()
+            if strength == -1:
+                self.logger.warn("No signal; waiting 10 seconds.")
+                for i in range(10):
+                    sleep(1)
+                    if self._hangup:
+                        break
+                continue
+            elif strength is not None:
+                self.logger.debug("Signal strength: %d." % strength)
+
             # incoming
             try:
                 self.modem.wait(1)
@@ -288,52 +295,181 @@ class GSM(Message): # pragma: NOCOVER
                 continue
 
             if len(messages) > 0:
-                self.logger.debug("Received %d messages." % len(messages))
+                self.logger.debug("Received %d message(s)." % len(messages))
 
             for message in messages:
                 ignored = ""
                 if len(message.number) < 6:
                     ignored = " [IGNORED]"
                 self.logger.debug("%s --> %s%s" % (
-                    message.number, repr(message.text.encode('utf-8')), ignored))
+                    message.number, repr(
+                        message.text.encode('utf-8')), ignored))
                 if not ignored:
                     self.incoming(message.number, message.text, message.date)
-
-            # delete all read (and stored sent) messages
-            self.modem.conn.write("AT+CMGD=0,2\r\n")
-            self.modem.conn.flush()
-            if 'OK' not in self.modem.conn.readall():
-                self.logger.critical("Error deleting messages.")
-                return
 
             # outgoing
             messages = Outgoing.objects.filter(
                 time=None, peer__uri__startswith="%s://" % self.name)
             if len(messages) > 0:
-                self.logger.debug("Sending %d messages..." % len(messages))
+                self.logger.debug("Sending %d message(s)..." % len(messages))
 
             for message in messages.all():
                 try:
                     self.logger.debug("%s <-- %s" % (
                         message.ident, repr(message.text.encode('utf-8'))))
-                    self.modem.send(message.ident, message.text)
+
+                    # prepare send
+                    self.modem.conn.write("AT+CMGS=\"%s\"\r" % message.ident)
+                    result = self.modem.conn.readall()
+
+                    if '>' not in result:
+                        self.logger.debug("Sending message failed "
+                                          "before text was sent "
+                                          "(%s)." % shrink(result))
+                        continue
+
+                    # send text
+                    self.modem.conn.write(message.text + "\x1A")
+                    self.modem.conn.flush()
+
+                    # wait for message id
+                    timeout = get_time() + self.timeout
+                    while 'ERROR' not in result and get_time() < timeout:
+                        result = self.modem.conn.readall()
+                        m = re.search(r'\+CMGS: (\d+)', result)
+                        if m is not None:
+                            message.delivery_id = int(m.group(1))
+                            break
+                    else:
+                        self.logger.debug("Did not receive message id.")
+                        raise sms.ModemError(shrink(result))
+
                 except sms.ModemError, error:
-                    self.logger.critical(error)
+                    self.logger.warn(error)
                     sleep(1)
                 else:
+                    self.logger.debug("Message sent with delivery id: %s." % \
+                                      message.delivery_id)
                     message.time = datetime.now()
                     message.save()
 
+            # delete all read (and stored sent) messages
+            self.modem.conn.write("AT+CMGD=0,2\r\n")
+            self.modem.conn.flush()
+            result = self.modem.conn.readall()
+            if 'OK' not in result:
+                self.logger.critical(
+                    "Error deleting messages (%s)." % shrink(result))
+                self.stop()
+
+        try:
+            del self.modem
+        except Exception, exc:
+            self.logger.warn("Error disconnecting (%s)." % exc)
+        else:
+            self.logger.info("Disconnected.")
+
+    def check_signal_strength(self):
+        """Returns an integer between 1 and 99, representing the
+        current signal strength of the GSM network, ``-1`` if we don't
+        know, or ``None`` if the modem can't report it.
+        """
+
+        data = self.query("AT+CSQ")
+        md = re.match(r"^\+CSQ: (\d+),", data)
+
+        if md is not None:
+            csq = int(md.group(1))
+            return csq if csq < 99 else -1
+
+    def ping(self):
+        result = self.query("AT")
+        if 'OK' not in result:
+            self.logger.warn("Modem does not respond (%s)." % shrink(result))
+            return False
+        return True
+
+    def query(self, command):
+        self.modem.conn.write("%s\r" % command)
+        self.modem.conn.flush()
+        return self.modem.conn.readall()
+
+    def setup(self):
+        while not self.ping():
+            sleep(1)
+            if self._hangup:
+                return
+
+        # query manufacturer for diagnostics
+        result = self.query("AT+GMI")
+        manufacturer = shrink(result.split('AT+GMI')[-1].split('OK')[0])
+        self.logger.info("%s identified." % manufacturer.capitalize())
+
+        # set preferred message storage
+        if self.storage:
+            result = self.query("AT+CPMS=\"%s\"" % self.storage)
+            if 'OK' not in result:
+                self.logger.warn("Could not set preferred "
+                                 "storage to %s." % self.storage)
+
+        # query mode availability
+        result = self.query("AT+CMGF=?")
+        if '1' not in result:
+            self.logger.critical("Modem does not support text mode (%s)." % \
+                                 shrink(result))
+            return
+
+        # set text mode
+        result = self.query("AT+CMGF=1")
+        if 'OK' not in result:
+            self.logger.critical("Unable to set message mode (%s)." % \
+                                 shrink(result))
+            return
+
+        # verify that we can send messages
+        result = self.query("AT+CMGS=?")
+        if 'OK' not in result:
+            self.logger.critical("Modem reported inability to send "
+                                 "messages (%s)." % shrink(result))
+            return
+
+        options = 1
+        if self.validity:
+            options |= 16
+        if self.delivery:
+            options |= 32
+
+        result = self.query("AT+CSMP=%d,%s,0,%s" % (
+            options, self.validity, self.dcs))
+        if 'OK' not in result:
+            self.logger.warn("Unable to configure message delivery (%s)." % \
+                             shrink(result))
+        else:
+            m = re.match('AT\+CSMP=((\d*(?:,))+)', result)
+            if m is not None:
+                self.logger.debug("Message delivery options: %s." % m.group(1))
+
+        return True
+
+    def stop(self, *args, **kwargs):
+        """Stop transport."""
+
+        self._hangup = True
+
     def ussd(self, request):
+        """Place USSD request."""
+
         self.logger.info("Requesting %s..." % request)
         self.modem.conn.write("AT+CUSD=1,\"%s\",15\r" % request)
         self.modem.conn.flush()
-        self.logger.info(self.modem.conn.readall().strip())
+        result = self.modem.conn.readall()
+        self.logger.info(shrink(result))
 
 class Kannel(Message):
     """Kannel transport.
 
     :param name: Transport name
+
     :param options: Dictionary; define ``'SMS_URL'`` for the URL for the *sendsms* service and ``'DLR_URL'`` to set the delivery confirmation reply
 
     Example configuration::
@@ -341,7 +477,8 @@ class Kannel(Message):
       TRANSPORTS = {
           'kannel': {
               'TRANSPORT': 'router.transports.Kannel',
-              'SMS_URL': 'http://localhost:13013/cgi-bin/sendsms?username=kannel&password=kannel',
+              'SMS_URL': 'http://localhost:13013/cgi-bin/sendsms?' \
+                         'username=kannel&password=kannel',
               'DLR_URL': 'http://localhost:8080/kannel',
           }
       }
@@ -449,7 +586,8 @@ class Kannel(Message):
     def send(self, message):
         url = self.sms_url
         if url is None: # PRAGMA: nocover
-            raise ValueError("Must set ``SMS_URL`` parameter for transport: %s." % self.name)
+            raise ValueError("Must set ``SMS_URL`` parameter for "
+                             "transport: %s." % self.name)
 
         if '?' not in url:
             url += "?"
