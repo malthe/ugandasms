@@ -36,9 +36,9 @@ from .models import Outgoing
 from .models import Peer
 
 pre_parse = Signal()
-post_parse = Signal(providing_args=["result"])
-pre_handle = Signal()
-post_handle = Signal()
+post_parse = Signal(providing_args=["error"])
+pre_handle = Signal(providing_args=["result"])
+post_handle = Signal(providing_args=["error"])
 kannel_event = Signal(providing_args=["request", "response"])
 hangup = Signal()
 
