@@ -105,11 +105,11 @@ Transports
 
 .. automodule:: router.transports
 
-  .. autoclass:: Transport
-     :members:   name
+   .. autoclass:: Transport(name[, options])
+      :members:
 
-  .. autoclass:: router.transports.Message
-     :members:   incoming, models
+   .. autoclass:: router.transports.Message
+      :members:   incoming, models
 
 GSM
 ---

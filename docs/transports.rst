@@ -12,9 +12,9 @@ GSM
 Using a locally attached GSM modem (or connected via bluetooth) is an
 easy way to get started.
 
-.. autoclass:: router.transports.GSM
+.. class:: GSM(name[, options])
 
-Make sure there is enough air-time available on the SIM.
+See :class:`router.transports.GSM` for detailed information.
 
 Kannel
 ------
@@ -24,7 +24,9 @@ Linux distributions including Debian and Ubuntu. It's an SMS gateway
 software that supports a wide range of scenarios and hardware
 configurations.
 
-.. autoclass:: router.transports.Kannel
+.. class:: Kannel(name[, options])
+
+See :class:`router.transports.Kannel` for detailed information.
 
 Configuration
 ~~~~~~~~~~~~~
@@ -84,11 +86,8 @@ Integration
 ~~~~~~~~~~~
 
 The Kannel transport needs exposure as a regular Django view for
-incoming messages.
-
-.. autofunction:: router.views.kannel
-
-Add an entry into your URL mapping table::
+incoming messages. Use the :func:`kannel` view callable by adding an
+entry into your URL mapping table::
 
   from router.views import kannel
 
@@ -110,7 +109,7 @@ Transports should inherit from the ``Transport`` base class. When an
 incoming message is received, call its ``incoming`` method. It takes
 two mandatory arguments and otionally, the time of arrival:
 
-.. automethod:: router.transports.Transport.incoming
+.. method:: incoming(ident, text[, time])
 
 An example of a transport which starts a thread and sends a message
 every second (to keep the example simple, we silently drop outgoing
