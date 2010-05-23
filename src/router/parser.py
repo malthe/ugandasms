@@ -191,22 +191,6 @@ def floating():
     number += optional(digits, [])
     return number
 
-def next_parameter(parser=partial(many1, not_comma)):
-    """Read the next parameter on a comma-separated input.
-
-    >>> parse(next_parameter, ', abc')
-    'abc'
-    >>> parse(next_parameter, ' , abc')
-    'abc'
-    >>> parse(partial(next_parameter, digits), ', 123')
-    '123'
-    """
-
-    whitespace()
-    comma()
-    whitespace()
-    return parser()
-
 def name():
     """Parses one or more names separated by whitespace, and
     concatenates with a single space.
@@ -257,89 +241,10 @@ def tags():
 
     return map(partial("".join), sep(tag, partial(many1, partial(one_of, ' ,'))))
 
-class ParseError(NoMatch):
-    """Shoud be used inside parser functions to handle (human) errors
-    gracefully; the provided ``text`` argument is used as the reply
-    string.
-
-    >>> error = ParseError('An error occurred.')
-    >>> print error.text
-    An error occurred.
+class FormatError(Exception):
+    """Raised inside a parser to indicate a formatting error. The
+    provided ``text`` will be used as the message reply.
     """
 
     def __init__(self, text):
-        NoMatch.__init__(self, text)
         self.text = text
-
-class Parser(object):
-    """Returns ``(model, data, remaining)`` for a message body.
-
-    The ``model`` is a message model that inherits from ``Incoming``
-    and ``data`` contain keyword arguments for the message handler.
-
-    Models are required to implement parser functions from the
-    :mod:`picoparse` library.
-
-    >>> import picoparse
-    >>> import picoparse.text
-
-    Here's an example of a greeting model:
-
-    >>> class Greeting(object):
-    ...     @staticmethod
-    ...     def parse():
-    ...         one_of('+')
-    ...         picoparse.text.caseless_string('hello')
-    ...         picoparse.text.whitespace1()
-    ...         remaining = picoparse.remaining()
-    ...         return {
-    ...             'name': ''.join(remaining)
-    ...         }
-    ...
-    ...     def handle(self, name=None):
-    ...         return u'Hello, %s!' % name
-
-    You won't usually need to use the ``Parser`` class manually; the
-    *transport* abstraction exposes this component on a higher
-    level. However, the following snippet outlines its operation:
-
-    >>> parser = Parser((Greeting,))                    # set up parser
-    >>> model, data, remaining = parser('+hello world') # parse text
-    >>> message = model()                               # create message
-    >>> message.handle(**data)                          # handle message
-    u'Hello, world!'
-
-    Participating models must provide a static method ``parse`` which
-    should be a ``picoparse`` parse function. The result of this
-    function is used as the ``data`` dictionary (although if the
-    function returns ``None``, an empty dictionary is used).
-
-    Raises ``ParseError`` if no parser matched the input text.
-    """
-
-    def __init__(self, models):
-        self.models = filter(lambda m: hasattr(m, 'parse'), models)
-
-    def __call__(self, text):
-        text = text.strip()
-        text = unicode(text)
-        source = tuple(text) or ("", )
-
-        for model in self.models:
-            parser = model.parse
-
-            try:
-                kwargs, remaining = run_parser(parser, source)
-            except ParseError:
-                raise
-            except NoMatch:
-                continue
-            except Exception, exc: # pragma: NOCOVER
-                # backwards compatible with older version of picoparse
-                if 'Commit / cut called' in str(exc):
-                    raise ParseError(text)
-                raise
-
-            return model, kwargs or {}, "".join(remaining)
-
-        raise ParseError(text)

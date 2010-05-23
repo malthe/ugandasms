@@ -1,8 +1,8 @@
-from router.transports import Transport
+from router.transports import Message
 
-class Dummy(Transport):
+class Dummy(Message):
     name = None
 
     def __init__(self, name="dummy"):
         type(self).name = name
-        Transport.__init__(self, name)
+        Message.__init__(self, name)

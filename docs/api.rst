@@ -5,18 +5,65 @@ This is a reference on public classes and functions in the system.
 
 This section details the API of the base system.
 
+Models
+~~~~~~
+
+.. automodule:: router.models
+
+  .. autoclass:: Message
+     :members:   user, transport, ident
+
+     .. attribute:: text
+
+        The message body string.
+
+     .. attribute:: time
+
+        The time a message was received.
+
+  .. autoclass:: Incoming
+     :members:   handle, parse, reply
+
+     .. attribute:: erroneous
+
+        Indicates whether this message was marked as erroneous during
+        parsing.
+
+     .. attribute:: replies
+
+        Relation to the replies given for this message.
+
+  .. autoclass:: Outgoing
+     :members:   delivered, sent
+
+     .. attribute:: delivery
+
+        The date when this message was delivered. This field is
+        ``None`` unless a delivery confirmation receipt was provided
+        to the transport.
+
+     .. attribute:: in_reply_to
+
+        The message to which this is a reply, or ``None`` if this is
+        an unsolicited message.
+
+  .. autoclass:: Peer
+
+  .. autoclass:: User
+
+     .. attribute:: peers
+
+        Set of peers which authenticate this user object.
+
 Parser
 ~~~~~~
 
-The parser module provides the ``Parser`` class which wraps a list of
-models and provides a function that matches a text against them:
-
-.. autoclass:: router.parser.Parser
+.. autoclass:: router.parser.FormatError
 
 Helper functions
 ----------------
 
-The :mod:`router.parser:` module also contains a number of utility
+The :mod:`router.parser` module also contains a number of utility
 parser functions that you are encouraged to make use of:
 
 .. automodule:: router.parser
@@ -41,11 +88,9 @@ parser functions that you are encouraged to make use of:
 
    .. autofunction:: floating
 
-   .. autofunction:: identifier
+   .. autofunction:: identifier([first, consecutive, must_contain])
 
    .. autofunction:: name
-
-   .. autofunction:: next_parameter
 
    .. autofunction:: one_of_strings
 
@@ -55,46 +100,16 @@ parser functions that you are encouraged to make use of:
 
    .. autofunction:: timedelta
 
-Exceptions
-----------
-
-.. autoclass:: router.parser.ParseError
-
-Models
-~~~~~~
-
-.. automodule:: router.models
-
-  .. autoclass:: Message
-     :members:   user, transport, ident
-
-     .. attribute:: text
-
-        The message body string.
-
-     .. attribute:: time
-
-        The time a message was received.
-
-  .. autoclass:: Incoming
-     :members:   handle, reply
-
-  .. autoclass:: Outgoing
-     :members:   delivered
-
-  .. autoclass:: User
-
-     .. attribute:: peers
-
-        Set of peers which authenticate this user object.
-
 Transports
 ~~~~~~~~~~
 
 .. automodule:: router.transports
 
-  .. autoclass:: Transport
-     :members:   incoming, send
+   .. autoclass:: Transport(name[, options])
+      :members:
+
+   .. autoclass:: router.transports.Message
+      :members:   incoming, models
 
 GSM
 ---
@@ -160,6 +175,31 @@ Functional tests
 
 The functional test case does not require or load your ``settings.py``
 file. There is currently no support for integration testing.
+
+Configure it this way::
+
+  gateway = Gateway("gateway")
+  bob = Peer(gateway, u"bob")
+
+Bob can now send and receive messages::
+
+  >>> bob.send("+ECHO Hello world+")
+  >>> bob.receive()
+  'Hello world'
+
+Gateway
+-------
+
+To test communication between multiple peers and the system, the
+following framework is available.
+
+.. autoclass:: router.testing.Gateway
+
+.. autoclass:: router.testing.Peer
+
+   .. automethod:: router.testing.Peer.send(text)
+
+   .. automethod:: router.testing.Peer.receive()
 
 Coverage
 --------

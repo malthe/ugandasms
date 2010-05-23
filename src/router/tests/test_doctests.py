@@ -81,19 +81,10 @@ class DocumentationTest(FunctionalTestCase): # pragma: NOCOVER
         # tear down the test afterwards
         try:
             from router.testing import Gateway
-            from router.testing import Subscriber
+            from router.testing import Peer
             transport = Gateway("gateway")
-            self.globs['bob'] = Subscriber(transport, u"gateway://256000000000")
+            self.globs['bob'] = Peer(transport, u"256000000000")
         except:
             self.tearDown()
+            del self.globs
             raise
-
-
-    USER_SETTINGS = {
-        'TRANSPORTS': {
-            'gateway': {
-                'TRANSPORT': 'router.testing.Gateway',
-                },
-            },
-        }
-

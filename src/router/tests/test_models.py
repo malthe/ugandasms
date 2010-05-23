@@ -14,3 +14,13 @@ class MessageTest(FunctionalTestCase):
         from router.models import Message
         message = Message(uri="test://test")
         self.assertEqual(message.user, None)
+
+    def test_ident(self):
+        from router.models import Message
+        message = Message(uri="foo://bar")
+        self.assertEqual(message.ident, "bar")
+
+    def test_transport(self):
+        from router.models import Message
+        message = Message(uri="foo://bar")
+        self.assertEqual(message.transport, "foo")
