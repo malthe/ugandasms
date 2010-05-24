@@ -22,6 +22,9 @@ from picoparse.text import caseless_string
 from picoparse.text import lexeme
 from picoparse.text import whitespace
 
+from picoparse import run_parser
+from picoparse import NoMatch
+
 comma = partial(one_of, ',')
 dot = partial(one_of, '.')
 hash = partial(one_of, '#')
@@ -61,6 +64,31 @@ def _parse_date_format(date_format):
         return datetime.datetime.strptime(date_string, date_format)
     except:
         fail()
+
+def wrap(parser):
+    """Decorates a parser function."""
+
+    def parse(*args):
+        args = list(args)
+        text = args.pop()
+        text = tuple(text) or ("", )
+        try:
+            result, remaining = run_parser(partial(parser, *args), text)
+        except NoMatch:
+            return None, ""
+        except Exception, exc: # pragma: NOCOVER
+            # backwards compatible with older version of
+            # picoparse; this is equivalent to not
+            # matching
+            if 'Commit / cut called' in str(exc):
+                return None, ""
+            raise
+
+        result = result or {}
+        return result, "".join(remaining)
+
+    parse.__doc__ = parser.__doc__
+    return classmethod(parse)
 
 def parse(parser, text):
     return "".join(run_parser(parser, tuple(text))[0])
@@ -241,10 +269,3 @@ def tags():
 
     return map(partial("".join), sep(tag, partial(many1, partial(one_of, ' ,'))))
 
-class FormatError(Exception):
-    """Raised inside a parser to indicate a formatting error. The
-    provided ``text`` will be used as the message reply.
-    """
-
-    def __init__(self, text):
-        self.text = text

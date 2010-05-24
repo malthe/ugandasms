@@ -51,16 +51,8 @@ class Message(Model):
     uri = None
     text = models.CharField(max_length=160*3)
     time = models.DateTimeField(null=True)
-    peer = CustomForeignKey(Peer, column="uri", related_name="messages", null=True)
-
-    @property
-    def user(self):
-        """Return :class:`User` object, or ``None`` if not available."""
-
-        try:
-            return self.peer.user
-        except ObjectDoesNotExist:
-            pass
+    peer = CustomForeignKey(
+        Peer, column="uri", related_name="messages", null=True)
 
     @property
     def transport(self):
@@ -80,17 +72,29 @@ class Message(Model):
 class Incoming(Message):
     """An incoming message."""
 
-    replies = ()
+    forms = ()
+
+class Form(Model):
+    """Text form appearing in a message."""
+
+    text = models.CharField(max_length=160)
+    message = models.ForeignKey(Incoming, related_name="forms")
     erroneous = models.NullBooleanField(null=True)
+
+    @property
+    def user(self):
+        """Return :class:`User` object, or ``None`` if not available."""
+
+        return self.message.peer.user
 
     def handle(self, **result):
         """Handle incoming message.
 
         The keyword arguments in ``result`` are provided by the parser.
 
-        Use :meth:`self.reply` to send one or more replies to this message;
-        you may also create other database objects here, or update
-        existing ones.
+        Use :meth:`self.reply` to send one or more replies to this
+        form; you may also create other database objects here, or
+        update existing ones.
 
         .. note:: Must be implemented by subclass.
         """
@@ -98,31 +102,22 @@ class Incoming(Message):
         raise NotImplementedError(
             "Message must implement the ``handle`` function.") # PRAGMA: nocover
 
-    @staticmethod
-    def parse():
-        """Return either a dictionary or ``None``.
-
-        This method takes no arguments; input is acquired through the
-        use of :mod:`picoparse` parser functions.
-
-        .. note:: Must be implemented by subclass.
-        """
-
     def reply(self, text):
-        """Reply to this message.
+        """Reply to this form.
 
         This method puts an outgoing message into the delivery queue,
         but does not guarantee immediate delivery.
         """
 
         assert self.id is not None
-        message = Outgoing(text=text, uri=self.uri, in_reply_to=self)
+        assert self.message.id is not None
+        message = Outgoing(text=text, uri=self.message.uri, in_reply_to=self)
         message.save()
 
 class Outgoing(Message):
     """An outgoing message."""
 
-    in_reply_to = models.ForeignKey(Incoming, related_name="replies", null=True)
+    in_reply_to = models.ForeignKey(Form, related_name="replies", null=True)
     delivery_id = models.IntegerField(null=True)
     delivery = models.DateTimeField(null=True)
 

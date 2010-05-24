@@ -10,8 +10,8 @@ DATABASES = {
 }
 
 MESSAGES = (
-    'Echo',
-    'Empty',
+    (r'\+\s*echo(\s+|$)', 'Echo'),
+    (r'^$', 'Empty'),
     )
 
 TRANSPORTS = {

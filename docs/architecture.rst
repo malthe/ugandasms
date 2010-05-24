@@ -1,19 +1,31 @@
 Architecture
 ============
 
-The routing system consists of *messages* and *transports*. Messages
-enter and exit the system through one or more transports after going
-through the following loop:
+The system is designed around the concept of transports which are
+bridges that bring in requests from remote peers and dispatch
+responses.
 
-1) Parse message text into message model and handler arguments
-2) Invoke message handler
-3) If there's remaining text, go to (1)
+These requests may be text messages, form submissions, USSD sessions
+or other types of request/response schemes.
 
-If no text matches in (1), then we're done. If parsing fails with a
-formatting error (see :class:`router.parser.FormatError`), the message
-handler is skipped and the error message instead used as reply.
+Currently only text messages are catered for.
 
-The scheme is supplemented by a set of signals_.
+Messages
+--------
+
+The message transport deals with incoming and outgoing text
+messages. Communication may happen through a GSM modem or other
+gateway.
+
+Incoming messages are sent to a router which is configurable through
+the ``MESSAGE_ROUTER`` setting. The router is responsible for breaking
+messages up into one or more forms, parsing and handling each one in
+turn.
+
+The exact operation of the router is specific to each implementation:
+
+.. autoclass:: router.router.Sequential
+   :noindex:
 
 .. _identification:
 
@@ -57,43 +69,38 @@ in a message handler::
 Signals
 ~~~~~~~
 
-The following signals provide hooks into the incoming message flow
-(the ``sender`` of each of the signals is a message instance):
+The following signals provide hooks into the mesage routing flow:
 
 .. function:: router.transports.pre_parse(sender=None, **kwargs)
 
    Called *before* an incoming message is parsed.
 
-   The ``sender`` of this signal is always of the generic incoming
-   message type ``Incoming``.
+   The ``sender`` of this signal is an :class:`router.models.Incoming`
+   instance.
 
    Changing the value of the ``text`` attribute in this step will
    directly control the parser input before next step.
 
 .. function:: router.transports.post_parse(sender=None, error=None, **kwargs)
 
-   Called *after* an incoming message matched a parser. In this step
-   the message instance has been initialized with the class that was
-   given by the parser.
-
-   In case a :class:`router.parser.FormatError` was raised during parsing, the
-   ``error`` argument will hold the exception instance. Access the
-   help text through its ``text`` attribute.
+   Called for each form an incoming text message is parsed into. In
+   case the parser raised a :class:`router.parser.FormatError`
+   exception, the ``error`` argument will hold the exception object.
 
 .. function:: router.transports.pre_handle(sender=None, result=None, **kwargs)
 
-   Called immediately *before* a message is handled (but after it's
-   been saved).
+   Called immediately *before* a form is handled (but after it's been
+   saved).
 
    This signal sends an additional ``result`` argument which is the
    return value of the parser function, or an empty dictionary if the
    function had no return value.
 
    Note that any changes made to the result dictionary must conform to
-   the specific message handler signature.
+   the specific form handler signature.
 
 .. function:: router.transports.post_handle(sender=None, error=None, **kwargs)
 
-   Called immediately *after* a message was handled. If an exception
-   was raised, it will be passed as ``error`` (and re-raised
-   immediately after this signal).
+   Called immediately *after* a form was handled. If an exception was
+   raised, it will be passed as ``error`` (and re-raised immediately
+   after this signal).

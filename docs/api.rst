@@ -10,8 +10,29 @@ Models
 
 .. automodule:: router.models
 
+  .. autoclass:: Form
+     :members:   user, handle, reply
+
+     .. attribute:: text
+
+        The form input string.
+
+     .. attribute:: message
+
+        The message object that the form originated from.
+
+     .. attribute:: erroneous
+
+        Indicates whether the form was marked as erroneous during
+        parsing (if a :class:`router.router.FormatError` exception was
+        raised).
+
+     .. attribute:: replies
+
+        Replies given for this form.
+
   .. autoclass:: Message
-     :members:   user, transport, ident
+     :members:   transport, ident
 
      .. attribute:: text
 
@@ -22,16 +43,10 @@ Models
         The time a message was received.
 
   .. autoclass:: Incoming
-     :members:   handle, parse, reply
 
-     .. attribute:: erroneous
+     .. attribute:: forms
 
-        Indicates whether this message was marked as erroneous during
-        parsing.
-
-     .. attribute:: replies
-
-        Relation to the replies given for this message.
+        The forms that resulted from this message.
 
   .. autoclass:: Outgoing
      :members:   delivered, sent
@@ -49,24 +64,33 @@ Models
 
   .. autoclass:: Peer
 
+     .. attribute:: user
+
+        Relation to a user object, if applicable. Messages always have
+        a peer object, but only messages sent from registered users
+        have a user object.
+
   .. autoclass:: User
 
      .. attribute:: peers
 
         Set of peers which authenticate this user object.
 
-Parser
+Router
 ~~~~~~
 
-.. autoclass:: router.parser.FormatError
+.. autoclass:: router.router.FormatError
 
-Helper functions
-----------------
+.. autoclass:: router.router.Sequential
+   :members:   forms, route
 
-The :mod:`router.parser` module also contains a number of utility
-parser functions that you are encouraged to make use of:
+Pico
+~~~~
 
-.. automodule:: router.parser
+The :mod:`router.pico` module also contains a number of utility parser
+functions that you are encouraged to make use of:
+
+.. automodule:: router.pico
 
    .. function:: comma()
 
@@ -109,7 +133,7 @@ Transports
       :members:
 
    .. autoclass:: router.transports.Message
-      :members:   incoming, models
+      :members:   incoming, router
 
 GSM
 ---
@@ -176,16 +200,10 @@ Functional tests
 The functional test case does not require or load your ``settings.py``
 file. There is currently no support for integration testing.
 
-Configure it this way::
+Form tests
+----------
 
-  gateway = Gateway("gateway")
-  bob = Peer(gateway, u"bob")
-
-Bob can now send and receive messages::
-
-  >>> bob.send("+ECHO Hello world+")
-  >>> bob.receive()
-  'Hello world'
+.. autoclass:: router.testing.FormTestCase()
 
 Gateway
 -------
@@ -200,6 +218,17 @@ following framework is available.
    .. automethod:: router.testing.Peer.send(text)
 
    .. automethod:: router.testing.Peer.receive()
+
+Configure it this way::
+
+  gateway = Gateway("gateway")
+  bob = Peer(gateway, u"bob")
+
+Bob can now send and receive messages::
+
+  >>> bob.send("+ECHO Hello world+")
+  >>> bob.receive()
+  'Hello world'
 
 Coverage
 --------

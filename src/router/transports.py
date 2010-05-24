@@ -13,32 +13,22 @@ from time import sleep
 from urllib import urlencode
 from urllib2 import Request
 from urllib2 import urlopen
-from time import sleep
 from time import time as get_time
 from traceback import format_exc
 from warnings import warn
 from weakref import ref as weakref
 
-from django.db.models import get_model
-from django.db.models import get_models
+from django.utils.importlib import import_module
 from django.db.models import signals
-from django.utils.functional import memoize
 from django.dispatch import Signal
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
+from django.utils.functional import memoize
 
-from picoparse import run_parser
-from picoparse import NoMatch
-
-from .parser import FormatError
 from .models import Incoming
 from .models import Outgoing
 from .models import Peer
 
-pre_parse = Signal()
-post_parse = Signal(providing_args=["error"])
-pre_handle = Signal(providing_args=["result"])
-post_handle = Signal(providing_args=["error"])
 kannel_event = Signal(providing_args=["request", "response"])
 hangup = Signal()
 
@@ -73,56 +63,34 @@ class Message(Transport):
     :meth:`incoming` method for processing.
     """
 
-    _models_cache = {}
+    _cache = {}
 
     @property
-    def models(self):
-        """Reads list of message models enabled through the
-        ``MESSAGES`` setting in Django's settings module. This should
-        be a list of strings on the following format::
+    def router(self):
+        """Resolve router defined in the ``MESSAGE_ROUTER`` setting."""
 
-          [<app_label>.]<model_name>
+        try:
+            path = getattr(settings, "MESSAGE_ROUTER")
+        except AttributeError: # pragma: NOCOVER
+            raise ImproperlyConfigured(
+                "Missing setting ``MESSAGE_ROUTER``.")
+        return self._get_router(path)
 
-        The application label may be omitted if there's no ambiguity.
-        """
+    def _get_router(path):
+        try:
+            module_name, class_name = path.rsplit('.', 1)
+            module = import_module(module_name)
+            factory = getattr(module, class_name)
+        except: # pragma: NOCOVER
+            raise ImproperlyConfigured(
+                "Unable to resolve '%s'." % path)
 
-        paths = getattr(settings, "MESSAGES", ())
-        return self._get_models(paths)
+        return factory()
 
-    def _get_models(paths):
-        result = []
-        models = get_models()
-        for path in paths:
-            if path.count('.') == 0:
-                for model in models:
-                    if model.__name__ == path:
-                        break
-                else: # PRAGMA: nocover
-                    raise ImproperlyConfigured("Model not found: %s." % path)
-            elif path.count('.') == 1:
-                model = get_model(*path.split('.'))
-            else: # PRAGMA: nocover
-                raise ImproperlyConfigured("Specify messages as [<app_label>.]<model_name>.")
-            if model is None: # PRAGMA: nocover
-                raise ImproperlyConfigured("Can't find model: %s." % path)
-            result.append(model)
-        return result
-
-    _get_models = staticmethod(memoize(_get_models, _models_cache, 1))
+    _get_router = staticmethod(memoize(_get_router, _cache, 1))
 
     def incoming(self, ident, text, time=None):
-        """Return list of messages that result from this request.
-
-        This method is invoked by message transports when they receive
-        an incoming message. Since individual parsers may choose to
-        parse only a fragment of the provided text, multiple messages
-        may result.
-
-        Signals are provided to monitor the flow of operations of this
-        method: :data:`pre_parse`, :data:`post_parse`,
-        :data:`pre_handle` and :data:`post_handle`. Note that not all
-        signals may be fired; the exact conditions are described in
-        the documentation of each signal.
+        """Route incoming text message.
 
         When the system runs in debug mode (with the ``DEBUG`` setting
         set to a true value), all exceptions are let through to the
@@ -130,76 +98,19 @@ class Message(Transport):
         traceback while the exception is suppressed.
         """
 
-        remaining = unicode(text)
         time = time or datetime.now()
-        messages = []
+        message = Incoming(text=text, time=time)
+
+        # make sure we have a peer record for this sender
+        message.uri = "%s://%s" % (self.name, ident)
+        peer, created = Peer.objects.get_or_create(uri=message.uri)
+        if created: peer.save()
+
+        # save message
+        message.save()
 
         try:
-            while True:
-                text = remaining.strip()
-                message = Incoming(text=text, time=time)
-                pre_parse.send(sender=message)
-                text = tuple(message.text) or ("", )
-
-                error = None
-                result = None
-                remaining = ""
-
-                for model in self.models:
-                    try:
-                        result, remaining = run_parser(model.parse, text)
-                    except NoMatch:
-                        continue
-                    except FormatError, error:
-                        pass
-                    except Exception, exc: # pragma: NOCOVER
-                        # backwards compatible with older version of
-                        # picoparse; this is equivalent to not
-                        # matching
-                        if 'Commit / cut called' in str(exc):
-                            continue
-                        raise
-                    else:
-                        result = result or {}
-                        remaining = "".join(remaining)
-
-                    message.__class__ = model
-                    message.__init__(text=message.text, time=time)
-                    post_parse.send(sender=message, error=error)
-                    break
-
-                # make sure we have a peer record for this sender
-                message.uri = "%s://%s" % (self.name, ident)
-                peer, created = Peer.objects.get_or_create(uri=message.uri)
-                if created: peer.save()
-
-                # set error text if applicable
-                if error is not None:
-                    message.erroneous = True
-                else:
-                    message.erroneous = False
-
-                # save message before calling handler and append to
-                # result
-                message.save()
-                messages.append(message)
-
-                if result is not None:
-                    pre_handle.send(sender=message, result=result)
-                    error = None
-                    try:
-                        message.handle(**result)
-                    except Exception, error:
-                        raise
-                    finally:
-                        post_handle.send(sender=message, error=error)
-                elif error is not None:
-                    message.reply(error.text)
-
-                # quit if there's no more text
-                if not remaining:
-                    break
-
+            self.router.route(message)
         except:
             if settings.DEBUG:
                 raise
@@ -207,11 +118,11 @@ class Message(Transport):
                 cls, exc, tb = sys.exc_info()
                 warn("%s ERROR [%s] - %s.\n\n%s" % (
                     time.isoformat(),
-                    type(error).__name__,
+                    type(exc).__name__,
                     repr(message.text.encode('utf-8')),
-                    format_exc(error)))
+                    format_exc(exc)))
 
-        return messages
+        return message
 
 class GSM(Message): # pragma: NOCOVER
     """GSM transport.

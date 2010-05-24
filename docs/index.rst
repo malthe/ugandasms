@@ -26,20 +26,21 @@ All parts of the system are documented and tested.
 Example
 -------
 
-Below is an example of an *echo* application. It will accept an SMS
-message that starts with the string ``+ECHO`` (case-insensitive in
+Below is an example of an *echo* form. It will accept an SMS message
+that starts with the string ``+ECHO`` (although case-insensitive in
 this example) and echoes back the remaining string.
 
 Add the following model to your Django ``models.py``::
 
-  from router.models import Incoming
+  from router.models import Form
+  from router.pico import wrap
   from picoparse import remaining
   from picoparse.text import caseless_string
   from picoparse.text import whitespace1
 
-  class Echo(Incoming):
-       @staticmethod
-       def parse():
+  class Echo(Form):
+       @wrap
+       def parse(cls):
            caseless_string("+echo")
            whitespace1()
            return {
@@ -49,40 +50,39 @@ Add the following model to your Django ``models.py``::
        def handle(self, echo=None):
            self.reply(u"You wrote: %s." % echo)
 
-To enable this message, add it to the list of messages in your ``settings.py``::
+To enable this message, add it to the list of messages in your
+``settings.py`` and configure the sequential router which match forms
+in sequence::
 
-  MESSAGES = (
-      "myapp.Echo",
+  MESSAGE_ROUTER = 'router.router.Sequential'
+
+  FORMS = (
+      "Echo",
       )
 
-We could now try and send a text message that match the parser we defined above::
+We could now try and send a text message that matches our form::
 
   >>> +ECHO Hello world!
 
-When an echo message is received by the system it is automatically
-saved in the database as well. To query for the message we sent::
-
-  >>> message = Echo.objects.get()
-  >>> print message.text
-  u'Hello world!'
-
-Messages are *polymorphic*. We get an echo message even if we query
-the ``Incoming`` base class::
+The message is parsed into exactly one form::
 
   >>> message = Incoming.objects.get()
-  >>> isinstance(message, Echo)
-  True
-
-An incoming message may see zero or more replies depending on the
-handler (or perhaps a reply is only added later on by a cron-job or
-other delayed activity). In our case there is just a single reply,
-which is the message echoed back::
-
-  >>> message.replies.count()
+  >>> message.forms.count()
   1
-  >>> reply = message.replies.get()
-  >>> print reply.text
-  u'Hello world!'
+
+There can be multiple replies for each form, but our handler just
+creates one::
+
+  >>> form = message.forms.get()
+  >>> form.replies.get().text
+  'Hello world!'
+
+Forms are *polymorphic*. We get back an object of type `Echo` even if
+we query the base class::
+
+  >>> form = Form.objects.get()
+  >>> isinstance(form, Echo)
+  True
 
 Testing
 -------

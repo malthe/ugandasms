@@ -1,14 +1,10 @@
-import datetime
-
-from router.testing import FunctionalTestCase
 from router.testing import UnitTestCase
 
 class ParserTest(UnitTestCase):
     @staticmethod
     def _muac(text):
         from ..models import Muac
-        from picoparse import run_parser
-        return run_parser(Muac.parse, text)[0]
+        return Muac.parse(text)[0]
 
     @property
     def _datetime(self):
@@ -21,7 +17,7 @@ class ParserTest(UnitTestCase):
         return timedelta
 
     def test_empty(self):
-        from router.parser import FormatError
+        from router.router import FormatError
         self.assertRaises(FormatError, self._muac, "+muac")
 
     def test_patient_id(self):
@@ -37,7 +33,7 @@ class ParserTest(UnitTestCase):
             })
 
     def test_patient_id_without_reading(self):
-        from router.parser import FormatError
+        from router.router import FormatError
         self.assertRaises(FormatError, self._muac, "+muac abc1")
 
     def test_patient_id_with_measurement(self):
@@ -75,7 +71,7 @@ class ParserTest(UnitTestCase):
             })
 
     def test_name_sex_wrong_date(self):
-        from router.parser import FormatError
+        from router.router import FormatError
         try:
             self._muac("+muac foo, m, 31/12/1999, red")
         except FormatError, error:

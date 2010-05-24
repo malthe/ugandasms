@@ -14,7 +14,7 @@ class Gateway(object):
     """
 
     def __new__(cls, *args):
-        from router.transports import Message
+        from .transports import Message
         cls = type("Gateway", (cls, Message), {})
         return object.__new__(cls)
 
@@ -24,18 +24,18 @@ class Gateway(object):
 
     def receive(self, sender, text):
         self._subscribers[sender.ident] = sender
-        messages = self.incoming(sender.ident, text)
-        for message in messages:
-            for reply in message.replies.all():
+        message = self.incoming(sender.ident, text)
+        for form in message.forms.all():
+            for reply in form.replies.all():
                 self.send(reply)
 
-    def send(self, message):
-        receiver = self._subscribers[message.ident]
-        receiver.receive(message.text)
+    def send(self, reply):
+        receiver = self._subscribers[reply.ident]
+        receiver.receive(reply.text)
 
         # note delivery time
-        message.delivery = message.in_reply_to.time
-        message.save()
+        reply.delivery = reply.in_reply_to.message.time
+        reply.save()
 
 class Peer(object):
     """Network peer.
@@ -289,3 +289,24 @@ class FunctionalTestCase(UnitTestCase):  # pragma: NOCOVER
 
         postgres.execute("drop database %s" % name)
         return True
+
+class FormTestCase(FunctionalTestCase):
+    """Functional test case that adds utility methods for testing
+    forms."""
+
+    @staticmethod
+    def handle(model, text="", uri="test://old", user=None, **kwargs):
+        """Handles an incoming message with the provided form."""
+
+        from .models import Incoming
+        from datetime import datetime
+        time = datetime(1999, 12, 31, 0, 0, 0)
+        message = Incoming(text=text, time=time, uri=uri)
+        from .models import Peer
+        message.peer, created = Peer.objects.get_or_create(uri=uri)
+        message.peer.save()
+        message.save()
+        form = model(text=text, message=message)
+        form.save()
+        form.handle(**kwargs)
+        return form

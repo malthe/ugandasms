@@ -103,21 +103,22 @@ You should see an output such as the following:
 If you see any other messages being logged, this means there's a
 problem talking to your modem.
 
-Adding messages
----------------
+Adding forms
+------------
 
-You enable messages by including them in the ``MESSAGES``
-setting. This should be a tuple of strings pointing to message
-models.
+You enable forms by including them in the ``FORMS`` setting. This
+should be a tuple of strings pointing to form models.
 
-The :mod:`router.tests` module comes with a set of messages for
-testing and demonstration purposes::
+The :mod:`router.tests` app comes with a set of forms for testing and
+demonstration purposes::
 
   INSTALLED_APPS += (
     'router.tests',
   )
 
-  MESSAGES = (
+  MESSAGE_ROUTER = 'router.router.Sequential'
+
+  FORMS = (
       "Empty",
       "Echo",
       )
@@ -161,19 +162,24 @@ This will prompt a helpful response that the message was empty::
   >>> bob.send(input)
   >>> assert_equals(bob.receive(), output)
 
-Writing your own messages
--------------------------
+Writing your own forms
+----------------------
 
-You will almost always want to either write your messages from scratch
-or customize one or more of the messages that come with the system.
+You will almost always want to either write your forms or customize
+one or more of the forms that come with the system.
 
-Message models all inherit from :class:`router.models.Incoming`. The
-following methods are required:
+Form models all inherit from :class:`router.models.Form`. When using
+the sequential router, both of the following methods are required:
 
-.. method:: parse()
+.. classmethod:: parse(cls, text)
+   :noindex:
 
-   Parses text input using :mod:`picoparse` functions. See
-   :data:`router.models.Incoming.parse`.
+   Return a non-trivial result if ``text`` parses and a string
+   containing any remaining text, or raise :class:`FormatError` to
+   indicate a formatting error.
+
+   See :func:`router.pico.wrap` for a convenient decorator for parsing
+   with the :mod:`picoparse` library.
 
 .. method:: handle(**result)
 
@@ -182,25 +188,36 @@ following methods are required:
 
 For a reference on the :mod:`picoparse` library, see its `readme
 <http://github.com/brehaut/picoparse/blob/master/README.markdown>`_
-document. Here's a basic example of a ``parse`` function::
+document. Here's a basic example of a parse function that uses the
+library::
 
   from picoparse import remaining
   from picoparse.text import caseless_string
   from picoparse.text import whitespace1
 
-  from router.parser import FormatError
+  from router.models import Form
+  from router.router import FormatError
+  from router.pico import wrap
 
-  def parse_hello_message():
-      caseless_string("+hello")
-      try:
-          whitespace1()
-          name = "".join(remaining())
-      except:
-          raise FormatError(u"Input error. Format: +HELLO <name>.")
+  class Hello(Form):
+      @wrap
+      def parse(cls):
+          caseless_string("+hello")
+          try:
+              whitespace1()
+              name = "".join(remaining())
+          except:
+              raise FormatError(u"Input error. Format: +HELLO <name>.")
 
-      return {
-          'name': name
-          }
+          return {
+              'name': name
+              }
+
+To complete the example we would then add a handler method. Add
+the following to the class above::
+
+  def handler(self, name=None):
+      self.reply("Hello, %s!" % name)
 
 Any remaining text after the parse function completes will be subject
 to another parse loop. This means that a single text message may parse
@@ -219,34 +236,30 @@ parser may use the following pattern::
 
 Note that whitespace is trimmed already before text enters the parser,
 so if ``peek()`` returns any non-trivial value, it means there's
-indeed remaining text which would subject to another parse. The text
-may contain other characters that you'll want to ignore, however. For
-instance, you could strip off any punctuation characters appearing at
-the end using e.g.::
+remaining text which would subject to another parse.
 
-  many(partial(one_of, ',.'))
+We could write a form that would catch all punctuation characters::
 
-If an additional parse loop is required, and fails, the user is still
-notified of this, since the remaining text will parse into a
-``NotUnderstood`` message.
+  from picoparse.text import many1
+  from picoparse.text import one_of
+  from picoparse.text import partial
 
-To use a parser function defined at module level for a message model,
-wrap it using the ``staticmethod`` decorator. The return value of the
-parser function will be passed into the message handler as keyword
-arguments::
+  class IgnorePunctuation(Form):
+      @wrap
+      def parse(cls):
+          many1(partial(one_of, ',. '))
 
-  class Hello(Incoming):
-      parse = staticmethod(parse_hello_message)
+      def handle(self):
+          pass
 
-      def handler(self, name=None):
-          self.reply("Hello, %s!" % name)
+This form would simply drop all such input without further action.
 
 Trying it out
 -------------
 
 To use the message we first have to enable it::
 
-  MESSAGES += (
+  FORMS += (
       "Hello",
       )
 
@@ -282,50 +295,46 @@ the database.
 
 To work instead with a scripted test case (recommended), create a file
 ``tests.py`` and write a unit test for your parser (see
-:class:`router.testing.UnitTestCase`) and a functional test for your
-handler (see :class:`router.testing.FunctionalTestCase`),
-respectively. The following is a sample test module for the *echo*
-message::
+:class:`router.testing.UnitTestCase`) and a form test for your handler
+(see :class:`router.testing.FormTestCase`), respectively.
 
-  from router.testing import FunctionalTestCase
+The parser uses a unit test case::
+
+  from router.testing import FormTestCase
   from router.testing import UnitTestCase
 
   class ParserTest(UnitTestCase):
       @staticmethod
       def parse(text):
           from ..models.tests import Echo
-          from picoparse import run_parser
-          return run_parser(Echo.parse, text)[0]
+          return Echo.parse(text)[0]
 
       def test_echo(self):
           data = self.parse("+ECHO Hello world!")
           self.assertEqual(data, {'echo': 'Hello world!'})
 
-  class HandlerTest(FunctionalTestCase):
-      INSTALLED_APPS = FunctionalTestCase.INSTALLED_APPS + (
+To test your form, it's convenient to use the provided ``handle``
+method:
+
+.. automethod:: router.testing.FormTestCase.handle
+   :noindex:
+
+This makes it easy to write form tests::
+
+  class FormTest(FormTestCase):
+      INSTALLED_APPS = FormTestCase.INSTALLED_APPS + (
           'router.tests',
           )
 
       def test_hello_world(self):
           from router.tests import Echo
-          message = Echo()
-          message.save()
-          message.handle(echo='Hello world!')
-          self.assertEqual(message.replies.get().text, 'Hello world!')
+          message = self.handle(Echo, echo='Hello world!')
+          self.assertEqual(message.forms.count(), 1)
+          form = message.forms.get().text
+          self.assertEqual(form.replies.get().text, 'Hello world!')
 
-Note that if your message handler relies on peer and/or user objects
-(see the section on :ref:`identification`), you'll need some additional
-steps::
-
-  def test_which_requires_user_object(self):
-      from router.models import User
-      user = User()
-      user.save()
-
-      from router.models import Peer
-      message.peer, created = Peer.objects.get_or_create(uri="test://test")
-      message.peer.user = user
-      message.peer.save()
+Note that if your form needs a registered user (see the section on
+:ref:`identification`), you can pass the object as ``user``.
 
 .. warning:: You should never import anything except test cases at module level. Put imports immediately before the symbols are used (inside the test methods).
 

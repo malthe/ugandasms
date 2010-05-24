@@ -5,77 +5,19 @@ import urllib
 
 from ..testing import FunctionalTestCase
 
-class TransportTest(FunctionalTestCase):
+class MessageTest(FunctionalTestCase):
     INSTALLED_APPS = FunctionalTestCase.INSTALLED_APPS + (
         'router.tests',
         )
 
     USER_SETTINGS = {
-        'MESSAGES': (
-            'tests.Echo',
-            'tests.Error',
-            'tests.Break',
-            'tests.Hello',
-            'tests.Improper',
+        'MESSAGE_ROUTER': 'router.router.Sequential',
+        'FORMS': (
+            'BadConfiguration',
+            'Broken',
             )
         }
-
-    def test_signals(self):
-        from router.transports import pre_parse
-        from router.transports import post_parse
-        from router.transports import pre_handle
-        from router.transports import post_handle
-
-        s1 = []
-        s2 = []
-        s3 = []
-        s4 = []
-
-        def before_parse(sender=None, **kwargs):
-            s1.append(sender)
-            self.assertEqual(sender.id, None)
-        pre_parse.connect(before_parse)
-
-        def after_parse(sender=None, error=None, **kwargs):
-            s2.append(sender)
-            self.assertEqual(error, None)
-            self.assertEqual(sender.id, None)
-        post_parse.connect(after_parse)
-
-        def before_handle(sender=None, result=None, **kwargs):
-            s3.append(sender)
-            self.assertTrue(isinstance(result, dict))
-            self.assertEqual(sender.replies.count(), 0)
-        pre_handle.connect(before_handle)
-
-        def after_handle(sender=None, **kwargs):
-            s4.append(sender)
-            self.assertEqual(sender.replies.count(), 1)
-        post_handle.connect(after_handle)
-
-        from router.tests.transports import Dummy
-        transport = Dummy("dummy")
-        transport.incoming("test", "+echo test")
-
-        self.assertTrue(len(s1), 1)
-        self.assertTrue(len(s2), 1)
-        self.assertTrue(len(s3), 1)
-        self.assertTrue(len(s4), 1)
-
-    def test_parse_error(self):
-        def check(sender=None, error=None, **kwargs):
-            from router.tests.models import Error
-            self.assertTrue(isinstance(sender, Error),
-                            "Sender was of type: %s." % sender.__class__)
-            self.assertNotEqual(error, None)
-            self.assertTrue(error.text, 'error')
-        from router.transports import post_parse
-        post_parse.connect(check)
-
-        from router.tests.transports import Dummy
-        transport = Dummy("dummy")
-        transport.incoming("test", "+error")
-
+    
     def test_message_error(self):
         from router.tests.transports import Dummy
         transport = Dummy("dummy")
@@ -93,21 +35,6 @@ class TransportTest(FunctionalTestCase):
         finally:
             settings.DEBUG = True
 
-    def test_multiple(self):
-        from router.transports import post_parse
-
-        parsed = []
-        def check(sender=None, result=None, **kwargs):
-            from router.tests.models import Hello
-            self.assertTrue(isinstance(sender, Hello))
-            parsed.append(sender)
-        post_parse.connect(check)
-
-        from router.tests.transports import Dummy
-        transport = Dummy("dummy")
-        transport.incoming("test", "+hello +hello")
-        self.assertEqual(len(parsed), 2)
-
     def test_configuration_error(self):
         from router.tests.transports import Dummy
         transport = Dummy("dummy")
@@ -118,7 +45,7 @@ class TransportTest(FunctionalTestCase):
             import warnings
             with warnings.catch_warnings(record=True) as w:
                 warnings.simplefilter("always")
-                transport.incoming("test", "+improper")
+                transport.incoming("test", "+bad")
 
             self.assertEqual(len(w), 1)
             self.assertTrue('ImproperlyConfigured' in str(w[0]))
@@ -131,9 +58,9 @@ class KannelTest(FunctionalTestCase):
         )
 
     USER_SETTINGS = {
-        'MESSAGES': (
+        'FORMS': (
             'Echo',
-            'Break',
+            'Broken',
             )
         }
 
@@ -230,7 +157,7 @@ class KannelTest(FunctionalTestCase):
                 datetime.datetime(1999, 12, 31).timetuple())),
             })
 
-        response = self.view(request)
+        self.view(request)
 
         from ..models import Incoming
         results = Incoming.objects.all()

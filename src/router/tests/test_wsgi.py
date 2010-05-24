@@ -3,7 +3,7 @@ from unittest import TestCase
 def run_app(settings): # pragma: NOCOVER
     from router.wsgi import make_app_from_settings
     from time import sleep
-    app = make_app_from_settings(settings)
+    make_app_from_settings(settings)
     while True:
         sleep(01)
 

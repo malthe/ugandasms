@@ -1,6 +1,5 @@
 import itertools
 import datetime
-import string
 
 from polymorphic import PolymorphicModel as Model
 
@@ -20,18 +19,19 @@ from picoparse.text import whitespace
 from picoparse.text import whitespace1
 from picoparse.text import caseless_string
 
-from router.parser import comma
-from router.parser import date
-from router.parser import digits
-from router.parser import identifier
-from router.parser import name
-from router.parser import one_of_strings
-from router.parser import separator
-from router.parser import tags
-from router.parser import timedelta
-from router.parser import FormatError
-from router.models import Incoming
+from router.pico import comma
+from router.pico import date
+from router.pico import digits
+from router.pico import identifier
+from router.pico import name
+from router.pico import one_of_strings
+from router.pico import separator
+from router.pico import tags
+from router.pico import timedelta
+from router.pico import wrap as pico
+from router.models import Form
 from router.models import User
+from router.router import FormatError
 
 date = partial(date, formats=settings.DATE_INPUT_FORMATS)
 
@@ -73,7 +73,7 @@ class Malnutrition(Incident):
     reading = models.CharField(max_length=1)
     value = models.FloatField(null=True)
 
-class Epi(Incoming):
+class Epi(Form):
     """Report on epidemiological data.
 
     Regular reports should come in with the format::
@@ -125,7 +125,7 @@ class Epi(Incoming):
         'DY': 'BD',
         }
 
-    @classmethod
+    @pico
     def parse(cls):
         one_of('+')
         caseless_string('epi')
@@ -135,7 +135,8 @@ class Epi(Incoming):
         if whitespace():
             while peek():
                 try:
-                    code = "".join(one_of_strings(*(tuple(cls.TOKENS) + tuple(cls.ALIAS))))
+                    code = "".join(one_of_strings(*(
+                        tuple(cls.TOKENS) + tuple(cls.ALIAS))))
                     code = code.upper()
                 except:
                     raise FormatError(
@@ -156,7 +157,8 @@ class Epi(Incoming):
                     raise FormatError("Expected a value for %s." % code)
 
                 if value < 0:
-                    raise FormatError("Got %d for %s. You must report a positive value." % (
+                    raise FormatError("Got %d for %s. You must "
+                                      "report a positive value." % (
                         value, cls.TOKENS[code].lower()))
 
                 aggregates[code] = value
@@ -173,7 +175,8 @@ class Epi(Incoming):
             stats = []
             for code, value in sorted(aggregates.items()):
                 stat = "%s %d" % (self.TOKENS[code].lower(), value)
-                previous = Aggregate.objects.filter(code=code, reporter=self.user)
+                previous = Aggregate.objects.filter(
+                    code=code, reporter=self.user)
                 if len(previous):
                     aggregate = previous[0]
                     if value > 0 and aggregate.value > 0:
@@ -187,17 +190,19 @@ class Epi(Incoming):
                     else:
                         r = "-" + r
                     stat += " (%s)" % r
-                Aggregate(code=code, value=value, time=self.time, reporter=self.user).save()
+                Aggregate(code=code, value=value,
+                          time=self.message.time, reporter=self.user).save()
                 stats.append(stat)
             sep = [", "] * len(stats)
             if len(stats) > 1:
                 sep[-2] = " and "
             sep[-1] = ""
-            self.reply(u"You reported %s." % "".join(itertools.chain(*zip(stats, sep))))
+            self.reply(u"You reported %s." % "".join(
+                itertools.chain(*zip(stats, sep))))
         else:
             self.reply(u"Please include one or more reports.")
 
-class Muac(Incoming):
+class Muac(Form):
     """MUAC report.
 
     Formats::
@@ -228,8 +233,8 @@ class Muac(Incoming):
             return reading
         return reading*10
 
-    @classmethod
-    def parse(cls):
+    @pico
+    def parse(self):
         result = {}
 
         prefix = optional(tri(identifier), None)
@@ -287,7 +292,7 @@ class Muac(Incoming):
                 whitespace()
                 unit = optional(partial(one_of_strings, 'mm', 'cm'), None)
                 if unit is None:
-                    reading = cls.get_reading_in_mm(reading)
+                    reading = self.get_reading_in_mm(reading)
                 elif "".join(unit) == 'cm':
                     reading = reading * 10
             result['reading'] = reading
