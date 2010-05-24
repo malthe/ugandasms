@@ -1,9 +1,11 @@
 import itertools
 import datetime
-
-from polymorphic import PolymorphicModel as Model
+import random
+import difflib
 
 from django.db import models
+from django.db import IntegrityError
+from django.db.models import Model
 from django.conf import settings
 
 from picoparse import any_token
@@ -19,59 +21,87 @@ from picoparse.text import whitespace
 from picoparse.text import whitespace1
 from picoparse.text import caseless_string
 
-from router.pico import comma
-from router.pico import date
-from router.pico import digits
-from router.pico import identifier
-from router.pico import name
-from router.pico import one_of_strings
-from router.pico import separator
-from router.pico import tags
-from router.pico import timedelta
-from router.pico import wrap as pico
+from router import pico
 from router.models import Form
 from router.models import User
 from router.router import FormatError
 
-date = partial(date, formats=settings.DATE_INPUT_FORMATS)
+date = partial(pico.date, formats=settings.DATE_INPUT_FORMATS)
+
+TRACKING_ID_LETTERS = ['ABCDEFGHJKLMPQRTUVXZ']
+
+def generate_tracking_id():
+    return '%2.d%s%s%2.d' % (
+        random.randint(0, 99),
+        random.choice(TRACKING_ID_LETTERS),
+        random.choice(TRACKING_ID_LETTERS),
+        random.randint(0, 99))
 
 class Patient(Model):
-    health_id = models.CharField(max_length=30, null=True)
-    name = models.CharField(max_length=50, null=True)
-    sex = models.CharField(max_length=1, null=True)
-    birthdate = models.DateTimeField(null=True)
+    health_id = models.CharField(max_length=30)
+    name = models.CharField(max_length=50)
+    sex = models.CharField(max_length=1)
+    birthdate = models.DateTimeField()
+    last_reported_on_by = models.ForeignKey(User)
 
     @property
     def age(self):
         if self.birthdate is not None:
-            return datetime.now() - self.birthdate
+            return datetime.datetime.now() - self.birthdate
+
+    @classmethod
+    def identify(cls, name, sex, birthdate, reporter):
+        patients = Patient.objects.filter(
+            last_reported_on_by=reporter,
+            name__icontains=name).all()
+
+        names = [patient.name for patient in patients]
+        matches = difflib.get_close_matches(name, names)
+        if not matches:
+            return
+
+        name = matches[0]
+
+        # return first match
+        for patient in patients:
+            if patient.name == name:
+                return patient
 
 class Report(Model):
-    """Health report."""
+    """Report sent in by reporting staff, possibly tagged with one or
+    more keywords."""
 
     reporter = models.ForeignKey(User)
+    time = models.DateTimeField(db_index=True)
     tags = ()
+
+    class Meta:
+        ordering = ['-id']
 
 class Tag(Model):
     report = models.ForeignKey(Report, related_name="tags")
     value = models.CharField(max_length=20)
 
-class Incident(Report):
-    """An incident is a health report tied to an individual."""
+class Case(Model):
+    """Attached to a report when it needs tracking."""
 
-    patient = models.ForeignKey(Patient, null=True)
+    patient = models.ForeignKey(Patient, related_name="cases")
+    report = models.ForeignKey(Report, related_name="cases")
+    tracking_id = models.CharField(max_length=20, unique=True)
 
 class Aggregate(Report):
+    """An aggregate occurrence report codified by a two-letter
+    keyword."""
+
     code = models.CharField(max_length=2, db_index=True)
-    time = models.DateTimeField(db_index=True)
     value = models.IntegerField()
 
-    class Meta:
-        ordering = ['-id']
+class MuacMeasurement(Report):
+    """Measurement record of the MUAC heuristic."""
 
-class Malnutrition(Incident):
-    reading = models.CharField(max_length=1)
-    value = models.FloatField(null=True)
+    category = models.CharField(max_length=1)
+    reading = models.FloatField(null=True)
+    patient = models.ForeignKey(Patient, null=True)
 
 class Epi(Form):
     """Report on epidemiological data.
@@ -125,7 +155,7 @@ class Epi(Form):
         'DY': 'BD',
         }
 
-    @pico
+    @pico.wrap
     def parse(cls):
         one_of('+')
         caseless_string('epi')
@@ -135,7 +165,7 @@ class Epi(Form):
         if whitespace():
             while peek():
                 try:
-                    code = "".join(one_of_strings(*(
+                    code = "".join(pico.one_of_strings(*(
                         tuple(cls.TOKENS) + tuple(cls.ALIAS))))
                     code = code.upper()
                 except:
@@ -152,7 +182,7 @@ class Epi(Form):
                 whitespace1()
                 try:
                     minus = optional(partial(one_of, '-'), '')
-                    value = int("".join([minus]+digits()))
+                    value = int("".join([minus]+pico.digits()))
                 except:
                     raise FormatError("Expected a value for %s." % code)
 
@@ -203,13 +233,13 @@ class Epi(Form):
             self.reply(u"Please include one or more reports.")
 
 class Muac(Form):
-    """MUAC report.
+    """Middle upper arm circumference measurement.
 
     Formats::
 
       +MUAC <name>, <sex>, <age>, <reading> [, <tag> ]*
-      +MUAC <patient_id>, <reading> [, <tag> ]*
-      <patient_id> +MUAC <reading> [, <tag> ]*
+      +MUAC <health_id>, <reading> [, <tag> ]*
+      <health_id> +MUAC <reading> [, <tag> ]*
 
     Note that a patient id must contain one or more digits (to
     distinguish a name from a patient id).
@@ -221,7 +251,7 @@ class Muac(Form):
     - ``\"green\"`` (or ``\"g\"``)
 
     Or, alternatively the reading may be a floating point number,
-    e.g. ``\"114 mm\"`` (unit optional; *mm* is default unit for
+    e.g. ``\"114 mm\"`` (unit optional).
     values > 30, otherwise *cm* is assumed). While such a value will
     be translated into one of the readings above, the given number is
     still recorded.
@@ -233,13 +263,13 @@ class Muac(Form):
             return reading
         return reading*10
 
-    @pico
+    @pico.wrap
     def parse(self):
         result = {}
 
-        prefix = optional(tri(identifier), None)
+        prefix = optional(tri(pico.identifier), None)
         if prefix is not None:
-            result['patient_id'] = "".join(prefix)
+            result['health_id'] = "".join(prefix)
             whitespace()
 
         one_of('+')
@@ -248,41 +278,42 @@ class Muac(Form):
         if prefix is None:
             try:
                 whitespace1()
-                part = optional(tri(identifier), None)
+                part = optional(tri(pico.identifier), None)
                 if part is not None:
-                    result['patient_id'] = "".join(part)
+                    result['health_id'] = "".join(part)
                 else:
-                    result['name'] = name()
+                    result['name'] = pico.name()
             except:
                 raise FormatError("Expected a patient id or name.")
 
         if 'name' in result:
             try:
-                separator()
+                pico.separator()
                 result['sex'] = one_of('MmFf').upper()
             except:
-                raise FormatError("Expected either M or F to indicate the patient's gender.")
+                raise FormatError("Expected either M or F "
+                                  "to indicate the patient's gender.")
 
             try:
-                separator()
+                pico.separator()
             except:
                 raise FormatError("Expected age or birthdate of patient.")
 
             try:
-                result['age'] = choice(*map(tri, (date, timedelta)))
+                result['age'] = choice(*map(tri, (pico.date, pico.timedelta)))
             except:
-                received, stop = many_until(any_token, comma)
+                received, stop = many_until(any_token, pico.comma)
                 raise FormatError("Expected age or birthdate of patient, but "
                                  "received %s." % "".join(received))
         try:
             if prefix is None:
-                separator()
+                pico.separator()
             else:
                 whitespace1()
 
             reading = choice(
-                partial(one_of_strings, 'red', 'green', 'yellow', 'r', 'g', 'y'),
-                digits)
+                partial(pico.one_of_strings,
+                        'red', 'green', 'yellow', 'r', 'g', 'y'), pico.digits)
 
             try:
                 reading = int("".join(reading))
@@ -290,7 +321,7 @@ class Muac(Form):
                 reading = reading[0].upper()
             else:
                 whitespace()
-                unit = optional(partial(one_of_strings, 'mm', 'cm'), None)
+                unit = optional(partial(pico.one_of_strings, 'mm', 'cm'), None)
                 if unit is None:
                     reading = self.get_reading_in_mm(reading)
                 elif "".join(unit) == 'cm':
@@ -301,12 +332,95 @@ class Muac(Form):
                 "Expected MUAC reading (either green, yellow or red), but "
                 "received %s." % "".join(remaining()))
 
-        if optional(separator, None):
-            result['tags'] = tags()
+        if optional(pico.separator, None):
+            result['tags'] = pico.tags()
 
         return result
 
-    @staticmethod
-    def handle(patient_id=None, name=None, sex=None, age=None, reading=None, tags=()):
-        if isinstance(age, datetime.timedelta):
-            age = datetime.now() - age
+    def handle(self, health_id=None, name=None, sex=None,
+               age=None, category=None, reading=None, tags=()):
+
+        if self.user is None: # pragma: NOCOVER
+            return self.reply(u"Please register before sending in reports.")
+
+        if health_id is None:
+            if isinstance(age, datetime.timedelta):
+                birthdate = datetime.datetime.now() - age
+            else:
+                birthdate = age
+
+            # attempt to identify the patient using the information
+            patient = Patient.identify(name, sex, birthdate, self.user)
+
+            # if we fail to identify the patient, we create a new record
+            if patient is None:
+                patient = Patient(
+                    name=name, sex=sex, birthdate=birthdate,
+                    last_reported_on_by=self.user)
+                patient.save()
+        else:
+            try:
+                patient = Patient.objects.filter(health_id=health_id).get()
+            except Patient.DoesNotExist:
+                return self.reply(u"Patient not found: %s." % health_id)
+
+        if category is None and reading is not None:
+            if reading > 125:
+                category = 'G'
+            elif reading < 114:
+                category = 'R'
+            else:
+                category = 'Y'
+
+        report = MuacMeasurement(
+            reading=reading,
+            category=category,
+            reporter=self.user,
+            patient=patient,
+            time=self.message.time)
+
+        report.save()
+
+        sex, pronoun = ('male', 'His') if patient.sex == 'M' \
+                       else ('female', 'Her')
+
+        for tag in tags:
+            value = tag.lower()
+            obj = report.tags.create(value=value)
+            obj.save()
+
+        tag_string = ", ".join(tag.lower().capitalize() for tag in tags)
+        if tag_string:
+            tag_string = ', with ' + tag_string
+
+        if patient.age.days > 365:
+            age_string = "aged %d" % (patient.age.days % 365)
+        if patient.age.days > 30:
+            age_string = "(%d months old)" % (patient.age.days % 30)
+        else:
+            age_string = "(infant)"
+
+        if category != 'G':
+            case = Case(patient=patient, report=report)
+            while case.id is None:
+                try:
+                    tracking_id = generate_tracking_id()
+                    case.tracking_id = tracking_id
+                    case.save()
+                except IntegrityError: # pragma: NOCOVER
+                    pass
+
+            if category == 'Y':
+                severity = "Risk of"
+            else:
+                severity = "Severe Acute"
+
+            self.reply(
+                "%s, %s %s has been identified with "
+                "%s Malnutrition%s. Case Number %s." % (
+                patient.name, sex, age_string, severity, tag_string, tracking_id))
+        else:
+            self.reply(
+                "Thank you for reporting your measurement of "
+                "%s, %s %s%s. The reading is normal (green)." % (
+                    patient.name, sex, age_string, tag_string))
