@@ -156,6 +156,8 @@ class Epi(Form):
         'DY': 'BD',
         }
 
+    prompt = "EPI: "
+
     @pico.wrap
     def parse(cls):
         one_of('+')
@@ -258,6 +260,8 @@ class Muac(Form):
     be translated into one of the readings above, the given number is
     still recorded.
     """
+
+    prompt = "MUAC: "
 
     @staticmethod
     def get_reading_in_mm(reading):

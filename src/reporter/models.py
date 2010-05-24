@@ -1,17 +1,19 @@
+import re
+import string
+
 from django.db import models
 
+from picoparse import any_token
 from picoparse import choice
 from picoparse import commit
 from picoparse import many1
-from picoparse import not_one_of
 from picoparse import one_of
 from picoparse import optional
 from picoparse import partial
 from picoparse import tri
 from picoparse.text import whitespace1
 
-from router.pico import one_of_strings
-from router.pico import wrap as pico
+from router import pico
 from router.models import Form
 from router.models import Peer
 from router.models import User
@@ -31,33 +33,51 @@ class Registration(Form):
     Users may add a device or handset to their user account by
     providing the identification string (usually a phone number)::
 
+       +REG[ISTER] <phone number>
        +REG[ISTER] #<ident>
 
-    To query for the identification string of the current device::
+    Note that if a phone number is provided, the hash character
+    ``\"#\"`` can be omitted.
+
+    To query for the number of the current device::
 
        +REG[ISTER]
     """
 
-    @pico
+    prompt = "REGISTER: "
+
+    @pico.wrap
     def parse(cls):
         one_of('+')
-        one_of_strings('register', 'reg')
+        pico.one_of_strings('register', 'reg')
 
         result = {}
 
         @tri
         def ident():
             whitespace1()
-            one_of('#')
+            pico.hash()
             commit()
-            result['ident'] = "".join(many1(partial(not_one_of, ',')))
+            return many1(any_token)
+
+        @tri
+        def number():
+            whitespace1()
+            return many1(partial(one_of, string.digits + ' -+()'))
 
         @tri
         def name():
             whitespace1()
-            result['name'] = "".join(many1(partial(not_one_of, ',')))
+            return pico.name()
 
-        optional(partial(choice, ident, name), None)
+        ident = optional(partial(choice, ident, number), None)
+        if ident is not None:
+            result['ident'] = re.sub('[ \-+()]', '', "".join(ident))
+        else:
+            name = optional(name, None)
+            if name is not None:
+                result['name'] = name
+
         return result
 
     def handle(self, name=None, ident=None):
@@ -79,24 +99,22 @@ class Registration(Form):
                 self.message.peer.save()
 
                 self.reply((
-                    "Welcome, %(name)s (#%(id)04d). "
+                    "Welcome, %(name)s. "
                     "You have been registered.") % {
                     'name': name,
-                    'id': user.id,
                     })
             else:
                 self.reply("Please provide your name when registering.")
         else:
             if name is None:
-                self.reply("Your current identification string is: %s." % \
+                self.reply("You're currently registered with %s." % \
                            self.message.ident)
             else:
                 self.user.name = name
                 self.user.save()
 
                 self.reply((
-                    "Hello, %(name)s (#%(id)04d). "
+                    "Hello, %(name)s. "
                     "You have updated your information.") % {
-                               'name': name,
-                               'id': self.user.id,
-                               })
+                        'name': name,
+                    })
