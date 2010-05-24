@@ -19,7 +19,7 @@ How do I..
                  uri=sender.message.uri)
              outgoing.save()
 
-      post_parse.connect(need_help, sender=Incoming)
+      post_route.connect(need_help, sender=Incoming)
 
     Note that there is no ``reply`` method, because there is nothing
     to reply to.
