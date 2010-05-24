@@ -159,7 +159,8 @@ class GSM(Message): # pragma: NOCOVER
         if sms is None:
             raise ImportError('sms')
 
-        formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        formatter = logging.Formatter("%(asctime)s - %(name)s - "
+                                      "%(levelname)s - %(message)s")
         handler = logging.StreamHandler(sys.stderr)
         handler.setFormatter(formatter)
         level = getattr(logging, self.log_level.upper())
@@ -365,6 +366,7 @@ class GSM(Message): # pragma: NOCOVER
     def stop(self, *args, **kwargs):
         """Stop transport."""
 
+        self.logger.info("Stopping...")
         self._hangup = True
 
     def ussd(self, request):

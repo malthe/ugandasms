@@ -1,6 +1,6 @@
 import imp
 import signal
-
+import functools
 from django import conf
 from django import utils
 from django.core.handlers.wsgi import WSGIHandler
@@ -13,9 +13,8 @@ _transports = {}
 # store old interrupt handlers
 _default_handlers = {}
 
-def shutdown(signum, frame):
-    from router.transports import hangup
-    hangup.send(sender=signum)
+def shutdown(signal, signum, frame):
+    signal.send(sender=signum)
     _default_handlers[signum](signum, frame)
 
 def make_app(config, settings=None):
@@ -26,6 +25,12 @@ def make_app(config, settings=None):
     return make_app_from_settings(settings)
 
 def make_app_from_settings(settings):
+    # install signal handlers
+    from .transports import hangup
+    handler = functools.partial(shutdown, hangup)
+    _default_handlers[signal.SIGHUP] = signal.signal(signal.SIGHUP, handler)
+    _default_handlers[signal.SIGINT] = signal.signal(signal.SIGINT, handler)
+
     # start transports
     for name, options in getattr(settings, "TRANSPORTS", {}).items():
         try:
@@ -40,7 +45,4 @@ def make_app_from_settings(settings):
         factory = getattr(module, class_name)
         _transports[name] = factory(name, options)
 
-    app = WSGIHandler()
-    _default_handlers[signal.SIGHUP] = signal.signal(signal.SIGHUP, shutdown)
-    _default_handlers[signal.SIGINT] = signal.signal(signal.SIGINT, shutdown)
-    return app
+    return WSGIHandler()
