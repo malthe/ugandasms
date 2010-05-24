@@ -84,6 +84,30 @@ Router
 .. autoclass:: router.router.Sequential
    :members:   forms, route
 
+Signals
+-------
+
+.. data:: router.router.pre_handle(sender=None, result=None, error=None)
+
+   Called immediately *before* a form is handled (but after it's been
+   saved).
+
+   This signal sends an additional ``result`` argument which is the
+   return value of the parser function, or an empty dictionary if the
+   function had no return value.
+
+   Note that any changes made to the result dictionary must conform to
+   the specific form handler signature.
+
+   If the message was erroneous, the formatting error is available in
+   ``error``.
+
+.. data:: router.router.post_handle(sender=None, error=None)
+
+   Called immediately *after* a form was handled. If an exception was
+   raised, it will be passed as ``error`` (and re-raised immediately
+   after this signal).
+
 Pico
 ~~~~
 
@@ -135,6 +159,23 @@ Transports
    .. autoclass:: router.transports.Message
       :members:   incoming, router
 
+Signals
+-------
+
+.. data:: router.transports.pre_parse(sender=None)
+
+   Called *before* an incoming message is parsed.
+
+   The ``sender`` of this signal is an :class:`router.models.Incoming`
+   instance.
+
+   Changing the value of the ``text`` attribute in this step will
+   directly control the parser input before next step.
+
+.. data:: router.transports.post_parse(sender=None)
+
+   Called *after* an incoming message was parsed.
+
 GSM
 ---
 
@@ -147,6 +188,7 @@ Kannel
    :members:   fetch, handle
 
 .. autofunction:: router.views.kannel
+
 
 .. _testing:
 

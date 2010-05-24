@@ -29,6 +29,8 @@ from .models import Incoming
 from .models import Outgoing
 from .models import Peer
 
+pre_route = Signal()
+post_route = Signal()
 kannel_event = Signal(providing_args=["request", "response"])
 hangup = Signal()
 
@@ -109,6 +111,7 @@ class Message(Transport):
         # save message
         message.save()
 
+        pre_route.send(sender=message)
         try:
             self.router.route(message)
         except:
@@ -121,6 +124,8 @@ class Message(Transport):
                     type(exc).__name__,
                     repr(message.text.encode('utf-8')),
                     format_exc(exc)))
+        finally:
+            post_route.send(sender=message)
 
         return message
 

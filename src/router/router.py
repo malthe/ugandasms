@@ -6,11 +6,7 @@ from django.db.models import get_model
 from django.db.models import get_models
 from django.utils.functional import memoize
 
-from .models import Form
-
-pre_parse = Signal()
-post_parse = Signal(providing_args=["error"])
-pre_handle = Signal(providing_args=["result"])
+pre_handle = Signal(providing_args=["error", "result"])
 post_handle = Signal(providing_args=["error"])
 
 class FormatError(Exception):
@@ -85,7 +81,6 @@ class Sequential(object):
     _get_forms = staticmethod(memoize(_get_forms, _cache, 1))
 
     def route(self, message):
-        pre_parse.send(sender=message)
         remaining = unicode(message.text)
 
         while True:
@@ -94,23 +89,20 @@ class Sequential(object):
             result = None
             remaining = ""
 
-            form = Form(text=text, message=message)
             for cls in self.forms:
                 try:
-                    result, remaining = cls.parse(form.text)
+                    result, remaining = cls.parse(text)
                     if result is None:
                         continue
                 except FormatError, error:
                     pass
 
                 erroneous = bool(error)
-                form.__class__ = cls
-                form.__init__(text=text, message=message, erroneous=erroneous)
-                post_parse.send(sender=form, error=error)
+                form = cls(text=text, message=message, erroneous=erroneous)
                 form.save()
 
                 if result is not None:
-                    pre_handle.send(sender=form, result=result)
+                    pre_handle.send(sender=form, result=result, error=error)
                     error = None
                     try:
                         form.handle(**result)
@@ -124,4 +116,3 @@ class Sequential(object):
             # stop when there's no more text to parse
             if not remaining:
                 break
-

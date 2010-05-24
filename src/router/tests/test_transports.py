@@ -15,6 +15,7 @@ class MessageTest(FunctionalTestCase):
         'FORMS': (
             'BadConfiguration',
             'Broken',
+            'Echo',
             )
         }
     
@@ -51,6 +52,30 @@ class MessageTest(FunctionalTestCase):
             self.assertTrue('ImproperlyConfigured' in str(w[0]))
         finally:
             settings.DEBUG = True
+
+    def test_signals(self):
+        from router.transports import pre_route
+        from router.transports import post_route
+
+        s1 = []
+        s2 = []
+
+        def before_route(sender=None, **kwargs):
+            s1.append(sender)
+            self.assertEqual(sender.forms.count(), 0)
+        pre_route.connect(before_route)
+
+        def after_route(sender=None, **kwargs):
+            s2.append(sender)
+            self.assertEqual(sender.forms.count(), 1)
+        post_route.connect(after_route)
+
+        from router.tests.transports import Dummy
+        transport = Dummy("dummy")
+        transport.incoming("test", "+echo")
+
+        self.assertTrue(len(s1), 1)
+        self.assertTrue(len(s2), 1)
 
 class KannelTest(FunctionalTestCase):
     INSTALLED_APPS = FunctionalTestCase.INSTALLED_APPS + (
