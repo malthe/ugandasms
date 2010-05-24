@@ -80,7 +80,11 @@ class Sequential(object):
 
     _get_forms = staticmethod(memoize(_get_forms, _cache, 1))
 
-    def parse(self, remaining):
+    def parse(self, text):
+        """Parse the text provided in ``text``."""
+
+        remaining = text
+
         while True:
             text = remaining.strip()
             error = None
@@ -102,6 +106,8 @@ class Sequential(object):
                 break
 
     def route(self, message):
+        """Route the message provided."""
+
         for cls, result, text, error in self.parse(message.text):
             erroneous = bool(error)
             form = cls(text=text, message=message, erroneous=erroneous)

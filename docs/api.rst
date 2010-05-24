@@ -82,7 +82,7 @@ Router
 .. autoclass:: router.router.FormatError
 
 .. autoclass:: router.router.Sequential
-   :members:   forms, route
+   :members:   forms, route, parse
 
 Signals
 -------
