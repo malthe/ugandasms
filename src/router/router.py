@@ -80,8 +80,10 @@ class Sequential(object):
 
     _get_forms = staticmethod(memoize(_get_forms, _cache, 1))
 
-    def route(self, message):
-        remaining = unicode(message.text)
+    def parse(self, text):
+        """Parse the text provided in ``text``."""
+
+        remaining = text
 
         while True:
             text = remaining.strip()
@@ -97,22 +99,28 @@ class Sequential(object):
                 except FormatError, error:
                     pass
 
-                erroneous = bool(error)
-                form = cls(text=text, message=message, erroneous=erroneous)
-                form.save()
-
-                if result is not None:
-                    pre_handle.send(sender=form, result=result, error=error)
-                    error = None
-                    try:
-                        form.handle(**result)
-                    except Exception, error:
-                        pass
-                    finally:
-                        post_handle.send(sender=form, error=error)
-                elif error is not None:
-                    form.reply(error.text)
+                yield cls, result, text, error
 
             # stop when there's no more text to parse
             if not remaining:
                 break
+
+    def route(self, message):
+        """Route the message provided."""
+
+        for cls, result, text, error in self.parse(message.text):
+            erroneous = bool(error)
+            form = cls(text=text, message=message, erroneous=erroneous)
+            form.save()
+
+            if result is not None:
+                pre_handle.send(sender=form, result=result, error=error)
+                error = None
+                try:
+                    form.handle(**result)
+                except Exception, error:
+                    pass
+                finally:
+                    post_handle.send(sender=form, error=error)
+            elif error is not None:
+                form.reply(error.text)
