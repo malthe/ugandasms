@@ -79,24 +79,22 @@ class Registration(Form):
                 self.message.peer.save()
 
                 self.reply((
-                    "Welcome, %(name)s (#%(id)04d). "
+                    "Welcome, %(name)s. "
                     "You have been registered.") % {
                     'name': name,
-                    'id': user.id,
                     })
             else:
                 self.reply("Please provide your name when registering.")
         else:
             if name is None:
-                self.reply("Your current identification string is: %s." % \
+                self.reply("You're currently registered with %s." % \
                            self.message.ident)
             else:
                 self.user.name = name
                 self.user.save()
 
                 self.reply((
-                    "Hello, %(name)s (#%(id)04d). "
+                    "Hello, %(name)s. "
                     "You have updated your information.") % {
-                               'name': name,
-                               'id': self.user.id,
-                               })
+                        'name': name,
+                    })
