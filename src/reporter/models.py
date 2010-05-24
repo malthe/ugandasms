@@ -2,7 +2,6 @@ from django.db import models
 
 from picoparse import choice
 from picoparse import commit
-from picoparse import eof
 from picoparse import many1
 from picoparse import not_one_of
 from picoparse import one_of
@@ -11,17 +10,16 @@ from picoparse import partial
 from picoparse import tri
 from picoparse.text import whitespace1
 
-from router.parser import digits
-from router.parser import one_of_strings
-from router.parser import ParseError
-from router.models import Incoming
+from router.pico import one_of_strings
+from router.pico import wrap as pico
+from router.models import Form
 from router.models import Peer
 from router.models import User
 
 class Reporter(User):
     name = models.CharField(max_length=50)
 
-class Registration(Incoming):
+class Registration(Form):
     """Register with the system.
 
     New users will register using the format::
@@ -40,8 +38,8 @@ class Registration(Incoming):
        +REG[ISTER]
     """
 
-    @staticmethod
-    def parse():
+    @pico
+    def parse(cls):
         one_of('+')
         one_of_strings('register', 'reg')
 
@@ -71,28 +69,27 @@ class Registration(Incoming):
                     self.reply("We did not find an existing registration "
                                "identified by: %s." % ident)
                 else:
-                    peer.user.peers.add(self.peer)
-                    self.peer.save()
+                    peer.user.peers.add(self.message.peer)
+                    self.message.peer.save()
                     self.reply("Thank you for your registration.")
             elif name is not None:
                 user = Reporter(name=name)
                 user.save()
-                self.peer.user = user
-                self.peer.save()
+                self.message.peer.user = user
+                self.message.peer.save()
 
                 self.reply((
                     "Welcome, %(name)s (#%(id)04d). "
                     "You have been registered.") % {
                     'name': name,
-                    'id': self.user.id,
+                    'id': user.id,
                     })
             else:
                 self.reply("Please provide your name when registering.")
         else:
-            self.user, created = Reporter.objects.get_or_create(pk=self.user.pk)
-
             if name is None:
-                self.reply("Your current identification string is: %s." % self.ident)
+                self.reply("Your current identification string is: %s." % \
+                           self.message.ident)
             else:
                 self.user.name = name
                 self.user.save()

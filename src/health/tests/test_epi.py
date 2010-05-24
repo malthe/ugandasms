@@ -1,79 +1,62 @@
-import datetime
-
-from router.testing import FunctionalTestCase
+from router.testing import FormTestCase
 from router.testing import UnitTestCase
 
 class ParserTest(UnitTestCase):
     @staticmethod
     def _epi(text):
         from ..models import Epi
-        from router.parser import Parser
-        parser = Parser((Epi,))
-        return parser(text)[:2]
+        return Epi.parse(text)[0]
 
     def test_empty(self):
-        model, data = self._epi("+epi")
+        data = self._epi("+epi")
         self.assertEqual(data['aggregates'], {})
 
     def test_missing_value(self):
-        from router.parser import ParseError
-        self.assertRaises(ParseError, self._epi, "+epi ma")
+        self.assertEqual(self._epi("+epi ma"), None)
 
     def test_duplicate(self):
-        from router.parser import ParseError
-        self.assertRaises(ParseError, self._epi, "+epi ma 5 ma 10")
+        from router.router import FormatError
+        self.assertRaises(FormatError, self._epi, "+epi ma 5 ma 10")
 
     def test_value(self):
-        model, data = self._epi("+epi MA 5")
+        data = self._epi("+epi MA 5")
         self.assertEqual(data['aggregates'], {'MA': 5.0})
 
     def test_value_lowercase(self):
-        model, data = self._epi("+epi ma 5")
+        data = self._epi("+epi ma 5")
         self.assertEqual(data['aggregates'], {'MA': 5.0})
 
     def test_negative_value(self):
-        from router.parser import ParseError
-        self.assertRaises(ParseError, self._epi, "+epi MA -5")
+        from router.router import FormatError
+        self.assertRaises(FormatError, self._epi, "+epi MA -5")
 
     def test_values(self):
-        model, data = self._epi("+epi MA 5 TB 10")
+        data = self._epi("+epi MA 5 TB 10")
         self.assertEqual(data['aggregates'], {'MA': 5.0, 'TB': 10.0})
 
     def test_bad_indicator(self):
-        from router.parser import ParseError
-        self.assertRaises(ParseError, self._epi, "+epi xx 5.0")
+        from router.router import FormatError
+        self.assertRaises(FormatError, self._epi, "+epi xx 5.0")
 
     def test_bad_value(self):
-        from router.parser import ParseError
-        self.assertRaises(ParseError, self._epi, "+epi ma five")
+        from router.router import FormatError
+        self.assertRaises(FormatError, self._epi, "+epi ma five")
 
-class HandlerTest(FunctionalTestCase): # pragma: NOCOVER
-    INSTALLED_APPS = FunctionalTestCase.INSTALLED_APPS + (
-        'django.contrib.gis',
+class FormTest(FormTestCase):
+    INSTALLED_APPS = FormTestCase.INSTALLED_APPS + (
         'health',
         'reporter',
         )
 
-    @staticmethod
-    def _handle(model, uri="test://old", text="", **kwargs):
-        TIME = datetime.datetime(1999, 12, 31, 0, 0, 0)
-        from router.models import Peer
-        message = model(text=text, time=TIME)
-        message.peer, created = Peer.objects.get_or_create(uri=uri)
-        message.peer.save()
-        message.save()
-        message.handle(**kwargs)
-        return message
-
     @classmethod
     def _register(cls, **kwargs):
         from reporter.models import Registration
-        return cls._handle(Registration, **kwargs)
+        return cls.handle(Registration, **kwargs)
 
     @classmethod
     def _epi(cls, **kwargs):
         from ..models import Epi
-        return cls._handle(Epi, **kwargs)
+        return cls.handle(Epi, **kwargs)
 
     def test_no_reports(self):
         self._register(name="foo")
@@ -87,7 +70,7 @@ class HandlerTest(FunctionalTestCase): # pragma: NOCOVER
         message = self._epi(aggregates={'MA': 5})
         from ..models import Aggregate
         self.assertEqual(Aggregate.objects.count(), 1)
-        self.assertEqual(Aggregate.objects.get().user, message.user)
+        self.assertEqual(Aggregate.objects.get().reporter, message.user)
         reply = message.replies.get()
         self.assertTrue('malaria 5' in reply.text)
 

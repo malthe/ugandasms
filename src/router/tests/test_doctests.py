@@ -24,9 +24,14 @@ class ModuleTests(UnitTestCase):
         return getattr(self, test)()
 
     @classmethod
-    def test_parser(cls):
-        from router import parser
-        return doctest.DocTestSuite(parser)
+    def test_router(cls):
+        from router import router
+        return doctest.DocTestSuite(router)
+
+    @classmethod
+    def test_pico(cls):
+        from router import pico
+        return doctest.DocTestSuite(pico)
 
     @classmethod
     def test_models(cls):
@@ -42,14 +47,6 @@ class DocumentationTest(FunctionalTestCase): # pragma: NOCOVER
     GLOBS = {
         'assert_equals': assert_equals,
         'assert_contains': assert_contains,
-        }
-
-    USER_SETTINGS = {
-        'TRANSPORTS': {
-            'gateway': {
-                'TRANSPORT': 'router.testing.Gateway',
-                },
-            },
         }
 
     def __new__(cls, test):
@@ -88,12 +85,11 @@ class DocumentationTest(FunctionalTestCase): # pragma: NOCOVER
         # handle additional setup in a try-except and make sure we
         # tear down the test afterwards
         try:
-            from router.transports import get_transport
-            gateway = get_transport('gateway')
-
-            from router.testing import Subscriber
-            self.globs['bob'] = Subscriber(gateway, u"gateway://256000000000")
+            from router.testing import Gateway
+            from router.testing import Peer
+            transport = Gateway("gateway")
+            self.globs['bob'] = Peer(transport, u"256000000000")
         except:
             self.tearDown()
+            del self.globs
             raise
-

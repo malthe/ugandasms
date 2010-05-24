@@ -8,36 +8,45 @@ from traceback import format_exc
 from StringIO import StringIO
 
 class Gateway(object):
-    """Mobile gateway."""
+    """Message gateway.
+
+    Use this transport to test communication between two peers.
+    """
 
     def __new__(cls, *args):
-        from router.transports import Transport
-        cls = type("Gateway", (cls, Transport), {})
+        from .transports import Message
+        cls = type("Gateway", (cls, Message), {})
         return object.__new__(cls)
 
-    def __init__(self, name, options):
+    def __init__(self, name):
         self._subscribers = {}
-        super(Gateway, self).__init__(name, options)
+        super(Gateway, self).__init__(name)
 
     def receive(self, sender, text):
-        self._subscribers[sender.uri] = sender
-        ident = sender.uri.split('://')[1]
-        self.incoming(ident, text)
+        self._subscribers[sender.ident] = sender
+        message = self.incoming(sender.ident, text)
+        for form in message.forms.all():
+            for reply in form.replies.all():
+                self.send(reply)
 
-    def send(self, message):
-        receiver = self._subscribers[message.uri]
-        receiver.receive(message.text)
+    def send(self, reply):
+        receiver = self._subscribers[reply.ident]
+        receiver.receive(reply.text)
 
         # note delivery time
-        message.delivery = message.in_reply_to.time
-        message.save()
+        reply.delivery = reply.in_reply_to.message.time
+        reply.save()
 
-class Subscriber(object):
-    """Mobile subscriber."""
+class Peer(object):
+    """Network peer.
 
-    def __init__(self, gateway, uri=None):
+    Each peer is configured for a :class:`gateway` with a unique ``ident``
+    string.
+    """
+
+    def __init__(self, gateway, ident):
         self.gateway = gateway
-        self.uri = uri
+        self.ident = ident
         self._received = []
 
     def send(self, text):
@@ -48,6 +57,11 @@ class Subscriber(object):
         self.gateway.receive(self, text)
 
     def receive(self, text=None):
+        """Returns a received message by popping it off the incoming
+        stack. If no message was received, the empty string is
+        returned.
+        """
+
         if text is None:
             return self._received and self._received.pop(0) or u''
         text = "<<< " + text
@@ -103,11 +117,7 @@ class FunctionalTestCase(UnitTestCase):  # pragma: NOCOVER
         )
 
     BASE_SETTINGS = {
-        'TRANSPORTS': {
-            'dummy': {
-                'TRANSPORT': 'router.tests.transports.Dummy',
-                },
-            },
+        'DEBUG': True
         }
 
     USER_SETTINGS = {}
@@ -185,6 +195,9 @@ class FunctionalTestCase(UnitTestCase):  # pragma: NOCOVER
             conn = self._pg_connect()
             curs = conn.cursor()
             self._pg_drop_database(curs, self._pg_database_name)
+
+        import gc
+        gc.collect()
 
     @property
     def _pg_enabled(self):
@@ -276,3 +289,24 @@ class FunctionalTestCase(UnitTestCase):  # pragma: NOCOVER
 
         postgres.execute("drop database %s" % name)
         return True
+
+class FormTestCase(FunctionalTestCase):
+    """Functional test case that adds utility methods for testing
+    forms."""
+
+    @staticmethod
+    def handle(model, text="", uri="test://old", user=None, **kwargs):
+        """Handles an incoming message with the provided form."""
+
+        from .models import Incoming
+        from datetime import datetime
+        time = datetime(1999, 12, 31, 0, 0, 0)
+        message = Incoming(text=text, time=time, uri=uri)
+        from .models import Peer
+        message.peer, created = Peer.objects.get_or_create(uri=uri)
+        message.peer.save()
+        message.save()
+        form = model(text=text, message=message)
+        form.save()
+        form.handle(**kwargs)
+        return form

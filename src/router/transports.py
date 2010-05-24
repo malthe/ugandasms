@@ -1,235 +1,406 @@
+import re
+import sys
+import logging
+
+try:
+    import sms
+except ImportError: # pragma: NOCOVER
+    sms = None
+
 from datetime import datetime
-from functools import partial
+from threading import Thread
+from time import sleep
 from urllib import urlencode
 from urllib2 import Request
 from urllib2 import urlopen
+from time import time as get_time
 from traceback import format_exc
 from warnings import warn
+from weakref import ref as weakref
 
-from django.db.models import get_model
-from django.db.models import get_models
-from django.http import HttpResponse as Response
 from django.utils.importlib import import_module
-from django.utils.functional import memoize
 from django.db.models import signals
 from django.dispatch import Signal
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
+from django.utils.functional import memoize
 
-from .parser import Parser
-from .parser import ParseError
 from .models import Incoming
 from .models import Outgoing
 from .models import Peer
-from .models import Broken
-from .models import NotUnderstood
-from .models import camelcase_to_dash
 
-@partial(signals.post_save.connect, sender=Outgoing, weak=False)
-def outgoing(sender, instance=None, created=None, **kwargs):
-    """Send outgoing message on first save."""
+pre_route = Signal()
+post_route = Signal()
+kannel_event = Signal(providing_args=["request", "response"])
+hangup = Signal()
 
-    if created is True:
-        transport = get_transport(instance.transport)
-        transport.send(instance)
-
-@partial(signals.post_init.connect, sender=Incoming, weak=False)
-def initialize(sender, **kwargs):
-    """Initialize transports."""
-
-    for name in getattr(settings, "TRANSPORTS", ()):
-        get_transport(name)
-
-pre_parse = Signal()
-post_parse = Signal(providing_args=["data"])
-pre_handle = Signal()
-post_handle = Signal()
-
-def get_transport(name):
-    """Look up and return transport given by ``name``.
-
-    Transports must be defined in under the ``TRANSPORTS`` settings
-    key. Each entry is an identifier string that points to a
-    configuration dictionary.
-
-    The only required parameter for any transport is the ``TRANSPORT``
-    key. This must be the dotted path to a factory class.
-
-    The transport will be instantiated on the first lookup. The
-    transport name is passed as the first argument while any
-    additional keys in the configuration dictionary will be provided
-    as the second argument (not as double-star keyword arguments).
-    """
-
-    try:
-        transports = settings.TRANSPORTS
-    except AttributeError: # PRAGMA: nocover
-        raise ImproperlyConfigured("No transports defined.")
-
-    if name not in transports: # PRAGMA: nocover
-        raise ImproperlyConfigured("No such transport: %s." % name)
-
-    configuration = transports[name]
-
-    try:
-        transport = configuration["TRANSPORT"]
-    except KeyError: # PRAGMA: nocover
-        raise ImproperlyConfigured("Must set value for ``TRANSPORT``.")
-
-    if isinstance(transport, basestring):
-        module_name, class_name = transport.rsplit('.', 1)
-        module = import_module(module_name)
-        factory = getattr(module, class_name)
-        transport = configuration["TRANSPORT"] = factory(name, configuration)
-
-    return transport
+def shrink(string): # pragma: NOCOVER
+    return string.replace('\r', '').replace('\n', '').strip()
 
 class Transport(object):
-    """Transport base class.
+    """Transport.
 
-    All transport implementations should inherit from this class and
-    implement the ``send`` method. If an implementation needs to
-    operate in a separate thread, this should be set up in the class
-    constructor.
+    Shared by all transport implementations.
 
-    When the transport receives an incoming message it should call the
-    ``incoming`` method for processing.
+    :param name: Name
 
-    The default ``parse`` method draws its list of enabled message
-    models from the global ``MESSAGES`` setting in Django's settings
-    module. This should be a list of strings on the following format::
+    :param options: Options; keys may be provided in any case. All options are set as attributes on the transport object.
 
-      [<app_label>.]<model_name>
-
-    The application label may be omitted if there's no ambiguity.
+    If an implementation needs to operate in a separate thread, this
+    should be set up in the class constructor.
     """
 
-    _parser_cache = {}
-
-    def __init__(self, name, options):
+    def __init__(self, name, options={}):
         self.name = name
 
         for key, value in options.items():
             setattr(self, key.lower(), value)
 
+class Message(Transport):
+    """Message transport.
+
+    This is the base class for all message-based transports.
+
+    When the transport receives an incoming message it should call the
+    :meth:`incoming` method for processing.
+    """
+
+    _cache = {}
+
     @property
-    def parse(self):
-        paths = getattr(settings, "MESSAGES", ())
-        return self._get_parser(paths)
+    def router(self):
+        """Resolve router defined in the ``MESSAGE_ROUTER`` setting."""
 
-    def _get_parser(self, paths):
-        messages = []
-        models = get_models()
-        for path in paths:
-            if path.count('.') == 0:
-                for model in models:
-                    if model.__name__ == path:
-                        break
-                else: # PRAGMA: nocover
-                    raise ImproperlyConfigured("Model not found: %s." % path)
-            elif path.count('.') == 1:
-                model = get_model(*path.split('.'))
-            else: # PRAGMA: nocover
-                raise ImproperlyConfigured("Specify messages as [<app_label>.]<model_name>.")
-            if model is None: # PRAGMA: nocover
-                raise ImproperlyConfigured("Can't find model: %s." % path)
-            messages.append(model)
+        try:
+            path = getattr(settings, "MESSAGE_ROUTER")
+        except AttributeError: # pragma: NOCOVER
+            raise ImproperlyConfigured(
+                "Missing setting ``MESSAGE_ROUTER``.")
+        return self._get_router(path)
 
-        return Parser(messages)
-    _get_parser = memoize(_get_parser, _parser_cache, 1)
+    def _get_router(path):
+        try:
+            module_name, class_name = path.rsplit('.', 1)
+            module = import_module(module_name)
+            factory = getattr(module, class_name)
+        except: # pragma: NOCOVER
+            raise ImproperlyConfigured(
+                "Unable to resolve '%s'." % path)
+
+        return factory()
+
+    _get_router = staticmethod(memoize(_get_router, _cache, 1))
 
     def incoming(self, ident, text, time=None):
-        """Invoked when a transport receives an incoming text message.
+        """Route incoming text message.
 
-        The method uses its message parser on ``text`` to receive a
-        message model, a parser result dictionary and any remaining
-        text.
-
-          model, data, remaining = self.parse(text)
-
-        The message model is instantiated and the parse result data is
-        passed to the message handler as keyword arguments::
-
-          message = model(text=text)
-          message.handle(**data)
-
-        If the message parser throws a parse error, the message class
-        will be of type ``NotUnderstood``. The error message will be
-        set in the ``help`` attribute.
-
-        Note that signals are provided to hook into the flow of
-        operations of this method:: ``pre_parse``, ``post_parse``,
-        ``pre_handle`` and ``post_handle``.
-
-        If there's remaining text, the loop is repeated, possibly
-        resulting in several incoming messages.
+        When the system runs in debug mode (with the ``DEBUG`` setting
+        set to a true value), all exceptions are let through to the
+        calling method. Otherwise a warning is logged with the full
+        traceback while the exception is suppressed.
         """
 
         time = time or datetime.now()
+        message = Incoming(text=text, time=time)
 
-        while True:
-            message = Incoming(text=text, time=time)
-            pre_parse.send(sender=message)
+        # make sure we have a peer record for this sender
+        message.uri = "%s://%s" % (self.name, ident)
+        peer, created = Peer.objects.get_or_create(uri=message.uri)
+        if created: peer.save()
 
-            try:
-                model, data, text = self.parse(message.text)
-            except ImproperlyConfigured, exc:
+        # save message
+        message.save()
+
+        pre_route.send(sender=message)
+        try:
+            self.router.route(message)
+        except:
+            if settings.DEBUG:
+                raise
+            else:
+                cls, exc, tb = sys.exc_info()
                 warn("%s ERROR [%s] - %s.\n\n%s" % (
                     time.isoformat(),
                     type(exc).__name__,
                     repr(message.text.encode('utf-8')),
                     format_exc(exc)))
-                model, data, text = Broken, {}, ""
-            except ParseError, error:
-                model, data, text = NotUnderstood, {'help': error.args[0]}, ""
+        finally:
+            post_route.send(sender=message)
 
-            message.__class__ = model
+        return message
+
+class GSM(Message): # pragma: NOCOVER
+    """GSM transport.
+
+    :param name: Transport name
+
+    :param options: ``DEVICE`` is the modem serial port (e.g. ``\"COM1\"``) or special device path (e.g. ``\"/dev/ttyUSB0\"``); ``LOG_LEVEL`` sets the logging level (default is ``\"WARN\"`` which is quiet unless there's an error); ``DCS`` is the data coding scheme (default is ``0`` for normal delivery, ``16`` sends flash messages); ``VALIDITY`` sets the message expiration (use ``167`` for one day); ``STORAGE`` sets the preferred message storage (use ``ME`` for internal, ``SM`` for SIM card or ``MT`` for either); set ``DELIVERY`` to a true value to request delivery reports (may incur an extra charge, use with caution).
+
+    Example::
+
+      TRANSPORTS = {
+          'gsm': {
+              'TRANSPORT': 'router.transports.GSM',
+              'DEVICE': '/dev/ttyUSB0',
+          }
+      }
+
+    """
+
+    device = None
+    dcs = 0
+    delivery = None
+    validity = ""
+    log_level = "WARN"
+    storage = ""
+    timeout = 3
+
+    _hangup = False
+
+    def __init__(self, *args, **kwargs):
+        super(GSM, self).__init__(*args, **kwargs)
+
+        # verify availability of sms module
+        if sms is None:
+            raise ImportError('sms')
+
+        formatter = logging.Formatter("%(asctime)s - %(name)s - "
+                                      "%(levelname)s - %(message)s")
+        handler = logging.StreamHandler(sys.stderr)
+        handler.setFormatter(formatter)
+        level = getattr(logging, self.log_level.upper())
+        logger = self.logger = logging.Logger(self.name.upper(), level=level)
+        logger.addHandler(handler)
+
+        try:
+            self.modem = sms.Modem(self.device)
+        except sms.ModemError, error:
+            logger.error(error)
+        else:
+            self.logger.info("Connected to %s..." % self.device)
+            if not self.setup():
+                return
+
+            # listen to hangup-signal
+            hangup.connect(self.stop)
+
+            # start thread
+            thread = Thread(target=self.run)
+            thread.start()
+
+    def run(self):
+        while not self._hangup:
+            # wait for signal
+            strength = self.check_signal_strength()
+            if strength == -1:
+                self.logger.warn("No signal; waiting 10 seconds.")
+                for i in range(10):
+                    sleep(1)
+                    if self._hangup:
+                        break
+                continue
+            elif strength is not None:
+                self.logger.debug("Signal strength: %d." % strength)
+
+            # incoming
             try:
-                message.__init__(text=message.text)
-            except Exception, exc:
-                message.__class__ = Broken
-                message.__init__(
-                    text=unicode(exc),
-                    kind=camelcase_to_dash(model.__name__))
+                self.modem.wait(1)
+                messages = self.modem.messages()
+            except sms.ModemError, error:
+                self.logger.warn(error)
+                sleep(1)
+                continue
 
-            post_parse.send(sender=message, data=data)
+            if len(messages) > 0:
+                self.logger.debug("Received %d message(s)." % len(messages))
 
-            peer, created = Peer.objects.get_or_create(
-                uri="%s://%s" % (self.name, ident))
-            if created:
-                peer.save()
-            message.peer = peer
-            message.save()
+            for message in messages:
+                ignored = ""
+                if len(message.number) < 6:
+                    ignored = " [IGNORED]"
+                self.logger.debug("%s --> %s%s" % (
+                    message.number, repr(
+                        message.text.encode('utf-8')), ignored))
+                if not ignored:
+                    self.incoming(message.number, message.text, message.date)
 
-            pre_handle.send(sender=message)
-            try:
-                message.handle(**data)
-            finally:
-                post_handle.send(sender=message)
+            # outgoing
+            messages = Outgoing.objects.filter(
+                time=None, peer__uri__startswith="%s://" % self.name)
+            if len(messages) > 0:
+                self.logger.debug("Sending %d message(s)..." % len(messages))
 
-            if not text:
-                break
+            for message in messages.all():
+                try:
+                    self.logger.debug("%s <-- %s" % (
+                        message.ident, repr(message.text.encode('utf-8'))))
 
-    def send(self, message):
-        """Send message using transport.
+                    # prepare send
+                    self.modem.conn.write("AT+CMGS=\"%s\"\r" % message.ident)
+                    result = self.modem.conn.readall()
 
-        This method should be overriden by any transport that wants to
-        send outgoing messages.
+                    if '>' not in result:
+                        self.logger.debug("Sending message failed "
+                                          "before text was sent "
+                                          "(%s)." % shrink(result))
+                        continue
 
-        The implementation in the base class does nothing (although
-        outgoing messages are always stored in the database).
+                    # send text
+                    self.modem.conn.write(message.text + "\x1A")
+                    self.modem.conn.flush()
 
-        Only outgoing messages that have been sent should have a
-        defined ``time`` (this is a record of when a message
-        left the system, not when it was merely queued). It's up to
-        the ``send`` method to set this value.
+                    # wait for message id
+                    timeout = get_time() + self.timeout
+                    while 'ERROR' not in result and get_time() < timeout:
+                        result = self.modem.conn.readall()
+                        m = re.search(r'\+CMGS: (\d+)', result)
+                        if m is not None:
+                            message.delivery_id = int(m.group(1))
+                            break
+                    else:
+                        self.logger.debug("Did not receive message id.")
+                        raise sms.ModemError(shrink(result))
+
+                except sms.ModemError, error:
+                    self.logger.warn(error)
+                    sleep(1)
+                else:
+                    self.logger.debug("Message sent with delivery id: %s." % \
+                                      message.delivery_id)
+                    message.time = datetime.now()
+                    message.save()
+
+            # delete all read (and stored sent) messages
+            self.modem.conn.write("AT+CMGD=0,2\r\n")
+            self.modem.conn.flush()
+            result = self.modem.conn.readall()
+            if 'OK' not in result:
+                self.logger.critical(
+                    "Error deleting messages (%s)." % shrink(result))
+                self.stop()
+
+        try:
+            del self.modem
+        except Exception, exc:
+            self.logger.warn("Error disconnecting (%s)." % exc)
+        else:
+            self.logger.info("Disconnected.")
+
+    def check_signal_strength(self):
+        """Returns an integer between 1 and 99, representing the
+        current signal strength of the GSM network, ``-1`` if we don't
+        know, or ``None`` if the modem can't report it.
         """
 
-class Kannel(Transport):
+        data = self.query("AT+CSQ")
+        md = re.match(r"^\+CSQ: (\d+),", data)
+
+        if md is not None:
+            csq = int(md.group(1))
+            return csq if csq < 99 else -1
+
+    def ping(self):
+        result = self.query("AT")
+        if 'OK' not in result:
+            self.logger.warn("Modem does not respond (%s)." % shrink(result))
+            return False
+        return True
+
+    def query(self, command):
+        self.modem.conn.write("%s\r" % command)
+        self.modem.conn.flush()
+        return self.modem.conn.readall()
+
+    def setup(self):
+        while not self.ping():
+            sleep(1)
+            if self._hangup:
+                return
+
+        # query manufacturer for diagnostics
+        result = self.query("AT+GMI")
+        manufacturer = shrink(result.split('AT+GMI')[-1].split('OK')[0])
+        self.logger.info("%s identified." % manufacturer.capitalize())
+
+        # set preferred message storage
+        if self.storage:
+            result = self.query("AT+CPMS=\"%s\"" % self.storage)
+            if 'OK' not in result:
+                self.logger.warn("Could not set preferred "
+                                 "storage to %s." % self.storage)
+
+        # query mode availability
+        result = self.query("AT+CMGF=?")
+        if '1' not in result:
+            self.logger.critical("Modem does not support text mode (%s)." % \
+                                 shrink(result))
+            return
+
+        # set text mode
+        result = self.query("AT+CMGF=1")
+        if 'OK' not in result:
+            self.logger.critical("Unable to set message mode (%s)." % \
+                                 shrink(result))
+            return
+
+        # verify that we can send messages
+        result = self.query("AT+CMGS=?")
+        if 'OK' not in result:
+            self.logger.critical("Modem reported inability to send "
+                                 "messages (%s)." % shrink(result))
+            return
+
+        options = 1
+        if self.validity:
+            options |= 16
+        if self.delivery:
+            options |= 32
+
+        result = self.query("AT+CSMP=%d,%s,0,%s" % (
+            options, self.validity, self.dcs))
+        if 'OK' not in result:
+            self.logger.warn("Unable to configure message delivery (%s)." % \
+                             shrink(result))
+        else:
+            m = re.match('AT\+CSMP=((\d*(?:,))+)', result)
+            if m is not None:
+                self.logger.debug("Message delivery options: %s." % m.group(1))
+
+        return True
+
+    def stop(self, *args, **kwargs):
+        """Stop transport."""
+
+        self.logger.info("Stopping...")
+        self._hangup = True
+
+    def ussd(self, request):
+        """Place USSD request."""
+
+        self.logger.info("Requesting %s..." % request)
+        self.modem.conn.write("AT+CUSD=1,\"%s\",15\r" % request)
+        self.modem.conn.flush()
+        result = self.modem.conn.readall()
+        self.logger.info(shrink(result))
+
+class Kannel(Message):
     """Kannel transport.
 
     :param name: Transport name
+
     :param options: Dictionary; define ``'SMS_URL'`` for the URL for the *sendsms* service and ``'DLR_URL'`` to set the delivery confirmation reply
+
+    Example configuration::
+
+      TRANSPORTS = {
+          'kannel': {
+              'TRANSPORT': 'router.transports.Kannel',
+              'SMS_URL': 'http://localhost:13013/cgi-bin/sendsms?' \
+                         'username=kannel&password=kannel',
+              'DLR_URL': 'http://localhost:8080/kannel',
+          }
+      }
+
     """
 
     sms_url = None
@@ -237,7 +408,33 @@ class Kannel(Transport):
 
     timeout = 30.0
 
-    def fetch(self, request, **kwargs):
+    def __init__(self, *args, **kwargs):
+        super(Kannel, self).__init__(*args, **kwargs)
+
+        reference = weakref(self)
+
+        # set up event handler for incoming messages
+        def on_incoming(sender=None, request=None, response=None, **kwargs):
+            transport = reference()
+            if transport is not None:
+                body, status_code = transport.handle(request)
+                response.write(body)
+                response.status_code = status_code
+
+        kannel_event.connect(on_incoming, sender=self.name, weak=False)
+        del on_incoming
+
+        # set up event handler for outgoing messages
+        def on_outgoing(sender=None, instance=None, created=False, **kwargs):
+            transport = reference()
+            if transport is not None:
+                if created is True and instance.transport == transport.name:
+                    transport.send(instance)
+
+        signals.post_save.connect(on_outgoing, sender=Outgoing, weak=False)
+        del on_outgoing
+
+    def fetch(self, request, **kwargs): # pragma: NOCOVER
         """Fetch HTTP request.
 
         Used internally by the Kannel transport.
@@ -283,10 +480,8 @@ class Kannel(Transport):
                 sender = request.GET['sender']
                 text = request.GET['text']
         except Exception, exc:
-            return Response(
-                "There was an error (``%s``) processing the request: %s." % (
-                    type(exc).__name__, str(exc)), content_type="text/plain",
-                status="406 Not Acceptable")
+            return "There was an error (``%s``) processing the request: %s." % (
+                type(exc).__name__, str(exc)), "406 Not Acceptable"
 
         # the statuses are used by kannel; 1: Delivered to phone, 2:
         # Non-Delivered to Phone, 4: Queued on SMSC, 8: Delivered to
@@ -300,31 +495,38 @@ class Kannel(Transport):
             try:
                 self.incoming(sender, text, time)
             except Exception, exc:
-                return Response(
-                    "There was an internal error (``%s``) processing "
-                    "the request: %s." % (
-                        type(exc).__name__, str(exc)), content_type="text/plain",
-                    status="500 Internal Server Error")
+                return "There was an internal error (``%s``) " \
+                       "processing the request: %s." % (
+                    type(exc).__name__, str(exc)), "500 Internal Server Error"
 
-        return Response(u"")
+        return "", "200 OK"
 
     def send(self, message):
         url = self.sms_url
         if url is None: # PRAGMA: nocover
-            raise ValueError("Must set ``SMS_URL`` parameter for transport: %s." % self.name)
+            raise ValueError("Must set ``SMS_URL`` parameter for "
+                             "transport: %s." % self.name)
 
         if '?' not in url:
             url += "?"
 
-        request = Request(
-            url+'&'+urlencode({
-                'to': message.ident,
-                'text': message.text,
+        query = {
+            'to': message.ident,
+            'text': message.text,
+            }
+
+        if self.dlr_url is not None:
+            query.update({
                 'dlr-url': '%s?status=%%d&id=%d&timestamp=%%T' % (
                     self.dlr_url, message.id),
-                'dlr-mask': '3'})
+                'dlr-mask': '3'
+                })
+
+        request = Request(
+            url+'&'+urlencode(query)
             )
 
         response = self.fetch(request, timeout=self.timeout)
         if response.code // 100 == 2:
             message.time = datetime.now()
+            message.save()

@@ -1,24 +1,14 @@
-import re
-
 from django.db import models
 from django.core.exceptions import ObjectDoesNotExist
 from polymorphic import PolymorphicModel as Model
-from picoparse import any_token
-from picoparse import fail
-from picoparse import optional
-from picoparse import remaining
-
-def camelcase_to_dash(str):
-    return re.sub(
-        '(((?<=[a-z])[A-Z])|([A-Z](?![A-Z]|$)))', '-\\1',
-        str).lower().strip('-')
 
 class User(Model):
-    """Authenticated user.
+    """An authenticated user.
 
     The device used to send and receive messages typically provide a
     means of authentication. Since users may use different devices, we
-    record a set of *peers* that authenticate a user.
+    record a set of :class:`Peer` objects that each
+    authenticate a user.
     """
 
     peers = ()
@@ -26,20 +16,23 @@ class User(Model):
 class CustomForeignKey(models.ForeignKey):
     def __init__(self, *args, **kwargs):
         self.column = kwargs.pop('column')
-        kwargs.setdefault('db_column', "%s_id" % self.column)
+        kwargs.setdefault('db_column', self.column)
         super(CustomForeignKey, self).__init__(*args, **kwargs)
 
     def get_attname(self):
         return self.column
 
 class Peer(Model):
-    """Device identification object.
+    """Mapping between device and user.
 
-    The ``uri`` attribute identifies the remote device in terms of a
-    transport token and an identification string.
+    The ``uri`` attribute identifies the device in terms of the
+    transport used and the unique identifier within that transport::
 
-    Examples:
+      <transport>://<ident>
 
+    Examples::
+
+      gsm://256703945965
       kannel://256703945965
       twitter://bob
       email://bob@host.com
@@ -53,29 +46,13 @@ class Peer(Model):
     user = models.ForeignKey(User, related_name="peers", null=True)
 
 class Message(Model):
-    """SMS message between a user and the system.
-
-    The ``user`` attribute holds a relation to the user. If the user
-    is not registered, the object may not exist.
-    """
+    """SMS message between a user and the system."""
 
     uri = None
     text = models.CharField(max_length=160*3)
     time = models.DateTimeField(null=True)
-    peer = CustomForeignKey(Peer, column="uri", related_name="messages", null=True)
-
-    def get_user(self):
-        """Return user object, or ``None`` if not available."""
-
-        try:
-            return self.peer.user
-        except ObjectDoesNotExist:
-            pass
-
-    def set_user(self, user):
-        self.peer.user = user
-
-    user = property(get_user, set_user)
+    peer = CustomForeignKey(
+        Peer, column="uri", related_name="messages", null=True)
 
     @property
     def transport(self):
@@ -95,78 +72,64 @@ class Message(Model):
 class Incoming(Message):
     """An incoming message."""
 
-    parse = None
-    replies = ()
+    forms = ()
 
-    def handle(self):
+class Form(Model):
+    """Text form appearing in a message."""
+
+    text = models.CharField(max_length=160)
+    message = models.ForeignKey(Incoming, related_name="forms")
+    erroneous = models.NullBooleanField(null=True)
+
+    @property
+    def user(self):
+        """Return :class:`User` object, or ``None`` if not available."""
+
+        return self.message.peer.user
+
+    def handle(self, **result):
         """Handle incoming message.
 
-        The return value is used as the message reply; a ``None``
-        value indicates no reply.
+        The keyword arguments in ``result`` are provided by the parser.
+
+        Use :meth:`self.reply` to send one or more replies to this
+        form; you may also create other database objects here, or
+        update existing ones.
+
+        .. note:: Must be implemented by subclass.
         """
 
         raise NotImplementedError(
             "Message must implement the ``handle`` function.") # PRAGMA: nocover
 
     def reply(self, text):
-        """Schedule an outgoing message as reply to this message."""
+        """Reply to this form.
+
+        This method puts an outgoing message into the delivery queue,
+        but does not guarantee immediate delivery.
+        """
 
         assert self.id is not None
-        message = Outgoing(text=text, uri=self.uri, in_reply_to=self)
+        assert self.message.id is not None
+        message = Outgoing(text=text, uri=self.message.uri, in_reply_to=self)
         message.save()
 
 class Outgoing(Message):
     """An outgoing message."""
 
-    in_reply_to = models.ForeignKey(Incoming, related_name="replies", null=True)
+    in_reply_to = models.ForeignKey(Form, related_name="replies", null=True)
+    delivery_id = models.IntegerField(null=True)
     delivery = models.DateTimeField(null=True)
 
     @property
     def delivered(self):
-        """Return ``True`` if message was confirmed delivered."""
+        """Return ``True`` if the message was confirmed delivered."""
 
         return self.delivery is not None
 
-class Empty(Incoming):
-    """The empty message."""
+    @property
+    def sent(self):
+        """Return ``True`` if the message was sent."""
 
-    @staticmethod
-    def parse():
-        """Fail if any token is parsed.
-
-        >>> from picoparse import run_parser
-
-        The empty message parses.
-
-        >>> run_parser(Empty.parse, ('',)) is not None
-        True
-
-        Any non-trivial input fails.
-
-        >>> run_parser(Empty.parse, 'hello') # doctest: +ELLIPSIS
-        Traceback (most recent call last):
-         ...
-        NoMatch: ...
-        """
-
-        if optional(any_token, None):
-            fail()
-
-    def handle(self):
-        self.reply(u"You sent a message with no text.") # pragma: NOCOVER
-
-class NotUnderstood(Incoming):
-    """Any message which was not understood."""
-
-    def handle(self, help=None):
-        self.reply('Message not understood: %s.' % help)
-
-class Broken(Incoming):
-    """Broken message."""
-
-    kind = models.CharField(max_length=30)
-
-    def handle(self):
-        self.reply("System error handling message: %s (type: %s)." % (
-            self.text, self.kind.replace('-', ' ')))
+        return self.time is not None
 

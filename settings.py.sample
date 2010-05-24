@@ -1,6 +1,6 @@
 DEBUG = True
 
-ROOT_URLCONF = "cvs.urls"
+ROOT_URLCONF = "demo.urls"
 
 DATABASES = {
     'default': {
@@ -10,15 +10,14 @@ DATABASES = {
 }
 
 MESSAGES = (
-    'registration.Registration',
-    'health.Signup',
+    (r'\+\s*echo(\s+|$)', 'Echo'),
+    (r'^$', 'Empty'),
     )
 
 TRANSPORTS = {
-    'kannel': {
-        'TRANSPORT': 'router.transports.Kannel',
-        'SMS_URL': 'http://localhost:13013/cgi-bin/sendsms?username=kannel&password=kannel',
-        'DLR_URL': 'http://localhost:8080/kannel',
+    'gsm': {
+        'TRANSPORT': 'router.transports.GSM',
+        'DEVICE': '/dev/ttyUSB0',
         }
     }
 
@@ -28,8 +27,6 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.admin',
     'router',
-    'registration',
-    'health',
 )
 
 MIDDLEWARE_CLASSES = (

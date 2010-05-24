@@ -58,9 +58,6 @@ setup(
     zip_safe=False,
     tests_require = install_requires + ['manuel', 'nose'],
     entry_points="""
-    [console_scripts]
-    install_demo_fixture = cvs.fixtures:install_demo
-
     [paste.app_factory]
     main = router.wsgi:make_app
     """,

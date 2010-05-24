@@ -6,7 +6,7 @@ import iso8601
 
 from django import conf
 
-def install_demo():
+def install_demo(): # pragma: NOCOVER
     try:
         settings = sys.argv[1]
     except IndexError:
