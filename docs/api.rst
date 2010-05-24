@@ -162,7 +162,7 @@ Transports
 Signals
 -------
 
-.. data:: router.transports.pre_parse(sender=None)
+.. data:: router.transports.pre_route(sender=None)
 
    Called *before* an incoming message is parsed.
 
@@ -172,7 +172,7 @@ Signals
    Changing the value of the ``text`` attribute in this step will
    directly control the parser input before next step.
 
-.. data:: router.transports.post_parse(sender=None)
+.. data:: router.transports.post_route(sender=None)
 
    Called *after* an incoming message was parsed.
 
