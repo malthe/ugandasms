@@ -17,6 +17,9 @@ class ParserTest(UnitTestCase):
 
     def test_ident(self):
         self.assertEquals(self._parse("+reg #123"), {'ident': '123'})
+        self.assertEquals(self._parse("+reg 123"), {'ident': '123'})
+        self.assertEquals(self._parse("+reg 1-2-3"), {'ident': '123'})
+        self.assertEquals(self._parse("+reg 1 2 3"), {'ident': '123'})
         self.assertEquals(self._parse("+reg #"), None)
 
 class HandlerTest(FormTestCase):
