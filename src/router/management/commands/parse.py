@@ -8,15 +8,21 @@ class Command(BaseCommand):
 
     def handle(self, text, **options):
         transport = Message("script")
-        messages = []
+        forms = []
 
         for cls, result, text, error in transport.router.parse(text):
             if error is not None:
                 print error.text
-                break
-            messages.append((cls, result))
+                return
 
-        justification = max([len(model.__name__) for (model, data) in messages])
-        for model, data in messages:
+            forms.append((cls, result))
+
+        if forms:
+            justification = max(
+                [len(model.__name__) for (model, data) in forms])
+
+            for model, data in forms:
                 print "%s: %s" % (
-                    model.__name__.ljust(justification), pformat(data))
+                   model.__name__.ljust(justification), pformat(data))
+        else:
+            print "No forms matched."
