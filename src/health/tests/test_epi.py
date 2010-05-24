@@ -34,6 +34,10 @@ class ParserTest(UnitTestCase):
         data = self._epi("+epi MA 5 TB 10")
         self.assertEqual(data['aggregates'], {'MA': 5.0, 'TB': 10.0})
 
+    def test_values_with_comma(self):
+        data = self._epi("+epi MA 5, TB 10")
+        self.assertEqual(data['aggregates'], {'MA': 5.0, 'TB': 10.0})
+
     def test_bad_indicator(self):
         from router.router import FormatError
         self.assertRaises(FormatError, self._epi, "+epi xx 5.0")
