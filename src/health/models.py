@@ -10,6 +10,7 @@ from django.conf import settings
 
 from picoparse import any_token
 from picoparse import choice
+from picoparse import many
 from picoparse import many_until
 from picoparse import one_of
 from picoparse import optional
@@ -180,6 +181,7 @@ class Epi(Form):
                     raise FormatError("Duplicate value for %s." % code)
 
                 whitespace1()
+
                 try:
                     minus = optional(partial(one_of, '-'), '')
                     value = int("".join([minus]+pico.digits()))
@@ -192,7 +194,7 @@ class Epi(Form):
                         value, cls.TOKENS[code].lower()))
 
                 aggregates[code] = value
-                whitespace()
+                many(partial(one_of, ' ,;.'))
 
         return {
             'aggregates': aggregates
