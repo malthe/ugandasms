@@ -1,15 +1,15 @@
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from polymorphic import PolymorphicModel as Model
-from router.models import Incoming
+from router.models import Form
 from router.models import User
 
 from picoparse import remaining
 from picoparse import one_of
 from picoparse.text import whitespace1
-from router.parser import one_of_strings
-from router.parser import digits
-from router.parser import ParseError
+
+from router import pico
+from router.router import FormatError
 
 from polymorphic.manager import PolymorphicManager
 from django.contrib.gis.db import models
@@ -34,7 +34,7 @@ class Subscription(Model):
     facility = models.ForeignKey(Facility, null=True)
     user = models.ForeignKey(User, related_name="subscriptions", null=True)
 
-class Signup(Incoming):
+class Signup(Form):
     """Message to register as health worker.
 
     New signups use the format::
@@ -47,16 +47,16 @@ class Signup(Incoming):
 
     TOKENS = "VHT", "CHW", "HCS", "HCW"
 
-    @classmethod
+    @pico.wrap
     def parse(cls):
         one_of('+')
-        role = u"".join(one_of_strings(*cls.TOKENS)).upper()
+        role = u"".join(pico.one_of_strings(*cls.TOKENS)).upper()
 
         try:
             whitespace1()
-            code = int(u"".join(digits()))
+            code = int(u"".join(pico.digits()))
         except:
-            raise ParseError(u"Expected an HMIS facility code (got: %s)." %
+            raise FormatError(u"Expected an HMIS facility code (got: %s)." %
                              "".join(remaining()))
 
         return {

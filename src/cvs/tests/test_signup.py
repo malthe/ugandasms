@@ -1,48 +1,36 @@
-from router.testing import FunctionalTestCase
+from router.testing import FormTestCase
 from router.testing import UnitTestCase
 
 class ParserTest(UnitTestCase):
     @staticmethod
     def _signup(text):
         from ..models import Signup
-        from router.parser import Parser
-        parser = Parser((Signup,))
-        return parser(text)[:2]
+        return Signup.parse(text)[0]
 
     def test_code(self):
-        model, data = self._signup("+vht 123")
+        data = self._signup("+vht 123")
         self.assertEquals(data, {'role': u'VHT', 'code': 123})
 
     def test_no_code(self):
-        from router.parser import ParseError
-        self.assertRaises(ParseError, self._signup, "+vht")
+        from router.router import FormatError
+        self.assertRaises(FormatError, self._signup, "+vht")
 
-class HandlerTest(FunctionalTestCase): # pragma: NOCOVER
-    INSTALLED_APPS = FunctionalTestCase.INSTALLED_APPS + (
+class FormTest(FormTestCase):
+    INSTALLED_APPS = FormTestCase.INSTALLED_APPS + (
         'django.contrib.gis',
         'reporter',
         'cvs',
         )
 
-    @staticmethod
-    def _handle(model, uri="test://old", text="", **kwargs):
-        from router.models import Peer
-        message = model(text=text)
-        message.peer, created = Peer.objects.get_or_create(uri=uri)
-        message.peer.save()
-        message.save()
-        message.handle(**kwargs)
-        return message
-
     @classmethod
     def _register(cls, **kwargs):
         from reporter.models import Registration
-        return cls._handle(Registration, **kwargs)
+        return cls.handle(Registration, **kwargs)
 
     @classmethod
     def _signup(cls, **kwargs):
         from ..models import Signup
-        return cls._handle(Signup, **kwargs)
+        return cls.handle(Signup, **kwargs)
 
     def test_signup(self):
         self._register(name="foo")
