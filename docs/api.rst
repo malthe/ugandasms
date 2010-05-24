@@ -13,6 +13,16 @@ Models
   .. autoclass:: Form
      :members:   user, handle, reply
 
+     .. attribute:: prompt
+
+        The value of this attribute will get prepended to all form
+        replies (default is the empty string). Example::
+
+          prompt = u"REGISTER: "
+
+        The use of a prompt can make it easier to understand the
+        message response.
+
      .. attribute:: text
 
         The form input string.

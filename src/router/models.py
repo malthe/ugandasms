@@ -1,5 +1,4 @@
 from django.db import models
-from django.core.exceptions import ObjectDoesNotExist
 from polymorphic import PolymorphicModel as Model
 
 class User(Model):
@@ -81,6 +80,8 @@ class Form(Model):
     message = models.ForeignKey(Incoming, related_name="forms")
     erroneous = models.NullBooleanField(null=True)
 
+    prompt = u""
+
     @property
     def user(self):
         """Return :class:`User` object, or ``None`` if not available."""
@@ -111,6 +112,7 @@ class Form(Model):
 
         assert self.id is not None
         assert self.message.id is not None
+        text = self.prompt + text
         message = Outgoing(text=text, uri=self.message.uri, in_reply_to=self)
         message.save()
 
