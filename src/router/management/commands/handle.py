@@ -2,7 +2,7 @@ import os
 import pwd
 
 from django.core.management.base import BaseCommand
-from router.transports import Transport
+from router.transports import Message
 
 class Command(BaseCommand):
     args = 'text'
@@ -14,15 +14,15 @@ class Command(BaseCommand):
         except OSError:
             user = pwd.getpwuid(os.geteuid())[0]
 
-        transport = Transport("script")
-        messages = transport.incoming(user, text)
+        transport = Message("script")
+        message = transport.incoming(user, text)
+        forms = message.forms.all()
+        for i, form in enumerate(forms):
+            print "%d/%d %s" % (i+1, len(forms), message.time.isoformat())
+            print "--> %s" % form.text
+            print "----" + "-"*len(form.text)
 
-        for i, message in enumerate(messages):
-            print "%d/%d %s" % (i+1, len(messages), message.time.isoformat())
-            print "--> %s" % message.text
-            print "----" + "-"*len(message.text)
-
-            replies = message.replies.all()
+            replies = form.replies.all()
             for j, reply in enumerate(replies):
                 print "    %d/%d %s" % (j+1, len(replies), reply.uri)
                 print "    <-- %s" % reply.text
