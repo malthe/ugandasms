@@ -11,12 +11,14 @@ from django.conf import settings
 from picoparse import any_token
 from picoparse import choice
 from picoparse import many
+from picoparse import many1
 from picoparse import many_until
 from picoparse import one_of
 from picoparse import optional
 from picoparse import partial
 from picoparse import peek
 from picoparse import remaining
+from picoparse import sep
 from picoparse import tri
 from picoparse.text import whitespace
 from picoparse.text import whitespace1
@@ -37,12 +39,6 @@ def generate_tracking_id():
         random.choice(TRACKING_ID_LETTERS),
         random.choice(TRACKING_ID_LETTERS),
         random.randint(0, 99))
-
-def parse_tracking_id():
-    return pico.digit() + pico.digit() + \
-           one_of(TRACKING_ID_LETTERS) + \
-           one_of(TRACKING_ID_LETTERS) + \
-           pico.digit() + pico.digit()
 
 class Patient(Model):
     health_id = models.CharField(max_length=30)
@@ -130,37 +126,51 @@ class MuacMeasurement(Report):
 class Cure(Form):
     """Mark a case as closed due to curing.
 
-      +CURE <tracking_id> [<tag>]*
+    Format::
 
+      +CURE [<tracking_id>]+
+
+    Separate multiple entries with space and/or comma.
     """
+
+    prompt = "Cured: "
 
     @pico.wrap
     def parse(cls):
         one_of('+')
         caseless_string('cure')
 
+        tracking_ids = []
+
         try:
             whitespace1()
-            tracking_id = parse_tracking_id()
+            tracking_ids = pico.identifiers()
         except:
             raise FormatError("Expected tracking id (got: %s)." % \
                               "".join(remaining()))
 
-        return {'tracking_id': tracking_id}
+        return {'tracking_ids': tracking_ids}
 
-    def handle(self, tracking_id=None):
-        try:
-            case = Case.objects.get(tracking_id=tracking_id)
-        except Case.DoesNotExist:
-            return self.reply("The case number %s does not exist." % tracking_id)
+    def handle(self, tracking_ids=None):
+        cases = Case.objects.filter(tracking_id__in=tracking_ids).all()
+        found = set([case.tracking_id for case in cases])
 
-        case.closed = self.message.time
-        label = case.patient.label
-        self.reply("You have set the patient (%s) as \"cured\"." % (
-            label))
+        not_found = set(tracking_ids) ^ found
+        if not_found:
+            return self.reply(
+                "The case number(s) %s do not exist. "
+                "Please correct and resend all tracking ids."  % \
+                ", ".join(not_found))
 
-        self.reply("Your patient (%s), has been set as \"cured\"." % (
-            label), case.report.reporter)
+        for case in cases:
+            case.closed = self.message.time
+            case.save()
+            label = case.patient.label
+
+            self.reply("Your patient, %s, has been set as \"cured\"." % (
+                label), case.report.reporter)
+
+        self.reply("You have closed %d case(s)." % len(cases))
 
 class Epi(Form):
     """Report on epidemiological data.
