@@ -13,7 +13,7 @@ class Command(BaseCommand):
         for cls, result, text, error in transport.router.parse(text):
             if error is not None:
                 print error.text
-                return
+                break
 
             forms.append((cls, result))
 

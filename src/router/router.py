@@ -100,6 +100,7 @@ class Sequential(object):
                     pass
 
                 yield cls, result, text, error
+                break
 
             # stop when there's no more text to parse
             if not remaining:
