@@ -17,7 +17,8 @@ class ParserTest(UnitTestCase):
         self.assertEqual(data['aggregates'], {})
 
     def test_missing_value(self):
-        self.assertEqual(self._agg("+agg ma"), None)
+        from router.router import FormatError
+        self.assertRaises(FormatError, self._agg, "+agg ma")
 
     def test_duplicate(self):
         from router.router import FormatError
@@ -26,6 +27,10 @@ class ParserTest(UnitTestCase):
     def test_value(self):
         data = self._agg("+agg MA 5")
         self.assertEqual(data['aggregates'], {'MA': 5.0})
+
+    def test_values_together(self):
+        data = self._agg("+agg MA5 BD1")
+        self.assertEqual(data['aggregates'], {'MA': 5.0, 'BD': 1.0})
 
     def test_value_lowercase(self):
         data = self._agg("+agg ma 5")
