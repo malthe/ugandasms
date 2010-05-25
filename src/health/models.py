@@ -127,6 +127,41 @@ class MuacMeasurement(Report):
     reading = models.FloatField(null=True)
     patient = models.ForeignKey(Patient, null=True)
 
+class Cure(Form):
+    """Mark a case as closed due to curing.
+
+      +CURE <tracking_id> [<tag>]*
+
+    """
+
+    @pico.wrap
+    def parse(cls):
+        one_of('+')
+        caseless_string('cure')
+
+        try:
+            whitespace1()
+            tracking_id = parse_tracking_id()
+        except:
+            raise FormatError("Expected tracking id (got: %s)." % \
+                              "".join(remaining()))
+
+        return {'tracking_id': tracking_id}
+
+    def handle(self, tracking_id=None):
+        try:
+            case = Case.objects.get(tracking_id=tracking_id)
+        except Case.DoesNotExist:
+            return self.reply("The case number %s does not exist." % tracking_id)
+
+        case.closed = self.message.time
+        label = case.patient.label
+        self.reply("You have set the patient (%s) as \"cured\"." % (
+            label))
+
+        self.reply("Your patient (%s), has been set as \"cured\"." % (
+            label), case.report.reporter)
+
 class Epi(Form):
     """Report on epidemiological data.
 
