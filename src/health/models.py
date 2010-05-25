@@ -350,8 +350,9 @@ class Aggregates(Form):
                     code = code.upper()
                 except:
                     raise FormatError(
-                        "Expected an indicator "
-                        "such as TB or MA.")
+                        "Expected an indicator code "
+                        "such as TB or MA (got: %s)." % \
+                        "".join(remaining()))
 
                 # rewrite alias
                 code = cls.ALIAS.get(code, code)
