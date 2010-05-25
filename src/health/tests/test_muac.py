@@ -24,13 +24,13 @@ class ParserTest(UnitTestCase):
     def test_health_id(self):
         self.assertEqual(self._muac("+muac abc1, red"), {
             'health_id': 'abc1',
-            'reading': u'R',
+            'category': u'R',
             })
 
     def test_health_id_first(self):
         self.assertEqual(self._muac("abc1 +muac red"), {
             'health_id': 'abc1',
-            'reading': u'R',
+            'category': u'R',
             })
 
     def test_health_id_without_reading(self):
@@ -72,7 +72,7 @@ class ParserTest(UnitTestCase):
             'name': 'foo',
             'sex': u'M',
             'age': self._timedelta(6),
-            'reading': u'R',
+            'category': u'R',
             })
 
     def test_name_sex_age_as_date(self):
@@ -80,7 +80,7 @@ class ParserTest(UnitTestCase):
             'name': 'foo',
             'sex': u'M',
             'age': self._datetime(1999, 12, 31),
-            'reading': u'R',
+            'category': u'R',
             })
 
     def test_name_sex_wrong_date(self):
@@ -97,7 +97,7 @@ class ParserTest(UnitTestCase):
             'name': 'foo',
             'sex': u'F',
             'age': self._timedelta(days=6),
-            'reading': u'R',
+            'category': u'R',
             })
 
     def test_name_sex_age_with_age_unit(self):
@@ -105,34 +105,34 @@ class ParserTest(UnitTestCase):
             'name': 'foo',
             'sex': u'M',
             'age': self._timedelta(days=6*365),
-            'reading': u'R',
+            'category': u'R',
             })
 
         self.assertEqual(self._muac("+muac foo, m, 6 months, red"), {
             'name': 'foo',
             'sex': u'M',
             'age': self._timedelta(days=6*30),
-            'reading': u'R',
+            'category': u'R',
             })
 
         self.assertEqual(self._muac("+muac foo, m, 6 weeks, red"), {
             'name': 'foo',
             'sex': u'M',
             'age': self._timedelta(days=6*7),
-            'reading': u'R',
+            'category': u'R',
             })
 
     def test_health_id_with_tag(self):
         self.assertEqual(self._muac("+muac abc1, red, oedema"), {
             'health_id': 'abc1',
-            'reading': 'R',
+            'category': 'R',
             'tags': ['oedema'],
             })
 
     def test_health_id_with_multiple_tags(self):
         self.assertEqual(self._muac("+muac abc1, red, oedema sick"), {
             'health_id': 'abc1',
-            'reading': 'R',
+            'category': 'R',
             'tags': ['oedema', 'sick'],
             })
 
