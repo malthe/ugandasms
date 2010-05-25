@@ -40,7 +40,7 @@ def generate_tracking_id():
         random.randint(0, 99))
 
 class Patient(Model):
-    health_id = models.CharField(max_length=30)
+    health_id = models.CharField(max_length=30, null=True)
     name = models.CharField(max_length=50)
     sex = models.CharField(max_length=1)
     birthdate = models.DateTimeField()
@@ -116,12 +116,99 @@ class Aggregate(Report):
     value = models.IntegerField()
     total = models.IntegerField(null=True)
 
+class Birth(Report):
+    patient = models.ForeignKey(Patient)
+    location = models.CharField(max_length=25)
+
 class MuacMeasurement(Report):
     """Measurement record of the MUAC heuristic."""
 
     category = models.CharField(max_length=1)
     reading = models.FloatField(null=True)
     patient = models.ForeignKey(Patient, null=True)
+
+class BirthForm(Form):
+    """Report a birth.
+
+    Note that although this is not a complete birth registration form,
+    we still enter a new patient record.
+
+    Format::
+
+      +BIRTH <name>, <sex> <location>
+
+    We include ``name`` to corroborate the data. Location can one of:
+
+    * At Home -- ``\"home\"``
+    * Clinic -- ``\"clinic\"``
+    * Health Facility -- ``\"facility\"``
+
+    The last part of the form is forgiving in the sense that it just
+    checks if any of these words occur in the remaining part of the
+    message (until a punctuation).
+    """
+
+    prompt = "Birth: "
+
+    @pico.wrap
+    def parse(cls):
+        one_of('+')
+        caseless_string('birth')
+
+        result = {}
+
+        try:
+            whitespace1()
+            result['name'] = pico.name()
+        except:
+            raise FormatError(
+                "Expected name (got: %s)." % "".join(remaining()))
+
+        try:
+            many1(partial(one_of, ' ,;'))
+            result['sex'] = pico.one_of_strings(
+                'male', 'female', 'm', 'f')[0].upper()
+        except:
+            raise FormatError(
+                "Expected the infant's gender "
+                "(\"male\", \"female\", or simply \"m\" or \"f\"), "
+                "but received instead: %s." % "".join(remaining()))
+
+        try:
+            many1(partial(one_of, ' ,;'))
+            words = pico.name().lower()
+        except:
+            raise FormatError(
+                "Expected a location; "
+                "either \"home\", \"clinic\" or \"facility\" "
+                "(got: %s)." % "".join(remaining()))
+
+        for word in words.split():
+            matches = difflib.get_close_matches(
+                word, ('home', 'clinic', 'facility'))
+            if matches:
+                result['location'] = matches[0].upper()
+                break
+        else:
+            raise FormatError(
+                "Did not understand the location: %s." % words)
+
+        return result
+
+    def handle(self, name=None, sex=None, location=None):
+        birthdate = datetime.datetime.now()
+
+        patient = Patient(
+            name=name, sex=sex, birthdate=birthdate,
+            last_reported_on_by=self.user)
+        patient.save()
+
+        birth = Birth(patient=patient, location=location,
+                      reporter=self.user, time=self.message.time)
+        birth.save()
+
+        self.reply("Thank you for registering the birth of %s." % \
+                   patient.label)
 
 class Cure(Form):
     """Mark a case as closed due to curing.
