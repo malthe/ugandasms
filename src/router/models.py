@@ -103,7 +103,7 @@ class Form(Model):
         raise NotImplementedError(
             "Message must implement the ``handle`` function.") # PRAGMA: nocover
 
-    def reply(self, text):
+    def reply(self, text, user=None):
         """Reply to this form.
 
         This method puts an outgoing message into the delivery queue,
@@ -113,7 +113,13 @@ class Form(Model):
         assert self.id is not None
         assert self.message.id is not None
         text = self.prompt + text
-        message = Outgoing(text=text, uri=self.message.uri, in_reply_to=self)
+
+        if user is None:
+            uri = self.message.uri
+        else:
+            uri = user.peers.all()[0].uri
+
+        message = Outgoing(text=text, uri=uri, in_reply_to=self)
         message.save()
 
 class Outgoing(Message):

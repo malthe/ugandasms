@@ -22,9 +22,6 @@ from picoparse.text import caseless_string
 from picoparse.text import lexeme
 from picoparse.text import whitespace
 
-from picoparse import run_parser
-from picoparse import NoMatch
-
 comma = partial(one_of, ',')
 dot = partial(one_of, '.')
 hash = partial(one_of, '#')

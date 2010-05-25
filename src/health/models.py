@@ -38,6 +38,12 @@ def generate_tracking_id():
         random.choice(TRACKING_ID_LETTERS),
         random.randint(0, 99))
 
+def parse_tracking_id():
+    return pico.digit() + pico.digit() + \
+           one_of(TRACKING_ID_LETTERS) + \
+           one_of(TRACKING_ID_LETTERS) + \
+           pico.digit() + pico.digit()
+
 class Patient(Model):
     health_id = models.CharField(max_length=30)
     name = models.CharField(max_length=50)
@@ -49,6 +55,22 @@ class Patient(Model):
     def age(self):
         if self.birthdate is not None:
             return datetime.datetime.now() - self.birthdate
+
+
+    @property
+    def label(self):
+        noun = 'male' if self.sex == 'M' else 'female'
+
+        days = self.age.days
+
+        if days > 365:
+            age_string = "aged %d" % (days % 365)
+        if days > 30:
+            age_string = "(%d months old)" % (days % 30)
+        else:
+            age_string = "(infant)"
+
+        return "%s, %s %s" % (self.name, noun, age_string)
 
     @classmethod
     def identify(cls, name, sex, birthdate, reporter):
@@ -89,6 +111,7 @@ class Case(Model):
     patient = models.ForeignKey(Patient, related_name="cases")
     report = models.ForeignKey(Report, related_name="cases")
     tracking_id = models.CharField(max_length=20, unique=True)
+    closed = models.DateTimeField(null=True)
 
 class Aggregate(Report):
     """An aggregate occurrence report codified by a two-letter
@@ -103,6 +126,41 @@ class MuacMeasurement(Report):
     category = models.CharField(max_length=1)
     reading = models.FloatField(null=True)
     patient = models.ForeignKey(Patient, null=True)
+
+class Cure(Form):
+    """Mark a case as closed due to curing.
+
+      +CURE <tracking_id> [<tag>]*
+
+    """
+
+    @pico.wrap
+    def parse(cls):
+        one_of('+')
+        caseless_string('cure')
+
+        try:
+            whitespace1()
+            tracking_id = parse_tracking_id()
+        except:
+            raise FormatError("Expected tracking id (got: %s)." % \
+                              "".join(remaining()))
+
+        return {'tracking_id': tracking_id}
+
+    def handle(self, tracking_id=None):
+        try:
+            case = Case.objects.get(tracking_id=tracking_id)
+        except Case.DoesNotExist:
+            return self.reply("The case number %s does not exist." % tracking_id)
+
+        case.closed = self.message.time
+        label = case.patient.label
+        self.reply("You have set the patient (%s) as \"cured\"." % (
+            label))
+
+        self.reply("Your patient (%s), has been set as \"cured\"." % (
+            label), case.report.reporter)
 
 class Epi(Form):
     """Report on epidemiological data.
@@ -387,8 +445,7 @@ class Muac(Form):
 
         report.save()
 
-        sex, pronoun = ('male', 'His') if patient.sex == 'M' \
-                       else ('female', 'Her')
+        pronoun = 'his' if patient.sex == 'M' else 'her'
 
         for tag in tags:
             value = tag.lower()
@@ -398,13 +455,6 @@ class Muac(Form):
         tag_string = ", ".join(tag.lower().capitalize() for tag in tags)
         if tag_string:
             tag_string = ', with ' + tag_string
-
-        if patient.age.days > 365:
-            age_string = "aged %d" % (patient.age.days % 365)
-        if patient.age.days > 30:
-            age_string = "(%d months old)" % (patient.age.days % 30)
-        else:
-            age_string = "(infant)"
 
         if category != 'G':
             case = Case(patient=patient, report=report)
@@ -422,11 +472,12 @@ class Muac(Form):
                 severity = "Severe Acute"
 
             self.reply(
-                "%s, %s %s has been identified with "
-                "%s Malnutrition%s. Case Number %s." % (
-                patient.name, sex, age_string, severity, tag_string, tracking_id))
+                "%s has been identified with "
+                "%s Malnutrition%s. %s Case Number %s." % (
+                patient.label, severity, tag_string, pronoun.capitalize(),
+                    tracking_id))
         else:
             self.reply(
                 "Thank you for reporting your measurement of "
-                "%s, %s %s%s. The reading is normal (green)." % (
-                    patient.name, sex, age_string, tag_string))
+                "%s%s. %s reading is normal (green)." % (
+                    patient.label, tag_string, pronoun.capitalize()))
