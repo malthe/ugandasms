@@ -186,6 +186,8 @@ def timedelta():
 
     >>> run_parser(timedelta, '7 days')[0].days
     7
+    >>> run_parser(timedelta, '7 DayS')[0].days
+    7
     >>> run_parser(timedelta, '7d')[0].days
     7
     >>> run_parser(timedelta, '1w')[0].days
@@ -201,10 +203,10 @@ def timedelta():
     def unit():
         whitespace()
         unit = one_of_strings('day', 'week', 'month', 'year', 'd', 'w', 'm', 'y', )[0]
-        optional(partial(one_of, 's'), None)
+        optional(partial(one_of, 'sS'), None)
         return unit
 
-    multiplier = _unit_days_multiplier[unit()]
+    multiplier = _unit_days_multiplier[unit().lower()]
     return datetime.timedelta(days=multiplier*number)
 
 def floating():
