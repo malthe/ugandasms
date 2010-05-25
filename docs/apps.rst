@@ -13,14 +13,16 @@ Health
 The *health* app allows users to report in routine health reports such
 as epidemiological indicator values.
 
-Messages
-~~~~~~~~
+Forms
+~~~~~
 
 .. automodule:: health.models
 
-  .. autoclass:: Epi(aggregates)
+  .. autoclass:: Aggregates
 
-  .. autoclass:: Muac(patient_id, name, sex, age, reading, tags)
+  .. autoclass:: Cure
+
+  .. autoclass:: Muac
 
 Reporter
 --------
@@ -28,10 +30,10 @@ Reporter
 The *reporter* app allows mobile users to register themselves as
 reporters using one or more devices/handsets.
 
-Messages
-~~~~~~~~
+Forms
+~~~~~
 
 .. automodule:: reporter.models
 
-  .. autoclass:: Registration(name=None, user_id=None)
+  .. autoclass:: Registration
 
