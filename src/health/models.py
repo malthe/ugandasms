@@ -197,7 +197,8 @@ class Epi(Form):
                 except:
                     raise FormatError(
                         "Expected an epidemiological indicator "
-                        "such as TB or MA.")
+                        "such as TB or MA (got: %s)." % \
+                        "".join(remaining()))
 
                 # rewrite alias
                 code = cls.ALIAS.get(code, code)
