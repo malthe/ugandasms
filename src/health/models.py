@@ -11,6 +11,7 @@ from django.conf import settings
 from picoparse import any_token
 from picoparse import choice
 from picoparse import many
+from picoparse import many1
 from picoparse import many_until
 from picoparse import one_of
 from picoparse import optional
@@ -37,12 +38,6 @@ def generate_tracking_id():
         random.choice(TRACKING_ID_LETTERS),
         random.choice(TRACKING_ID_LETTERS),
         random.randint(0, 99))
-
-def parse_tracking_id():
-    return pico.digit() + pico.digit() + \
-           one_of(TRACKING_ID_LETTERS) + \
-           one_of(TRACKING_ID_LETTERS) + \
-           pico.digit() + pico.digit()
 
 class Patient(Model):
     health_id = models.CharField(max_length=30)
@@ -119,6 +114,7 @@ class Aggregate(Report):
 
     code = models.CharField(max_length=2, db_index=True)
     value = models.IntegerField()
+    total = models.IntegerField(null=True)
 
 class MuacMeasurement(Report):
     """Measurement record of the MUAC heuristic."""
@@ -130,44 +126,69 @@ class MuacMeasurement(Report):
 class Cure(Form):
     """Mark a case as closed due to curing.
 
-      +CURE <tracking_id> [<tag>]*
+    Format::
 
+      +CURE [<tracking_id>]+
+
+    Separate multiple entries with space and/or comma.
     """
+
+    prompt = "Cured: "
 
     @pico.wrap
     def parse(cls):
         one_of('+')
         caseless_string('cure')
 
+        tracking_ids = []
+
         try:
             whitespace1()
-            tracking_id = parse_tracking_id()
+            tracking_ids = pico.identifiers()
         except:
             raise FormatError("Expected tracking id (got: %s)." % \
                               "".join(remaining()))
 
-        return {'tracking_id': tracking_id}
+        return {'tracking_ids': tracking_ids}
 
-    def handle(self, tracking_id=None):
-        try:
-            case = Case.objects.get(tracking_id=tracking_id)
-        except Case.DoesNotExist:
-            return self.reply("The case number %s does not exist." % tracking_id)
+    def handle(self, tracking_ids=None):
+        cases = Case.objects.filter(tracking_id__in=tracking_ids).all()
+        found = set([case.tracking_id for case in cases])
 
-        case.closed = self.message.time
-        label = case.patient.label
-        self.reply("You have set the patient (%s) as \"cured\"." % (
-            label))
+        not_found = set(tracking_ids) ^ found
+        if not_found:
+            return self.reply(
+                "The case number(s) %s do not exist. "
+                "Please correct and resend all tracking ids."  % \
+                ", ".join(not_found))
 
-        self.reply("Your patient (%s), has been set as \"cured\"." % (
-            label), case.report.reporter)
+        for case in cases:
+            case.closed = self.message.time
+            case.save()
+            label = case.patient.label
 
-class Epi(Form):
-    """Report on epidemiological data.
+            self.reply("Your patient, %s, has been set as \"cured\"." % (
+                label), case.report.reporter)
+
+        self.reply("You have closed %d case(s)." % len(cases))
+
+class Aggregates(Form):
+    """Report on aggregate data.
+
+    This form supports the following aggregate indicators:
+
+    * Epidemiology
+    * Domestic
+
+    For flexible use, multiple command strings are accepted::
+
+      +AGG
+      +EPI
+      +HOME
 
     Regular reports should come in with the format::
 
-      +EPI [<token> <integer_value>]*
+      [<total>, ]? [<token> <integer_value>]*
 
     The ``token`` must be one of the keys defined in
     ``TOKENS``. Negative values are not allowed.
@@ -176,10 +197,9 @@ class Epi(Form):
 
       +EPI MA 12, TB 4
 
-    The reports are confirmed in a message reply, along with
-    percentage or absolute change (whichever is applicable depending
-    on whether this or the previous value is zero) on consecutive
-    reporting.
+    The reports are confirmed in the reply, along with percentage or
+    absolute change (whichever is applicable depending on whether this
+    or the previous value is zero) on consecutive reporting.
 
     Example output::
 
@@ -191,6 +211,7 @@ class Epi(Form):
     """
 
     TOKENS = {
+        # epidemiological indicators
         'BD': 'Bloody diarrhea',
         'MA': 'Malaria',
         'TB': 'Tuberculosis',
@@ -208,22 +229,33 @@ class Epi(Form):
         'RB': 'Rabies',
         'VF': 'Other Viral Hemorrhagic Fevers',
         'EI': 'Other Emerging Infectious Diseases',
+        # domestic indicators
+        'WA': 'Safe Drinking Water',
+        'HA': 'Handwashing Facilities',
+        'LA': 'Latrines',
+        'IT': 'ITTNs/LLINs',
         }
 
     ALIAS = {
         'DY': 'BD',
         }
 
-    prompt = "EPI: "
+    prompt = "Report: "
 
     @pico.wrap
     def parse(cls):
         one_of('+')
-        caseless_string('epi')
+        pico.one_of_strings('agg', 'epi', 'home')
 
         aggregates = {}
+        result = {'aggregates': aggregates}
 
         if whitespace():
+            total = "".join(optional(pico.digits, ()))
+            if total:
+                result['total'] = int(total)
+                many1(partial(one_of, ' ,;'))
+
             while peek():
                 try:
                     code = "".join(pico.one_of_strings(*(
@@ -231,7 +263,7 @@ class Epi(Form):
                     code = code.upper()
                 except:
                     raise FormatError(
-                        "Expected an epidemiological indicator "
+                        "Expected an indicator "
                         "such as TB or MA.")
 
                 # rewrite alias
@@ -251,16 +283,14 @@ class Epi(Form):
                 if value < 0:
                     raise FormatError("Got %d for %s. You must "
                                       "report a positive value." % (
-                        value, cls.TOKENS[code].lower()))
+                        value, cls.TOKENS[code]))
 
                 aggregates[code] = value
                 many(partial(one_of, ' ,;.'))
 
-        return {
-            'aggregates': aggregates
-            }
+        return result
 
-    def handle(self, aggregates={}):
+    def handle(self, total=None, aggregates={}):
         if self.user is None: # pragma: NOCOVER
             self.reply(u"Please register before sending in reports.")
         elif aggregates:
@@ -282,15 +312,15 @@ class Epi(Form):
                     else:
                         r = "-" + r
                     stat += " (%s)" % r
-                Aggregate(code=code, value=value,
+                Aggregate(code=code, value=value, total=total,
                           time=self.message.time, reporter=self.user).save()
                 stats.append(stat)
-            sep = [", "] * len(stats)
+            separator = [", "] * len(stats)
             if len(stats) > 1:
-                sep[-2] = " and "
-            sep[-1] = ""
+                separator[-2] = " and "
+            separator[-1] = ""
             self.reply(u"You reported %s." % "".join(
-                itertools.chain(*zip(stats, sep))))
+                itertools.chain(*zip(stats, separator))))
         else:
             self.reply(u"Please include one or more reports.")
 
