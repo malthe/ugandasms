@@ -360,7 +360,7 @@ class Aggregates(Form):
                 if code in aggregates:
                     raise FormatError("Duplicate value for %s." % code)
 
-                whitespace1()
+                whitespace()
 
                 try:
                     minus = optional(partial(one_of, '-'), '')
