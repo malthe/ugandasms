@@ -500,7 +500,7 @@ class Muac(Form):
             try:
                 reading = int("".join(reading))
             except:
-                reading = reading[0].upper()
+                result['category'] = reading[0].upper()
             else:
                 whitespace()
                 unit = optional(partial(pico.one_of_strings, 'mm', 'cm'), None)
@@ -508,7 +508,7 @@ class Muac(Form):
                     reading = self.get_reading_in_mm(reading)
                 elif "".join(unit) == 'cm':
                     reading = reading * 10
-            result['reading'] = reading
+                result['reading'] = reading
         except:
             raise FormatError(
                 "Expected MUAC reading (either green, yellow or red), but "
