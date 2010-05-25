@@ -123,6 +123,19 @@ def identifier(first=partial(one_of, ascii_letters),
     result.extend(chars)
     return result
 
+def identifiers(**kwargs):
+    """Parse multiple identifiers, separated by whitespace and/or
+    comma.
+
+    >>> run_parser(identifiers, 'abc123 def456')[0]
+    ['abc123', 'def456']
+
+    """
+
+    term = partial(identifier, **kwargs)
+    return map(partial("".join),
+               sep(term, partial(many1, partial(one_of, ' ,'))))
+
 def separator(parser=comma):
     """Expects a comma separation.
 
