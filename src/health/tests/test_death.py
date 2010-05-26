@@ -16,6 +16,7 @@ class ParserTest(UnitTestCase):
         self.assertRaises(FormatError, self._death, "+death")
         self.assertRaises(FormatError, self._death, "+death apio")
         self.assertRaises(FormatError, self._death, "+death apio, f")
+        self.assertRaises(FormatError, self._death, "+death apio, f, other")
 
     def test_id(self):
         self.assertEqual(self._death("+death abc123"), {'ids': ['ABC123']})
@@ -23,6 +24,13 @@ class ParserTest(UnitTestCase):
     def test_ids(self):
         self.assertEqual(self._death("+death 123 12ab65"), {
             'ids': ['123', '12AB65']})
+
+    def test_name_sex_age(self):
+        from datetime import timedelta
+        self.assertEqual(self._death("+death bob, m, 6y"), {
+            'name': 'bob',
+            'sex': 'M',
+            'age': timedelta(6*365),})
 
 class FormTest(Scenario):
     @classmethod
@@ -45,6 +53,10 @@ class FormTest(Scenario):
         from ..models import Patient
         self.assertNotEqual(Patient.objects.get().deathdate, None)
         self.assertTrue('Bob' in form.replies.all()[0].text)
+
+    def test_case_id_not_exist(self):
+        form = self._death(ids=['TRACK456'])
+        self.assertTrue('TRACK456' in form.replies.get().text)
 
     def test_name_sex_age_unknown_patient(self):
         from datetime import timedelta

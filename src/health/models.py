@@ -235,19 +235,18 @@ class DeathForm(Form):
 
         try:
             whitespace1()
+
+            identifiers = optional(tri(pico.ids), None)
+            if identifiers:
+                result['ids'] = [id.upper() for id in identifiers]
+            else:
+                result['name'] = pico.name()
         except:
             raise FormatError(
-                "Expected a name, or a patient's health or tracking ID.")
+                "Expected a name, or a patient's health or tracking ID "
+                "(got: %s)." % "".join(remaining()))
 
-        identifiers = optional(tri(pico.ids), None)
-        if identifiers:
-            result['ids'] = [id.upper() for id in identifiers]
-        else:
-            try:
-                result['name'] = pico.name()
-            except:
-                raise FormatError(
-                    "Expected name (got: %s)." % "".join(remaining()))
+        if 'name' in result:
             try:
                 many1(partial(one_of, ' ,;'))
                 result['sex'] = pico.one_of_strings(

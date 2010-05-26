@@ -10,6 +10,7 @@ class ParserTest(UnitTestCase):
     def test_empty(self):
         from router.router import FormatError
         self.assertRaises(FormatError, self._cure, "+cure")
+        self.assertRaises(FormatError, self._cure, "+cure ")
 
     def test_single(self):
         self.assertEqual(self._cure("+cure abc123")['tracking_ids'],
