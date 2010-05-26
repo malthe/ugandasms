@@ -39,7 +39,7 @@ class Scenario(FormTestCase):
         case = Case(
             patient=patient,
             report=report,
-            tracking_id="track123",
+            tracking_id="TRACK123",
             )
 
         case.save()

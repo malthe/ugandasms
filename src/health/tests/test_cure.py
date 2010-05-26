@@ -13,11 +13,11 @@ class ParserTest(UnitTestCase):
 
     def test_single(self):
         self.assertEqual(self._cure("+cure abc123")['tracking_ids'],
-                         ['abc123'])
+                         ['ABC123'])
 
     def test_multiple(self):
         self.assertEqual(self._cure("+cure abc123 def456")['tracking_ids'],
-                         ['abc123', 'def456'])
+                         ['ABC123', 'DEF456'])
 
 class FormTest(Scenario):
     @classmethod
@@ -26,15 +26,21 @@ class FormTest(Scenario):
         return cls.handle(Cure, **kwargs)
 
     def test_not_exist(self):
-        form = self._cure(tracking_ids=["track456"])
-        self.assertTrue('track456' in form.replies.get().text)
+        form = self._cure(tracking_ids=["TRACK456"])
+        self.assertTrue('TRACK456' in form.replies.get().text)
+
+    def test_not_found(self):
+        form = self._cure(tracking_ids=["TRACK456"])
+        from ..models import Case
+        self.assertEqual(Case.objects.get().closed, None)
+        self.assertTrue('TRACK456' in form.replies.get().text)
 
     def test_single_is_closed(self):
-        self._cure(tracking_ids=["track123"])
+        self._cure(tracking_ids=["TRACK123"])
         from ..models import Case
         self.assertNotEqual(Case.objects.get().closed, None)
 
     def test_single_yields_two_replies(self):
-        form = self._cure(tracking_ids=["track123"])
+        form = self._cure(tracking_ids=["TRACK123"])
         self.assertEqual(form.replies.count(), 2)
 

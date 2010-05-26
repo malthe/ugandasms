@@ -217,7 +217,8 @@ class Cure(Form):
 
       +CURE [<tracking_id>]+
 
-    Separate multiple entries with space and/or comma.
+    Separate multiple entries with space and/or comma. Tracking IDs
+    are case-insensitive.
     """
 
     prompt = "Cured: "
@@ -236,13 +237,14 @@ class Cure(Form):
             raise FormatError("Expected tracking id (got: %s)." % \
                               "".join(remaining()))
 
-        return {'tracking_ids': tracking_ids}
+        return {'tracking_ids': [tid.upper() for tid in tracking_ids]}
 
     def handle(self, tracking_ids=None):
         cases = Case.objects.filter(tracking_id__in=tracking_ids).all()
-        found = set([case.tracking_id for case in cases])
 
-        not_found = set(tracking_ids) ^ found
+        found = set([case.tracking_id for case in cases])
+        not_found = set(tracking_ids) - found
+
         if not_found:
             return self.reply(
                 "The case number(s) %s do not exist. "
@@ -435,6 +437,10 @@ class Muac(Form):
     values > 30, otherwise *cm* is assumed). While such a value will
     be translated into one of the readings above, the given number is
     still recorded.
+
+    Both yellow and red categories result in a referral. Included in
+    the reply is then a tracking ID which is used in other commands to
+    follow up on the referral.
     """
 
     prompt = "MUAC: "
