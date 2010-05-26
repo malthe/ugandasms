@@ -120,7 +120,7 @@ class Sequential(object):
                 try:
                     form.handle(**result)
                 except Exception, error:
-                    pass
+                    raise
                 finally:
                     post_handle.send(sender=form, error=error)
             elif error is not None:
