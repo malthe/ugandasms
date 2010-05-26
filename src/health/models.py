@@ -30,7 +30,7 @@ from router.router import FormatError
 
 date = partial(pico.date, formats=settings.DATE_INPUT_FORMATS)
 
-TRACKING_ID_LETTERS = ['ABCDEFGHJKLMPQRTUVXZ']
+TRACKING_ID_LETTERS = tuple('ABCDEFGHJKLMPQRTUVXZ')
 
 def generate_tracking_id():
     return '%2.d%s%s%2.d' % (
