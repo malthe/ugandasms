@@ -3,27 +3,26 @@ from .base import Scenario
 
 class ParserTest(UnitTestCase):
     @staticmethod
-    def _birth(text):
-        from ..models import BirthForm
-        return BirthForm.parse(text)[0]
+    def _death(text):
+        from ..models import DeathForm
+        return DeathForm.parse(text)[0]
 
     def test_empty(self):
         from router.router import FormatError
-        self.assertRaises(FormatError, self._birth, "+birth")
+        self.assertRaises(FormatError, self._death, "+death")
 
     def test_missing(self):
         from router.router import FormatError
-        self.assertRaises(FormatError, self._birth, "+birth")
-        self.assertRaises(FormatError, self._birth, "+birth apio")
-        self.assertRaises(FormatError, self._birth, "+birth apio, f")
+        self.assertRaises(FormatError, self._death, "+death")
+        self.assertRaises(FormatError, self._death, "+death apio")
+        self.assertRaises(FormatError, self._death, "+death apio, f")
 
-    def test_bad_location(self):
-        from router.router import FormatError
-        self.assertRaises(FormatError, self._birth, "+birth api, f, bed")
+    def test_id(self):
+        self.assertEqual(self._death("+death abc123"), {'ids': ['ABC123']})
 
-    def test_birth(self):
-        self.assertEqual(self._birth("+birth Apio, female clinic"),
-                         {'name': 'Apio', 'sex': 'F', 'location': 'CLINIC'})
+    def test_ids(self):
+        self.assertEqual(self._death("+death 123 12ab65"), {
+            'ids': ['123', '12AB65']})
 
 class FormTest(Scenario):
     @classmethod

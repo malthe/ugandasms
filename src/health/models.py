@@ -233,12 +233,17 @@ class DeathForm(Form):
 
         result = {}
 
-        identifiers = optional(pico.ids, None)
+        try:
+            whitespace1()
+        except:
+            raise FormatError(
+                "Expected a name, or a patient's health or tracking ID.")
+
+        identifiers = optional(tri(pico.ids), None)
         if identifiers:
             result['ids'] = [id.upper() for id in identifiers]
         else:
             try:
-                whitespace1()
                 result['name'] = pico.name()
             except:
                 raise FormatError(
@@ -290,10 +295,6 @@ class DeathForm(Form):
             cases |= set(itertools.chain(*[
                 patient.cases.all() for patient in patients]))
 
-            cases = [case for case in cases if case.closed is None]
-            for case in cases:
-                case.closed = self.message.time
-                case.save()
         else:
             if isinstance(age, datetime.timedelta):
                 birthdate = datetime.datetime.now() - age
@@ -316,6 +317,8 @@ class DeathForm(Form):
             if case.report.reporter != self.user:
                 self.reply("We have received notice of the death "
                            "of your patient %s." % case.patient.label)
+            case.closed = self.message.time
+            case.save()
 
         self.reply(
             "Thank you for reporting the death of %s. "

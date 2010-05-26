@@ -25,6 +25,11 @@ class FormTest(Scenario):
         from ..models import Cure
         return cls.handle(Cure, **kwargs)
 
+    @classmethod
+    def _register(cls, **kwargs):
+        from reporter.models import Registration
+        return cls.handle(Registration, **kwargs)
+
     def test_not_exist(self):
         form = self._cure(tracking_ids=["TRACK456"])
         self.assertTrue('TRACK456' in form.replies.get().text)
@@ -41,6 +46,7 @@ class FormTest(Scenario):
         self.assertNotEqual(Case.objects.get().closed, None)
 
     def test_single_yields_two_replies(self):
-        form = self._cure(tracking_ids=["TRACK123"])
+        self._register(uri="test://other")
+        form = self._cure(uri="test://other", tracking_ids=["TRACK123"])
         self.assertEqual(form.replies.count(), 2)
 
