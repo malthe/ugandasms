@@ -44,13 +44,13 @@ class Patient(Model):
     name = models.CharField(max_length=50)
     sex = models.CharField(max_length=1)
     birthdate = models.DateTimeField()
+    deathdate = models.DateTimeField(null=True)
     last_reported_on_by = models.ForeignKey(User)
 
     @property
     def age(self):
         if self.birthdate is not None:
             return datetime.datetime.now() - self.birthdate
-
 
     @property
     def label(self):
@@ -60,7 +60,7 @@ class Patient(Model):
 
         if days > 365:
             age_string = "aged %d" % (days // 365)
-        if days > 30:
+        elif days > 30:
             age_string = "(%d months old)" % (days // 30)
         else:
             age_string = "(infant)"
@@ -196,6 +196,9 @@ class BirthForm(Form):
         return result
 
     def handle(self, name=None, sex=None, location=None):
+        if self.user is None: # pragma: NOCOVER
+            return self.reply(u"Please register before sending in reports.")
+
         birthdate = datetime.datetime.now()
 
         patient = Patient(
@@ -209,6 +212,118 @@ class BirthForm(Form):
 
         self.reply("Thank you for registering the birth of %s." % \
                    patient.label)
+
+class DeathForm(Form):
+    """Report a death.
+
+    Format::
+
+      +DEATH <name>, <sex>, <age>
+      +DEATH [<health_id>]+
+      +DEATH [<tracking_id>]+
+
+    """
+
+    prompt = "Death: "
+
+    @pico.wrap
+    def parse(cls):
+        one_of('+')
+        caseless_string('death')
+
+        result = {}
+
+        try:
+            whitespace1()
+
+            identifiers = optional(tri(pico.ids), None)
+            if identifiers:
+                result['ids'] = [id.upper() for id in identifiers]
+            else:
+                result['name'] = pico.name()
+        except:
+            raise FormatError(
+                "Expected a name, or a patient's health or tracking ID "
+                "(got: %s)." % "".join(remaining()))
+
+        if 'name' in result:
+            try:
+                many1(partial(one_of, ' ,;'))
+                result['sex'] = pico.one_of_strings(
+                    'male', 'female', 'm', 'f')[0].upper()
+            except:
+                raise FormatError(
+                    "Expected the infant's gender "
+                    "(\"male\", \"female\", or simply \"m\" or \"f\"), "
+                    "but received instead: %s." % "".join(remaining()))
+            try:
+                pico.separator()
+            except:
+                raise FormatError("Expected age or birthdate of patient.")
+
+            try:
+                result['age'] = choice(*map(tri, (pico.date, pico.timedelta)))
+            except:
+                received, stop = many_until(any_token, pico.comma)
+                raise FormatError("Expected age or birthdate of patient, but "
+                                 "received %s." % "".join(received))
+
+        return result
+
+    def handle(self, ids=None, name=None, sex=None, age=None):
+        if self.user is None: # pragma: NOCOVER
+            return self.reply(u"Please register before sending in reports.")
+
+        if ids is not None:
+            # this may be a tracking ids or a health ids; try both.
+            cases = set(Case.objects.filter(tracking_id__in=ids).all())
+            patients = set(Patient.objects.filter(health_id__in=ids).all())
+
+            found = set([case.tracking_id for case in cases]) | \
+                    set([case.health_id for case in patients])
+
+            not_found = set(ids) - found
+
+            if not_found:
+                return self.reply(
+                    "The id(s) %s do not exist. "
+                    "Please correct and resend all."  % \
+                    ", ".join(not_found))
+
+            patients |= set(case.patient for case in cases)
+            cases |= set(itertools.chain(*[
+                patient.cases.all() for patient in patients]))
+
+        else:
+            if isinstance(age, datetime.timedelta):
+                birthdate = datetime.datetime.now() - age
+            else:
+                birthdate = age
+
+            patient = Patient.identify(name, sex, birthdate, self.user)
+            if patient is None:
+                return self.reply(
+                    u"We have recorded the death of %s." % name)
+
+            cases = patient.cases.all()
+            patients = [patient]
+
+        for patient in patients:
+            patient.deathdate = self.message.time
+            patient.save()
+
+        for case in cases:
+            if case.report.reporter != self.user:
+                self.reply("We have received notice of the death "
+                           "of your patient %s." % case.patient.label)
+            case.closed = self.message.time
+            case.save()
+
+        self.reply(
+            "Thank you for reporting the death of %s. "
+            "We have closed %d open case(s)." % (
+                ", ".join(patient.label for patient in patients),
+                len(cases)))
 
 class Cure(Form):
     """Mark a case as closed due to curing.
@@ -257,9 +372,11 @@ class Cure(Form):
             case.closed = self.message.time
             case.save()
             label = case.patient.label
+            reporter = case.report.reporter
 
-            self.reply("Your patient, %s, has been set as \"cured\"." % (
-                label), case.report.reporter)
+            if reporter != self.user:
+                self.reply("Your patient, %s, has been set as \"cured\"." % (
+                    label), reporter)
 
         self.reply("You have closed %d case(s)." % len(cases))
 
