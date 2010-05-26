@@ -11,6 +11,16 @@ class ParserTest(UnitTestCase):
         from router.router import FormatError
         self.assertRaises(FormatError, self._birth, "+birth")
 
+    def test_missing(self):
+        from router.router import FormatError
+        self.assertRaises(FormatError, self._birth, "+birth")
+        self.assertRaises(FormatError, self._birth, "+birth apio")
+        self.assertRaises(FormatError, self._birth, "+birth apio, f")
+
+    def test_bad_location(self):
+        from router.router import FormatError
+        self.assertRaises(FormatError, self._birth, "+birth api, f, bed")
+
     def test_birth(self):
         self.assertEqual(self._birth("+birth Apio, female clinic"),
                          {'name': 'Apio', 'sex': 'F', 'location': 'CLINIC'})
