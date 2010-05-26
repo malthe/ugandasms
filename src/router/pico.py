@@ -111,7 +111,9 @@ def identifier(first=partial(one_of, ascii_letters),
     'abc'
     """
 
-    result = [first()]
+    result = []
+    if first is not None:
+        result.append(first())
 
     if must_contain is None:
         chars = many(consecutive)
@@ -135,6 +137,15 @@ def identifiers(**kwargs):
     term = partial(identifier, **kwargs)
     return map(partial("".join),
                sep(term, partial(many1, partial(one_of, ' ,'))))
+
+def ids(**kwargs):
+    """Parse IDs (alphanumerical identifiers).
+
+    >>> run_parser(ids, '12ab65')[0]
+    ['12ab65']
+    """
+
+    return identifiers(first=None)
 
 def separator(parser=comma):
     """Expects a comma separation.
