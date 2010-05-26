@@ -228,14 +228,16 @@ class Cure(Form):
         one_of('+')
         caseless_string('cure')
 
-        tracking_ids = []
-
         try:
             whitespace1()
-            tracking_ids = pico.identifiers()
+            tracking_ids = pico.ids()
         except:
             raise FormatError("Expected tracking id (got: %s)." % \
                               "".join(remaining()))
+
+        if not tracking_ids:
+            raise FormatError(
+                "Please specify one or more tracking IDs.")
 
         return {'tracking_ids': [tid.upper() for tid in tracking_ids]}
 
