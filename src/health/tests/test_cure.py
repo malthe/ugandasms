@@ -33,7 +33,7 @@ class FormTest(Scenario):
         form = self._cure(tracking_ids=["TRACK456"])
         from ..models import Case
         self.assertEqual(Case.objects.get().closed, None)
-        self.assertTrue('TRACK456' not in form.replies.get().text)
+        self.assertTrue('TRACK456' in form.replies.get().text)
 
     def test_single_is_closed(self):
         self._cure(tracking_ids=["TRACK123"])

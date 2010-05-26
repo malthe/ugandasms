@@ -243,7 +243,7 @@ class Cure(Form):
         cases = Case.objects.filter(tracking_id__in=tracking_ids).all()
 
         found = set([case.tracking_id for case in cases])
-        not_found = set(tracking_ids) ^ found
+        not_found = set(tracking_ids) - found
 
         if not_found:
             return self.reply(
