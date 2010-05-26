@@ -141,6 +141,9 @@ def identifiers(**kwargs):
 def ids(**kwargs):
     """Parse IDs (alphanumerical identifiers).
 
+    >>> run_parser(ids, 'abc123 def456')[0]
+    ['abc123', 'def456']
+
     >>> run_parser(ids, '12ab65')[0]
     ['12ab65']
     """
