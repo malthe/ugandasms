@@ -7,11 +7,13 @@ This is a reference on the Django apps that come with the
 system. Simply add the apps you want to use to the list of
 ``INSTALLED_APPS`` in your settings module.
 
-Health
-------
+Community Health
+----------------
 
-The *health* app allows users to report in routine health reports such
-as epidemiological indicator values.
+Django app: ``health``
+
+This application provides a complete system for monitoring and
+reporting on community health.
 
 Forms
 ~~~~~
@@ -20,12 +22,19 @@ Forms
 
   .. autoclass:: Aggregates
 
+  .. autoclass:: BirthForm
+
   .. autoclass:: Cure
 
   .. autoclass:: Muac
 
+
 Reporter
 --------
+
+Django app::
+
+  "reporter"
 
 The *reporter* app allows mobile users to register themselves as
 reporters using one or more devices/handsets.

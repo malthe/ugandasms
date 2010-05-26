@@ -192,6 +192,8 @@ def timedelta():
     7
     >>> run_parser(timedelta, '1w')[0].days
     7
+    >>> run_parser(timedelta, '2m')[0].days
+    60
     >>> run_parser(timedelta, '6 months')[0].days
     180
     >>> run_parser(timedelta, '1 year')[0].days

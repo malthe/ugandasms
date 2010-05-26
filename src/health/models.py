@@ -59,9 +59,9 @@ class Patient(Model):
         days = self.age.days
 
         if days > 365:
-            age_string = "aged %d" % (days % 365)
+            age_string = "aged %d" % (days // 365)
         if days > 30:
-            age_string = "(%d months old)" % (days % 30)
+            age_string = "(%d months old)" % (days // 30)
         else:
             age_string = "(infant)"
 
