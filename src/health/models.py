@@ -264,9 +264,8 @@ class DeathForm(Form):
             try:
                 result['age'] = choice(*map(tri, (pico.date, pico.timedelta)))
             except:
-                received, stop = many_until(any_token, pico.comma)
                 raise FormatError("Expected age or birthdate of patient, but "
-                                 "received %s." % "".join(received))
+                                 "received %s." % "".join(remaining()))
 
         return result
 

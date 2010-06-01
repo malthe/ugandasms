@@ -38,6 +38,11 @@ class FormTest(Scenario):
         from ..models import DeathForm
         return cls.handle(DeathForm, **kwargs)
 
+    @classmethod
+    def _register(cls, **kwargs):
+        from reporter.models import Registration
+        return cls.handle(Registration, **kwargs)
+
     def test_health_id(self):
         form = self._death(ids=['bob123'])
         from ..models import Case
@@ -53,6 +58,11 @@ class FormTest(Scenario):
         from ..models import Patient
         self.assertNotEqual(Patient.objects.get().deathdate, None)
         self.assertTrue('Bob' in form.replies.all()[0].text)
+
+    def test_case_id_other(self):
+        self._register(uri="test://other", name="Ann")
+        form = self._death(uri="test://other", ids=['TRACK123'])
+        self.assertEqual(form.replies.count(), 2)
 
     def test_case_id_not_exist(self):
         form = self._death(ids=['TRACK456'])
