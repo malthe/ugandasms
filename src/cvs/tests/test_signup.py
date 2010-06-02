@@ -17,7 +17,6 @@ class ParserTest(UnitTestCase):
 
 class FormTest(FormTestCase):
     INSTALLED_APPS = FormTestCase.INSTALLED_APPS + (
-        'django.contrib.gis',
         'reporter',
         'cvs',
         )

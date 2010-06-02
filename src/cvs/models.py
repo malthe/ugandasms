@@ -1,3 +1,4 @@
+from django.db import models
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from polymorphic import PolymorphicModel as Model
@@ -11,16 +12,8 @@ from picoparse.text import whitespace1
 from router import pico
 from router.router import FormatError
 
-from polymorphic.manager import PolymorphicManager
-from django.contrib.gis.db import models
-
-class PolymorphicGeoManager(PolymorphicManager, models.GeoManager):
-    pass
-
 class Location(Model):
     name = models.CharField(max_length=50)
-    coords = models.PointField(null=True)
-    manager = PolymorphicGeoManager()
 
 class Facility(Model):
     code = models.IntegerField(unique=True, primary_key=True)

@@ -1,0 +1,93 @@
+[
+    {
+        "pk": 1,
+        "model": "location.locationkind",
+        "fields": {
+            "name": "HCI"
+        }
+    },
+    {
+        "pk": 2,
+        "model": "location.locationkind",
+        "fields": {
+            "name": "HCII"
+        }
+    },
+    {
+        "pk": 3,
+        "model": "location.locationkind",
+        "fields": {
+            "name": "HCIII"
+        }
+    },
+    {
+        "pk": 4,
+        "model": "location.locationkind",
+        "fields": {
+            "name": "HCIV"
+        }
+    },
+    {
+        "pk": 5,
+        "model": "location.locationkind",
+        "fields": {
+            "name": "Country"
+        }
+    },
+    {
+        "pk": 6,
+        "model": "location.locationkind",
+        "fields": {
+            "name": "District"
+        }
+    },
+    {
+        "pk": 7,
+        "model": "location.locationkind",
+        "fields": {
+            "name": "Sub-district"
+        }
+    },
+    {
+        "pk": 8,
+        "model": "location.locationkind",
+        "fields": {
+            "name": "County"
+        }
+    },
+    {
+        "pk": 9,
+        "model": "location.locationkind",
+        "fields": {
+            "name": "Sub-county"
+        }
+    },
+    {
+        "pk": 10,
+        "model": "location.locationkind",
+        "fields": {
+            "name": "Parish"
+        }
+    },
+    {
+        "pk": 11,
+        "model": "location.locationkind",
+        "fields": {
+            "name": "Village"
+        }
+    },
+    {
+        "pk": 12,
+        "model": "location.locationkind",
+        "fields": {
+            "name": "Sub-village"
+        }
+    },
+    {
+        "pk": 13,
+        "model": "location.locationkind",
+        "fields": {
+            "name": "DHO"
+        }
+    }
+]
