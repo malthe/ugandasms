@@ -117,7 +117,7 @@ class FunctionalTestCase(UnitTestCase):  # pragma: NOCOVER
         )
 
     BASE_SETTINGS = {
-        'DEBUG': True
+        'DEBUG': True,
         }
 
     USER_SETTINGS = {}
@@ -174,11 +174,12 @@ class FunctionalTestCase(UnitTestCase):  # pragma: NOCOVER
         try:
             sys.stderr = StringIO()
             try:
-                call_command('syncdb', verbosity=0, interactive=False, database='default')
-            except SystemExit:
-                self.fail(sys.stderr.getvalue())
+                call_command('syncdb', verbosity=0, interactive=False)
             finally:
+                error = sys.stderr.getvalue()
                 sys.stderr = stderr
+            if error:
+                self.fail(error)
         except:
             self.tearDown()
             raise

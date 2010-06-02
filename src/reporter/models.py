@@ -23,14 +23,15 @@ from location.models import Area
 class ReporterRole(models.Model):
     """"Represents the role of the reporter.  This may put reporters into different roles
         such as community health workers, supervisors and hospital staff."""
-        
+
     name = models.CharField(max_length=50)
+    slug = models.SlugField(unique=True)
 
 class Reporter(User):
     """A Reporter is someone who interacts with RapidSMS as a user of the system (as opposed
        to an administrator).  Although not enforced, they will tend to register with the
        system via SMS."""
-    
+
     name = models.CharField(max_length=50)
     location = models.ForeignKey(Area, null=True, blank=True)
     roles = models.ManyToManyField(ReporterRole)
@@ -111,6 +112,8 @@ class Registration(Form):
                 user.save()
                 self.message.peer.user = user
                 self.message.peer.save()
+
+                
 
                 self.reply((
                     "Welcome, %(name)s. "

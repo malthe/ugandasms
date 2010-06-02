@@ -18,6 +18,9 @@ class ParserTest(UnitTestCase):
 class FormTest(FormTestCase):
     INSTALLED_APPS = FormTestCase.INSTALLED_APPS + (
         'reporter',
+        'location',
+        'reporter',
+        'stats',
         'cvs',
         )
 

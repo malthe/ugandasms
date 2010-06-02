@@ -35,6 +35,7 @@ install_requires = [
     'PasteDeploy',
     'iso8601',
     'picoparse',
+    'pyyaml',
     ]
 
 setup(
