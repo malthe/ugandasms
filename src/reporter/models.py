@@ -18,8 +18,22 @@ from router.models import Form
 from router.models import Peer
 from router.models import User
 
-class Reporter(User):
+from location.models import Area
+
+class ReporterRole(models.Model):
+    """"Represents the role of the reporter.  This may put reporters into different roles
+        such as community health workers, supervisors and hospital staff."""
+        
     name = models.CharField(max_length=50)
+
+class Reporter(User):
+    """A Reporter is someone who interacts with RapidSMS as a user of the system (as opposed
+       to an administrator).  Although not enforced, they will tend to register with the
+       system via SMS."""
+    
+    name = models.CharField(max_length=50)
+    location = models.ForeignKey(Area, null=True, blank=True)
+    roles = models.ManyToManyField(ReporterRole)
 
 class Registration(Form):
     """Register with the system.

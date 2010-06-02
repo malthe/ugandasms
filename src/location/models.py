@@ -5,7 +5,7 @@ class LocationKind(models.Model):
     name = models.CharField(max_length=50)
     description = models.CharField(max_length=255, null=True)
 
-    def __unicode__(self):
+    def __unicode__(self): # pragma: NOCOVER
         return self.name
 
 class Location(MP_Node):
@@ -19,7 +19,7 @@ class Location(MP_Node):
     class Meta:
         abstract = True
 
-    def __unicode__(self):
+    def __unicode__(self): # pragma: NOCOVER
         return "%s %s" % (self.name, self.kind.name)
 
 class Facility(Location):
