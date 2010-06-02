@@ -30,7 +30,7 @@ version = sys.version_info[:3]
 install_requires = [
     'Django',
     'django_polymorphic',
-    'django-mptt',
+    'django-treebeard',
     'PasteScript',
     'PasteDeploy',
     'iso8601',
