@@ -1,18 +1,29 @@
-import mptt
-
 from django.db import models
+from treebeard.mp_tree import MP_Node
 
 class LocationKind(models.Model):
     name = models.CharField(max_length=50)
     description = models.CharField(max_length=255, null=True)
 
-class Location(models.Model):
-    latitude = models.DecimalField()
-    longitude = models.DecimalField()
-    name = models.CharField(max_length=50)
-    code = models.CharField(max_length=50, blank=True, null=True)
-    kind = models.ForeignKey(LocationKind)
-    parent = models.ForeignKey(
-        'self', null=True, blank=True, related_name='children')
+    def __unicode__(self):
+        return self.name
 
-mptt.register(Location, order_insertion_by=['name'])
+class Location(MP_Node):
+    latitude = models.DecimalField(decimal_places=12, max_digits=14, null=True)
+    longitude = models.DecimalField(decimal_places=12, max_digits=14, null=True)
+    code = models.CharField(max_length=50, blank=True, null=True)
+    name = models.CharField(max_length=50)
+    kind = models.ForeignKey(LocationKind)
+    node_order_by = ['name']
+
+    class Meta:
+        abstract = True
+
+    def __unicode__(self):
+        return "%s %s" % (self.name, self.kind.name)
+
+class Facility(Location):
+    pass
+
+class Area(Location):
+    report_to = models.ForeignKey(Facility, null=True)
