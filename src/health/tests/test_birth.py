@@ -23,7 +23,7 @@ class ParserTest(UnitTestCase):
 
     def test_birth(self):
         self.assertEqual(self._birth("+birth Apio, female clinic"),
-                         {'name': 'Apio', 'sex': 'F', 'location': 'CLINIC'})
+                         {'name': 'Apio', 'sex': 'F', 'place': 'CLINIC'})
 
 class FormTest(FormTestCase):
     INSTALLED_APPS = FormTestCase.INSTALLED_APPS + (
@@ -43,6 +43,6 @@ class FormTest(FormTestCase):
 
     def test_birth(self):
         self._register(name="ann")
-        self._birth(name="Apio", sex="F", location="CLINIC")
-        from ..models import Birth
-        self.assertEqual(Birth.objects.count(), 1)
+        self._birth(name="Apio", sex="F", place="CLINIC")
+        from ..models import BirthReport
+        self.assertEqual(BirthReport.objects.count(), 1)

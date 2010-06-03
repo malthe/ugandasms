@@ -293,7 +293,15 @@ class FunctionalTestCase(UnitTestCase):  # pragma: NOCOVER
 
 class FormTestCase(FunctionalTestCase):
     """Functional test case that adds utility methods for testing
-    forms."""
+    forms.
+
+    It automatically adds the ``stats`` app to the list of installed
+    applications.
+    """
+
+    INSTALLED_APPS = FunctionalTestCase.INSTALLED_APPS + (
+        'stats',
+        )
 
     @staticmethod
     def handle(model, text="", uri="test://old", user=None, **kwargs):

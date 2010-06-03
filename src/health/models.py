@@ -28,9 +28,25 @@ from router.models import Form
 from router.models import User
 from router.router import FormatError
 
+from stats.models import Observation
+from stats.models import ObservationKind
+from stats.models import Report
+from stats.models import ReportKind
+
 date = partial(pico.date, formats=settings.DATE_INPUT_FORMATS)
 
 TRACKING_ID_LETTERS = tuple('ABCDEFGHJKLMPQRTUVXZ')
+
+GENDER_CHOICES = (
+    ('M', 'Male'),
+    ('F', 'Female'),
+    )
+
+BIRTH_PLACE_CHOICES = (
+    ('HOME', 'Home'),
+    ('CLINIC', 'Clinic'),
+    ('FACILITY', 'Facility'),
+    )
 
 def generate_tracking_id():
     return '%2.d%s%s%2.d' % (
@@ -42,7 +58,7 @@ def generate_tracking_id():
 class Patient(Model):
     health_id = models.CharField(max_length=30, null=True)
     name = models.CharField(max_length=50)
-    sex = models.CharField(max_length=1)
+    sex = models.CharField(max_length=1, choices=GENDER_CHOICES)
     birthdate = models.DateTimeField()
     deathdate = models.DateTimeField(null=True)
     last_reported_on_by = models.ForeignKey(User)
@@ -85,47 +101,27 @@ class Patient(Model):
             if patient.name == name:
                 return patient
 
-class Report(Model):
-    """Report sent in by reporting staff, possibly tagged with one or
-    more keywords."""
-
-    reporter = models.ForeignKey(User)
-    time = models.DateTimeField(db_index=True)
-    tags = ()
-
-    class Meta:
-        ordering = ['-id']
-
 class Tag(Model):
     report = models.ForeignKey(Report, related_name="tags")
     value = models.CharField(max_length=20)
 
 class Case(Model):
-    """Attached to a report when it needs tracking."""
+    """Attached to a report that needs tracking."""
 
     patient = models.ForeignKey(Patient, related_name="cases")
     report = models.ForeignKey(Report, related_name="cases")
     tracking_id = models.CharField(max_length=20, unique=True)
     closed = models.DateTimeField(null=True)
 
-class Aggregate(Report):
-    """An aggregate occurrence report codified by a two-letter
-    keyword."""
-
-    code = models.CharField(max_length=2, db_index=True)
-    value = models.IntegerField()
-    total = models.IntegerField(null=True)
-
-class Birth(Report):
+class BirthReport(Report):
     patient = models.ForeignKey(Patient)
-    location = models.CharField(max_length=25)
+    place = models.CharField(max_length=25, choices=BIRTH_PLACE_CHOICES)
 
-class MuacMeasurement(Report):
-    """Measurement record of the MUAC heuristic."""
-
+class NutritionReport(Report):
+    patient = models.ForeignKey(Patient)
     category = models.CharField(max_length=1)
     reading = models.FloatField(null=True)
-    patient = models.ForeignKey(Patient, null=True)
+    oedema = models.BooleanField()
 
 class BirthForm(Form):
     """Report a birth.
@@ -187,7 +183,7 @@ class BirthForm(Form):
             matches = difflib.get_close_matches(
                 word, ('home', 'clinic', 'facility'))
             if matches:
-                result['location'] = matches[0].upper()
+                result['place'] = matches[0].upper()
                 break
         else:
             raise FormatError(
@@ -195,7 +191,7 @@ class BirthForm(Form):
 
         return result
 
-    def handle(self, name=None, sex=None, location=None):
+    def handle(self, name=None, sex=None, place=None):
         if self.user is None: # pragma: NOCOVER
             return self.reply(u"Please register before sending in reports.")
 
@@ -206,8 +202,15 @@ class BirthForm(Form):
             last_reported_on_by=self.user)
         patient.save()
 
-        birth = Birth(patient=patient, location=location,
-                      reporter=self.user, time=self.message.time)
+        observations = {
+            'male' if sex == 'M' else 'female': 1,
+            "birth_at_%s" % place.lower(): 1
+            }
+
+        Report.from_observations(
+            "birth", source=self, location=None, **observations)
+
+        birth = BirthReport(slug="birth", patient=patient, place=place, source=self)
         birth.save()
 
         self.reply("Thank you for registering the birth of %s." % \
@@ -312,7 +315,7 @@ class DeathForm(Form):
             patient.save()
 
         for case in cases:
-            if case.report.reporter != self.user:
+            if case.report.source.user != self.user:
                 self.reply("We have received notice of the death "
                            "of your patient %s." % case.patient.label)
             case.closed = self.message.time
@@ -324,7 +327,7 @@ class DeathForm(Form):
                 ", ".join(patient.label for patient in patients),
                 len(cases)))
 
-class Cure(Form):
+class CureForm(Form):
     """Mark a case as closed due to curing.
 
     Format::
@@ -371,7 +374,7 @@ class Cure(Form):
             case.closed = self.message.time
             case.save()
             label = case.patient.label
-            reporter = case.report.reporter
+            reporter = case.report.source.user
 
             if reporter != self.user:
                 self.reply("Your patient, %s, has been set as \"cured\"." % (
@@ -379,26 +382,29 @@ class Cure(Form):
 
         self.reply("You have closed %d case(s)." % len(cases))
 
-class Aggregates(Form):
-    """Report on aggregate data.
+class ObservationForm(Form):
+    """Form to allow multiple observation input.
 
-    This form supports the following aggregate indicators:
+    This form supports the following observation groups:
 
     * Epidemiology
-    * Domestic
+    * Domestic Health
 
     For flexible use, multiple command strings are accepted::
 
-      +AGG
       +EPI
       +HOME
 
     Regular reports should come in with the format::
 
-      [<total>, ]? [<token> <integer_value>]*
+      [<total>, ]? [<code> <integer_value>]*
 
-    The ``token`` must be one of the keys defined in
-    ``TOKENS``. Negative values are not allowed.
+    For each entry, the value for ``code`` must map (via the command
+    string) to an observation kind, e.g. for an epidemiological report
+    on malaria, ``\"MA\"`` would map to the observation kind
+    ``\"epi_ma\"``.
+
+    Only decimal values allowed; negative values are disallowed.
 
     Example input for 12 cases of malaria and 4 tuberculous cases::
 
@@ -417,45 +423,32 @@ class Aggregates(Form):
     group by time.
     """
 
-    TOKENS = {
-        # epidemiological indicators
-        'BD': 'Bloody diarrhea',
-        'MA': 'Malaria',
-        'TB': 'Tuberculosis',
-        'AB': 'Animal Bites',
-        'AF': 'Acute Flaccid Paralysis (Polio)',
-        'MG': 'Meningitis',
-        'ME': 'Measles',
-        'BD': 'Bloody Diarrhea (Dysentery)',
-        'CH': 'Cholera',
-        'GW': 'Guinea Worm',
-        'NT': 'Neonatal Tetanus',
-        'YF': 'Yellow Fever',
-        'OT': 'Other',
-        'PL': 'Plague',
-        'RB': 'Rabies',
-        'VF': 'Other Viral Hemorrhagic Fevers',
-        'EI': 'Other Emerging Infectious Diseases',
-        # domestic indicators
-        'WA': 'Safe Drinking Water',
-        'HA': 'Handwashing Facilities',
-        'LA': 'Latrines',
-        'IT': 'ITTNs/LLINs',
+    ALIASES = {
+        'epi_dy': 'epi_bd',
         }
 
-    ALIAS = {
-        'DY': 'BD',
+    COMMANDS = {
+        'epi': 'epidemiological_observations',
+        'home': 'observations_at_home',
         }
 
     prompt = "Report: "
 
     @pico.wrap
-    def parse(cls):
-        one_of('+')
-        pico.one_of_strings('agg', 'epi', 'home')
+    def parse(cls, commands=None):
+        if commands is None:
+            commands = cls.COMMANDS
 
-        aggregates = {}
-        result = {'aggregates': aggregates}
+        one_of('+')
+        command = "".join(pico.one_of_strings(*commands))
+        slug = commands[command]
+        kind = ReportKind.objects.get(slug=slug)
+
+        observations = {}
+        result = {
+            'observations': observations,
+            'kind': kind,
+            }
 
         if whitespace():
             total = "".join(optional(pico.digits, ()))
@@ -464,20 +457,31 @@ class Aggregates(Form):
                 many1(partial(one_of, ' ,;'))
 
             while peek():
+                # look up observation kinds that double as user input
+                # for the aggregate codes
+                kinds = ObservationKind.objects.filter(slug__startswith="%s_" % slug).all()
+                observation_kinds = dict((kind.slug, kind) for kind in kinds)
+                codes = [observation_slug.split('_', 1)[1]
+                         for observation_slug in observation_kinds]
+
+                # we allow both the observation kinds and any aliases
+                allowed_codes = tuple(codes) + tuple(cls.ALIASES)
+
                 try:
-                    code = "".join(pico.one_of_strings(*(
-                        tuple(cls.TOKENS) + tuple(cls.ALIAS))))
-                    code = code.upper()
+                    code = "".join(pico.one_of_strings(*allowed_codes)).lower()
                 except:
                     raise FormatError(
                         "Expected an indicator code "
                         "such as TB or MA (got: %s)." % \
                         "".join(remaining()))
 
-                # rewrite alias
-                code = cls.ALIAS.get(code, code)
+                # rewrite alias if required, then look up kind
+                munged= "%s_%s" % (slug, code)
+                munged = cls.ALIASES.get(munged, munged)
+                kind = observation_kinds[munged]
 
-                if code in aggregates:
+                # guard against duplicate entries
+                if kind.slug in observations:
                     raise FormatError("Duplicate value for %s." % code)
 
                 whitespace()
@@ -491,58 +495,88 @@ class Aggregates(Form):
                 if value < 0:
                     raise FormatError("Got %d for %s. You must "
                                       "report a positive value." % (
-                        value, cls.TOKENS[code]))
+                        value, kind.name))
 
-                aggregates[code] = value
+                observations[kind.slug] = value
                 many(partial(one_of, ' ,;.'))
 
         return result
 
-    def handle(self, total=None, aggregates={}):
+    def handle(self, kind=None, total=None, observations={}):
         if self.user is None: # pragma: NOCOVER
             self.reply(u"Please register before sending in reports.")
-        elif aggregates:
+        elif observations:
+            # determine whether there's any previous reports for this user
+            previous_reports = Report.objects.filter(
+                source__message__peer__user=self.user).all()
+            if previous_reports:
+                previous = previous_reports[0]
+            else:
+                previous = None
+
+            # create new report to contain these observations
+            report = Report(kind=kind, source=self)
+            report.save()
+
+            # we keep running tally of stats to generate message reply
+            # item by item
             stats = []
-            for code, value in sorted(aggregates.items()):
-                stat = "%s %d" % (self.TOKENS[code].lower(), value)
-                previous = Aggregate.objects.filter(
-                    code=code, reporter=self.user)
-                if len(previous):
-                    aggregate = previous[0]
-                    if value > 0 and aggregate.value > 0:
-                        ratio = 100 * (float(value)/aggregate.value - 1)
+
+            for slug, value in sorted(observations.items()):
+                kind = ObservationKind.objects.get(slug=slug)
+                stat = "%s %d" % (kind.name.lower(), value)
+
+                previous_value = None
+                if previous is not None:
+                    try:
+                        previous_observation = previous.observations.get(kind=kind)
+                    except Observation.DoesNotExist:
+                        pass
+                    else:
+                        previous_value = previous_observation.value
+
+                if previous_value is not None:
+                    if value > 0 and previous_value > 0:
+                        ratio = 100 * (float(value)/float(previous_value) - 1)
                         r = "%1.f%%" % abs(ratio)
                     else:
-                        ratio = value-aggregate.value
+                        ratio = value-int(previous_value)
                         r = str(abs(ratio))
                     if ratio > 0:
                         r = "+" + r
                     else:
                         r = "-" + r
                     stat += " (%s)" % r
-                Aggregate(code=code, value=value, total=total,
-                          time=self.message.time, reporter=self.user).save()
+
+                report.observations.create(kind=kind, value=value)
                 stats.append(stat)
+
+            if total is not None:
+                report.observations.create(slug="total", value=total)
+
             separator = [", "] * len(stats)
             if len(stats) > 1:
                 separator[-2] = " and "
             separator[-1] = ""
+
             self.reply(u"You reported %s." % "".join(
                 itertools.chain(*zip(stats, separator))))
         else:
             self.reply(u"Please include one or more reports.")
 
-class Muac(Form):
+class MuacForm(Form):
     """Middle upper arm circumference measurement.
 
     Formats::
 
-      +MUAC <name>, <sex>, <age>, <reading> [, <tag> ]*
-      +MUAC <health_id>, <reading> [, <tag> ]*
-      <health_id> +MUAC <reading> [, <tag> ]*
+      +MUAC <name>, <sex>, <age>, <reading> [,oedema]
+      +MUAC <health_id>, <reading> [,oedema]
+      <health_id> +MUAC <reading> [,oedema]
 
     Note that a patient id must contain one or more digits (to
     distinguish a name from a patient id).
+
+    Oedema may be specified as \"oedema\" or simply \"oe\".
 
     Reading is one of (case-insensitive):
 
@@ -639,12 +673,18 @@ class Muac(Form):
                 "received %s." % "".join(remaining()))
 
         if optional(pico.separator, None):
-            result['tags'] = pico.tags()
+            try:
+                oedema = pico.one_of_strings('oedema', 'oe')
+                result['oedema'] = bool(oedema)
+            except:
+                raise FormatError(
+                    "Specify \"oedema\"  or \"oe\" if the patient shows "
+                    "signs of oedema, otherwise leave empty.")
 
         return result
 
     def handle(self, health_id=None, name=None, sex=None,
-               age=None, category=None, reading=None, tags=()):
+               age=None, category=None, reading=None, oedema=False):
 
         if self.user is None: # pragma: NOCOVER
             return self.reply(u"Please register before sending in reports.")
@@ -678,27 +718,26 @@ class Muac(Form):
             else:
                 category = 'Y'
 
-        report = MuacMeasurement(
+        report = NutritionReport(
+            slug="nutrition",
             reading=reading,
             category=category,
-            reporter=self.user,
             patient=patient,
-            time=self.message.time)
+            oedema=oedema)
 
         report.save()
 
+        report.observations.create(slug="oedema", value=int(oedema))
+        report.observations.create(
+            slug="age_in_days",
+            value=(datetime.datetime.now()-patient.birthdate).days)
+        report.observations.create(
+            slug={'G': 'green_muac', 'Y': 'yellow_muac', 'R': 'red_muac'}[category],
+            value=1)
+
         pronoun = 'his' if patient.sex == 'M' else 'her'
 
-        for tag in tags:
-            value = tag.lower()
-            obj = report.tags.create(value=value)
-            obj.save()
-
-        tag_string = ", ".join(tag.lower().capitalize() for tag in tags)
-        if tag_string:
-            tag_string = ', with ' + tag_string
-
-        if category != 'G':
+        if category != 'G' or oedema:
             case = Case(patient=patient, report=report)
             while case.id is None:
                 try:
@@ -713,13 +752,18 @@ class Muac(Form):
             else:
                 severity = "Severe Acute"
 
+            if oedema:
+                possibly_oedema = "(with oedema)"
+            else:
+                possibly_oedema = ""
+
             self.reply(
                 "%s has been identified with "
                 "%s Malnutrition%s. %s Case Number %s." % (
-                patient.label, severity, tag_string, pronoun.capitalize(),
+                patient.label, severity, possibly_oedema, pronoun.capitalize(),
                     tracking_id))
         else:
             self.reply(
                 "Thank you for reporting your measurement of "
-                "%s%s. %s reading is normal (green)." % (
-                    patient.label, tag_string, pronoun.capitalize()))
+                "%s. %s reading is normal (green)." % (
+                    patient.label, pronoun.capitalize()))

@@ -65,12 +65,12 @@ def _parse_date_format(date_format):
 def wrap(parser):
     """Decorates a parser function."""
 
-    def parse(*args):
+    def parse(*args, **kwargs):
         args = list(args)
         text = args.pop()
         text = tuple(text) or ("", )
         try:
-            result, remaining = run_parser(partial(parser, *args), text)
+            result, remaining = run_parser(partial(parser, *args, **kwargs), text)
         except NoMatch:
             return None, ""
         except Exception, exc: # pragma: NOCOVER

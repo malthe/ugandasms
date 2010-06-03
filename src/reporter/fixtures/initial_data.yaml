@@ -1,0 +1,10 @@
+- model: stats.reportkind
+  pk: registration
+  fields:
+    name: Registration
+
+- model: stats.observationkind
+  pk: new_user
+  fields:
+    name: Signup
+

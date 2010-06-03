@@ -4,8 +4,8 @@ from .base import Scenario
 class ParserTest(UnitTestCase):
     @staticmethod
     def _cure(text):
-        from ..models import Cure
-        return Cure.parse(text)[0]
+        from ..models import CureForm
+        return CureForm.parse(text)[0]
 
     def test_empty(self):
         from router.router import FormatError
@@ -23,8 +23,8 @@ class ParserTest(UnitTestCase):
 class FormTest(Scenario):
     @classmethod
     def _cure(cls, **kwargs):
-        from ..models import Cure
-        return cls.handle(Cure, **kwargs)
+        from ..models import CureForm
+        return cls.handle(CureForm, **kwargs)
 
     @classmethod
     def _register(cls, **kwargs):

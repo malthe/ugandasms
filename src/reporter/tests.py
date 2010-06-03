@@ -25,6 +25,7 @@ class ParserTest(UnitTestCase):
 class HandlerTest(FormTestCase):
     INSTALLED_APPS = FormTestCase.INSTALLED_APPS + (
         'reporter',
+        'stats',
         )
 
     @classmethod
@@ -36,6 +37,11 @@ class HandlerTest(FormTestCase):
         self._register(name="foo")
         from .models import Reporter
         self.assertEqual(Reporter.objects.get().name, "foo")
+
+    def test_report(self):
+        self._register(name="foo")
+        from stats.models import Observation
+        self.assertEqual(Observation.objects.count(), 1)
 
     def test_inquire_for_ident(self):
         self._register(name="foo")

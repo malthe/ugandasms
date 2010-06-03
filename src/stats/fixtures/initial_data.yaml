@@ -1,0 +1,19 @@
+- model: stats.observationkind
+  pk: age_in_days
+  fields:
+    name: Age (in days)
+
+- model: stats.observationkind
+  pk: female
+  fields:
+    name: Female
+
+- model: stats.observationkind
+  pk: male
+  fields:
+    name: Male
+
+- model: stats.observationkind
+  pk: total
+  fields:
+    name: Total number of observations

@@ -1,0 +1,167 @@
+- model: stats.reportkind
+  pk: birth
+  fields:
+    name: Birth
+
+- model: stats.reportkind
+  pk: death
+  fields:
+    name: Death
+
+- model: stats.reportkind
+  pk: nutrition
+  fields:
+    name: Nutrition
+
+- model: stats.reportkind
+  pk: otp
+  fields:
+    name: Outpatient
+
+- model: stats.reportkind
+  pk: epidemiological_observations
+  fields:
+    name: Epidemiology
+
+- model: stats.reportkind
+  pk: observations_at_home
+  fields:
+    name: Domestic health
+
+- model: stats.observationkind
+  pk: birth_at_home
+  fields:
+    name: Home
+    description: Occurred in the home.
+
+- model: stats.observationkind
+  pk: birth_at_clinic
+  fields:
+    name: Clinic
+    description: Occurred at a private or minor clinic.
+
+- model: stats.observationkind
+  pk: birth_at_facility
+  fields:
+    name: Facility
+    description: Occurred at a health facility.
+
+- model: stats.observationkind
+  pk: green_muac
+  fields:
+    name: Green
+
+- model: stats.observationkind
+  pk: yellow_muac
+  fields:
+    name: Yellow
+
+- model: stats.observationkind
+  pk: red_muac
+  fields:
+    name: Red
+
+- model: stats.observationkind
+  pk: epi_bd
+  fields:
+    name: Bloody diarrhea (Dysentery)
+
+- model: stats.observationkind
+  pk: epi_ma
+  fields:
+    name: Malaria
+
+- model: stats.observationkind
+  pk: epi_tb
+  fields:
+    name: Tuberculosis
+
+- model: stats.observationkind
+  pk: epi_ab
+  fields:
+    name: Animal Bites
+
+- model: stats.observationkind
+  pk: epi_af
+  fields:
+    name: Acute Flaccid Paralysis (Polio)
+
+- model: stats.observationkind
+  pk: epi_mg
+  fields:
+    name: Meningitis
+
+- model: stats.observationkind
+  pk: epi_me
+  fields:
+    name: Measles
+
+- model: stats.observationkind
+  pk: epi_ch
+  fields:
+    name: Cholera
+
+- model: stats.observationkind
+  pk: epi_gw
+  fields:
+    name: Guinea Worm
+
+- model: stats.observationkind
+  pk: epi_nt
+  fields:
+    name: Neonatal Tetanus
+
+- model: stats.observationkind
+  pk: epi_yf
+  fields:
+    name: Yellow Fever
+
+- model: stats.observationkind
+  pk: epi_ot
+  fields:
+    name: Other
+
+- model: stats.observationkind
+  pk: epi_pl
+  fields:
+    name: Plague
+
+- model: stats.observationkind
+  pk: epi_rb
+  fields:
+    name: Rabies
+
+- model: stats.observationkind
+  pk: epi_vf
+  fields:
+    name: Other Viral Hemorrhagic Fevers
+
+- model: stats.observationkind
+  pk: epi_ei
+  fields:
+    name: Other Emerging Infectious Diseases
+
+- model: stats.observationkind
+  pk: dh_wa
+  fields:
+    name: Safe Drinking Water
+
+- model: stats.observationkind
+  pk: dh_ha
+  fields:
+    name: Handwashing Facilities
+
+- model: stats.observationkind
+  pk: dh_la
+  fields:
+    name: Latrines
+
+- model: stats.observationkind
+  pk: dh_it
+  fields:
+    name: ITTNs/LLINs
+
+- model: stats.observationkind
+  pk: oedema
+  fields:
+    name: Oedema

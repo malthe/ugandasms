@@ -19,6 +19,7 @@ from router.models import Peer
 from router.models import User
 
 from location.models import Area
+from stats.models import Report
 
 class ReporterRole(models.Model):
     """Represents the role of the reporter.  This may put reporters
@@ -26,7 +27,7 @@ class ReporterRole(models.Model):
     and hospital staff."""
 
     name = models.CharField(max_length=50)
-    slug = models.SlugField(unique=True)
+    slug = models.SlugField(unique=True, primary_key=True)
 
 class Reporter(User):
     """A Reporter is someone who interacts with RapidSMS as a user of
@@ -114,7 +115,9 @@ class Registration(Form):
                 self.message.peer.user = user
                 self.message.peer.save()
 
-                
+                Report.from_observations(
+                    "registration", source=self, location=None,
+                    new_user=1)
 
                 self.reply((
                     "Welcome, %(name)s. "

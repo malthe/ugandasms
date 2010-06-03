@@ -1,118 +1,80 @@
 - model: location.locationkind
-  pk: 1
+  pk: hc1
   fields:
     name: HCI
 
 - model: location.locationkind
-  pk: 2
+  pk: hc2
   fields:
     name: HCII
 
 - model: location.locationkind
-  pk: 3
+  pk: hc3
   fields:
     name: HCIII
 
 - model: location.locationkind
-  pk: 4
+  pk: hc4
   fields:
     name: HCIV
 
 - model: location.locationkind
-  pk: 5
+  pk: country
   fields:
     name: Country
 
 - model: location.locationkind
-  pk: 6
+  pk: district
   fields:
     name: District
 
 - model: location.locationkind
-  pk: 7
+  pk: sub_district
   fields:
     name: Sub-district
 
 - model: location.locationkind
-  pk: 8
+  pk: county
   fields:
     name: County
 
 - model: location.locationkind
-  pk: 9
+  pk: sub_county
   fields:
     name: Sub-county
 
 - model: location.locationkind
-  pk: 10
+  pk: parish
   fields:
     name: Parish
 
 - model: location.locationkind
-  pk: 11
+  pk: village
   fields:
     name: Village
 
 - model: location.locationkind
-  pk: 12
+  pk: sub_village
   fields:
     name: Sub-village
 
 - model: location.locationkind
-  pk: 13
+  pk: dho
   fields:
     name: DHO
 
 - model: reporter.reporterrole
-  pk: 1
+  pk: vht
   fields:
-    slug: vht
     name: Village Health Team
 
 - model: reporter.reporterrole
-  pk: 2
+  pk: pvht
   fields:
-    slug: pvht
     name: Peer Village Health Team
 
 - model: reporter.reporterrole
-  pk: 3
+  pk: hso
   fields:
-    slug: hso
     name: Health Surveillance Officer
 
-- model: stats.reportkind
-  pk: 1
-  fields:
-    slug: epi
-    name: Epidemiology
-
-- model: stats.reportkind
-  pk: 2
-  fields:
-    slug: home
-    name: Home
-
-- model: stats.reportkind
-  pk: 3
-  fields:
-    slug: birth
-    name: Birth
-
-- model: stats.reportkind
-  pk: 4
-  fields:
-    slug: death
-    name: Death
-
-- model: stats.reportkind
-  pk: 5
-  fields:
-    slug: nutrition
-    name: Nutrition
-
-- model: stats.reportkind
-  pk: 6
-  fields:
-    slug: otp
-    name: Outpatient

@@ -21,10 +21,10 @@ class Scenario(FormTestCase):
         from ..models import Report
         from ..models import Case
 
-        report = Report(
-            reporter=form.user,
-            time=datetime.now(),
-            )
+        from stats.models import ReportKind
+        ReportKind(slug="test", name="Test report").save()
+
+        report = Report(slug="test", source=form)
         report.save()
 
         patient = Patient(

@@ -3,6 +3,7 @@ from treebeard.mp_tree import MP_Node
 
 class LocationKind(models.Model):
     name = models.CharField(max_length=50)
+    slug = models.SlugField(unique=True, primary_key=True)
     description = models.CharField(max_length=255, null=True)
 
     def __unicode__(self): # pragma: NOCOVER
