@@ -67,7 +67,7 @@ class Signup(Form):
         try:
             facility = result['facility'] = Facility.objects.filter(code=code).get()
         except Facility.DoesNotExist:
-            raise FormatError(u"No such HMIS facility code: %d." % code)
+            raise FormatError(u"No such HMIS facility code: %s." % code)
 
         whitespace()
 

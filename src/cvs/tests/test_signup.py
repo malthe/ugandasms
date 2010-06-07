@@ -41,11 +41,6 @@ class SignupTestCase(FunctionalTestCase):
         self.facility = facility
 
 class ParserTest(SignupTestCase):
-    @classmethod
-    def _register(cls, **kwargs):
-        from reporter.models import Registration
-        return cls.handle(Registration, **kwargs)
-
     @staticmethod
     def _signup(text):
         from ..models import Signup
@@ -61,6 +56,11 @@ class ParserTest(SignupTestCase):
         self.bootstrap()
         from router.router import FormatError
         self.assertRaises(FormatError, self._signup, "+test")
+
+    def test_wrong_code(self):
+        self.bootstrap()
+        from router.router import FormatError
+        self.assertRaises(FormatError, self._signup, "+test 5678")
 
     def test_code_and_reporting_location(self):
         self.bootstrap()
