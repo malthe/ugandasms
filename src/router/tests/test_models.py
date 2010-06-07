@@ -46,7 +46,7 @@ class ConnectionTest(UnitTestCase):
     def test_str(self):
         from router.models import Connection
         connection = Connection(uri="test://123")
-        self.assertEqual(str(connection.ident), '123')
+        self.assertEqual(str(connection), '123')
 
 class ReporterTest(UnitTestCase):
     def test_str(self):
