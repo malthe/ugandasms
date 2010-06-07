@@ -1,0 +1,4 @@
+- model: location.locationkind
+  pk: user_added_location
+  fields:
+    name: Location added by user

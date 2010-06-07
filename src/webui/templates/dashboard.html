@@ -1,0 +1,12 @@
+{% extends "base_template.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block javascripts %}
+{% endblock %}
+{% block content %}
+Welcome to RapidSMS! 
+{% if user.is_authenticated %}
+Click on a tab to explore.
+{% else %}                                        
+Please <a href="/accounts/login/">log in</a> to continue.
+{% endif %}  
+{% endblock %}

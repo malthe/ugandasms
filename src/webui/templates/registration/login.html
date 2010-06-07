@@ -1,0 +1,13 @@
+{% extends "base_template.html" %}
+{% block content %}
+<div>
+  <form method="post">
+    {% csrf_token %}
+
+    {{ form.as_ul }}
+
+    <input type="submit" value="Login" />
+    <input type="hidden" name="next" value="{{ next }}" />
+  </form>
+</div>
+{% endblock %}
