@@ -92,4 +92,24 @@
     name: Health Surveillance Officer
     keyword: HSO
 
+- model: router.reporterrole
+  pk: vht
+  fields:
+      name: Village Health Team
+
+- model: router.reporterrole
+  pk: pvht
+  fields:
+    name: Peer Village Health Team
+
+- model: router.reporterrole
+  pk: hno
+  fields:
+    name: Health Surveillance Officer
+
+- model: router.reporterrole
+  pk: hso
+  fields:
+    name: Health Surveillance Officer
+
 
