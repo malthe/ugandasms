@@ -36,13 +36,8 @@ class FormTest(FormTestCase):
         from ..models import BirthForm
         return cls.handle(BirthForm, **kwargs)
 
-    @classmethod
-    def _register(cls, **kwargs):
-        from reporter.models import Registration
-        return cls.handle(Registration, **kwargs)
-
     def test_birth(self):
-        self._register(name="ann")
+        self.register_default_user()
         self._birth(name="Apio", sex="F", place="CLINIC")
         from ..models import BirthReport
         self.assertEqual(BirthReport.objects.count(), 1)

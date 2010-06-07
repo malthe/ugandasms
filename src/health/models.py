@@ -55,6 +55,45 @@ def generate_tracking_id():
         random.choice(TRACKING_ID_LETTERS),
         random.randint(0, 99))
 
+def parse_patient_input():
+    result = {}
+
+    try:
+        whitespace1()
+
+        identifiers = optional(tri(pico.ids), None)
+        if identifiers:
+            result['ids'] = [id.upper() for id in identifiers]
+        else:
+            result['name'] = pico.name()
+    except:
+        raise FormatError(
+            "Expected a name, or a patient's health or tracking ID "
+            "(got: %s)." % "".join(remaining()))
+
+    if 'name' in result:
+        try:
+            many1(partial(one_of, ' ,;'))
+            result['sex'] = pico.one_of_strings(
+                'male', 'female', 'm', 'f')[0].upper()
+        except:
+            raise FormatError(
+                "Expected the infant's gender "
+                "(\"male\", \"female\", or simply \"m\" or \"f\"), "
+                "but received instead: %s." % "".join(remaining()))
+        try:
+            pico.separator()
+        except:
+            raise FormatError("Expected age or birthdate of patient.")
+
+        try:
+            result['age'] = choice(*map(tri, (pico.date, pico.timedelta)))
+        except:
+            raise FormatError("Expected age or birthdate of patient, but "
+                             "received %s." % "".join(remaining()))
+
+    return result
+
 class Patient(Model):
     health_id = models.CharField(max_length=30, null=True)
     name = models.CharField(max_length=50)
@@ -216,61 +255,8 @@ class BirthForm(Form):
         self.reply("Thank you for registering the birth of %s." % \
                    patient.label)
 
-class DeathForm(Form):
-    """Report a death.
-
-    Format::
-
-      +DEATH <name>, <sex>, <age>
-      +DEATH [<health_id>]+
-      +DEATH [<tracking_id>]+
-
-    """
-
-    prompt = "Death: "
-
-    @pico.wrap
-    def parse(cls):
-        one_of('+')
-        caseless_string('death')
-
-        result = {}
-
-        try:
-            whitespace1()
-
-            identifiers = optional(tri(pico.ids), None)
-            if identifiers:
-                result['ids'] = [id.upper() for id in identifiers]
-            else:
-                result['name'] = pico.name()
-        except:
-            raise FormatError(
-                "Expected a name, or a patient's health or tracking ID "
-                "(got: %s)." % "".join(remaining()))
-
-        if 'name' in result:
-            try:
-                many1(partial(one_of, ' ,;'))
-                result['sex'] = pico.one_of_strings(
-                    'male', 'female', 'm', 'f')[0].upper()
-            except:
-                raise FormatError(
-                    "Expected the infant's gender "
-                    "(\"male\", \"female\", or simply \"m\" or \"f\"), "
-                    "but received instead: %s." % "".join(remaining()))
-            try:
-                pico.separator()
-            except:
-                raise FormatError("Expected age or birthdate of patient.")
-
-            try:
-                result['age'] = choice(*map(tri, (pico.date, pico.timedelta)))
-            except:
-                raise FormatError("Expected age or birthdate of patient, but "
-                                 "received %s." % "".join(remaining()))
-
-        return result
+class PatientVisitationForm(Form):
+    report_kind = None
 
     def handle(self, ids=None, name=None, sex=None, age=None):
         if self.reporter is None: # pragma: NOCOVER
@@ -304,30 +290,72 @@ class DeathForm(Form):
 
             patient = Patient.identify(name, sex, birthdate, self.reporter)
             if patient is None:
-                return self.reply(
-                    u"We have recorded the death of %s." % name)
+                Report.from_observations(slug=self.report_kind, unregistered_patient=1)
+                return self.handle_unregistered(name, sex, age)
 
             cases = patient.cases.all()
             patients = [patient]
 
+        notifications = {}
+        for case in cases:
+            # check if we need to notify the original case reporter
+            assert case.report.source is not None
+            case_reporter = case.report.source.reporter
+            if  case_reporter != self.reporter:
+                notifications[case_reporter.pk] = case.patient
+
+        Report.from_observations(slug=self.report_kind, registered_patient=len(patients))
+        self.handle_registered(patients, cases, notifications)
+
+class DeathForm(PatientVisitationForm):
+    """Report a death.
+
+    Format::
+
+      +DEATH <name>, <sex>, <age>
+      +DEATH [<health_id>]+
+      +DEATH [<tracking_id>]+
+
+    """
+
+    prompt = "Death: "
+    report_kind = "death"
+
+    @pico.wrap
+    def parse(cls):
+        one_of('+')
+        caseless_string('death')
+        return parse_patient_input()
+
+    def handle_unregistered(self, name, sex, age):
+        return self.reply(
+            u"We have recorded the death of %s." % name)
+
+    def handle_registered(self, patients, cases, notifications):
         for patient in patients:
             patient.deathdate = self.message.time
             patient.save()
 
         for case in cases:
-            if case.report.source.reporter != self.reporter:
-                self.reply("We have received notice of the death "
-                           "of your patient %s." % case.patient.label)
             case.closed = self.message.time
             case.save()
 
+        Report.from_observations(slug=self.report_kind, closing_of_case=len(cases))
+
+        for pk, patient in notifications.items():
+            reporter = Reporter.objects.get(pk=pk)
+            self.reply(
+                u"This is to inform you that "
+                "Your patient, %s, has died." % patient.label,
+                reporter=reporter)
+
         self.reply(
-            "Thank you for reporting the death of %s. "
-            "We have closed %d open case(s)." % (
+            "Thank you for reporting the death of %s; "
+            "we have closed %d open case(s)." % (
                 ", ".join(patient.label for patient in patients),
                 len(cases)))
 
-class CureForm(Form):
+class CureForm(PatientVisitationForm):
     """Mark a case as closed due to curing.
 
     Format::
@@ -339,48 +367,73 @@ class CureForm(Form):
     """
 
     prompt = "Cured: "
+    report_kind = "cure"
 
     @pico.wrap
     def parse(cls):
         one_of('+')
         caseless_string('cure')
+        return parse_patient_input()
 
-        try:
-            whitespace1()
-            tracking_ids = pico.ids()
-        except:
-            raise FormatError("Expected tracking id (got: %s)." % \
-                              "".join(remaining()))
+    def handle_unregistered(self, name, sex, age):
+        return self.reply(
+            u"We have recorded the curing of %s." % name)
 
-        if not tracking_ids:
-            raise FormatError(
-                "Please specify one or more tracking IDs.")
-
-        return {'tracking_ids': [tid.upper() for tid in tracking_ids]}
-
-    def handle(self, tracking_ids=None):
-        cases = Case.objects.filter(tracking_id__in=tracking_ids).all()
-
-        found = set([case.tracking_id for case in cases])
-        not_found = set(tracking_ids) - found
-
-        if not_found:
-            return self.reply(
-                "The case number(s) %s do not exist. "
-                "Please correct and resend all tracking ids."  % \
-                ", ".join(not_found))
-
+    def handle_registered(self, patients, cases, notifications):
         for case in cases:
             case.closed = self.message.time
             case.save()
-            label = case.patient.label
-            reporter = case.report.source.reporter
 
-            if reporter != self.reporter:
-                self.reply("Your patient, %s, has been set as \"cured\"." % (
-                    label), reporter)
+        Report.from_observations(slug=self.report_kind, closing_of_case=len(cases))
 
-        self.reply("You have closed %d case(s)." % len(cases))
+        for pk, patient in notifications.items():
+            reporter = Reporter.objects.get(pk=pk)
+            self.reply(
+                u"This is to inform you that "
+                "Your patient, %s, has been cured." % patient.label,
+                reporter=reporter)
+
+        self.reply(
+            "Thank you for reporting the curing of %s; "
+            "we have closed %d open case(s)." % (
+                ", ".join(patient.label for patient in patients),
+                len(cases)))
+
+class OtpForm(PatientVisitationForm):
+    """Mark a case as seen in outpatient therapeutic program care.
+
+    Format::
+
+      +OTP [<tracking_id>]+
+
+    Separate multiple entries with space and/or comma. Tracking IDs
+    are case-insensitive.
+    """
+
+    prompt = "OTP: "
+    report_kind = "otp"
+
+    @pico.wrap
+    def parse(cls):
+        one_of('+')
+        caseless_string('otp')
+        return parse_patient_input()
+
+    def handle_unregistered(self, name, sex, age):
+        return self.reply(
+            u"We have recorded the OTP visit of %s." % name)
+
+    def handle_registered(self, patients, cases, notifications):
+        for pk, patient in notifications.items():
+            reporter = Reporter.objects.get(pk=pk)
+            self.reply(
+                u"This is to inform you that "
+                "Your patient, %s, has received OTP treatment." % patient.label,
+                reporter=reporter)
+
+        self.reply(
+            "Thank you for reporting the OTP treatment of %s." % \
+            ", ".join(patient.label for patient in patients))
 
 class ObservationForm(Form):
     """Form to allow multiple observation input.
@@ -746,6 +799,8 @@ class MuacForm(Form):
                     case.save()
                 except IntegrityError: # pragma: NOCOVER
                     pass
+
+            Report.from_observations(slug="nutrition", opening_of_case=1)
 
             if category == 'Y':
                 severity = "Risk of"

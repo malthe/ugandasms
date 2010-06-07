@@ -28,6 +28,26 @@
   fields:
     name: Domestic health
 
+- model: stats.reportkind
+  pk: patient
+  fields:
+    name: Patient report
+
+- model: stats.reportkind
+  pk: death
+  fields:
+    name: Death of patient
+
+- model: stats.reportkind
+  pk: cure
+  fields:
+    name: Curing of patient
+
+- model: stats.reportkind
+  pk: otp
+  fields:
+    name: OTP visit
+
 - model: stats.observationkind
   pk: birth_at_home
   fields:
@@ -165,3 +185,23 @@
   pk: oedema
   fields:
     name: Oedema
+
+- model: stats.observationkind
+  pk: registered_patient
+  fields:
+    name: Registered patient
+
+- model: stats.observationkind
+  pk: unregistered_patient
+  fields:
+    name: Unregistered patient
+
+- model: stats.observationkind
+  pk: opening_of_case
+  fields:
+    name: Cases closed
+
+- model: stats.observationkind
+  pk: closing_of_case
+  fields:
+    name: Cases closed

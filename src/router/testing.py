@@ -310,9 +310,25 @@ class FormTestCase(FunctionalTestCase):
         'stats',
         )
 
-    @staticmethod
-    def handle(model, text="", uri="test://old", user=None, **kwargs):
-        """Handles an incoming message with the provided form."""
+    default_uri = "test://old"
+
+    @classmethod
+    def register_default_user(cls):
+        from .models import Reporter
+        return Reporter.from_uri(cls.default_uri)
+
+    @classmethod
+    def handle(cls, model, text="", uri=None, **kwargs):
+        """Handles an incoming message.
+
+        :param model: Form to handle
+        :param text: Message body (optional)
+        :param uri: Connection URI (defaults to the ``default_uri`` class attribute).
+
+        """
+
+        if uri is None:
+            uri = cls.default_uri
 
         from .models import Incoming
         from datetime import datetime

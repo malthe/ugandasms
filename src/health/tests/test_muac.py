@@ -168,23 +168,18 @@ class FormTest(FormTestCase):
         patient.save()
 
     @classmethod
-    def _register(cls, **kwargs):
-        from reporter.models import Registration
-        return cls.handle(Registration, **kwargs)
-
-    @classmethod
     def _muac(cls, **kwargs):
         from ..models import MuacForm
         return cls.handle(MuacForm, **kwargs)
 
     def test_patient_green_reading(self):
-        self._register(name='ann')
+        self.register_default_user()
         self._create_patient()
         form = self._muac(health_id='bob123', category='G')
         self.assertTrue('normal' in form.replies.get().text)
 
     def test_patient_yellow_reading(self):
-        self._register(name='ann')
+        self.register_default_user()
         self._create_patient()
         form = self._muac(health_id='bob123', category='Y')
         self.assertTrue('risk' in form.replies.get().text.lower())
@@ -194,7 +189,7 @@ class FormTest(FormTestCase):
         self.assertTrue(case.tracking_id in form.replies.get().text)
 
     def test_patient_red_reading(self):
-        self._register(name='ann')
+        self.register_default_user()
         self._create_patient()
         form = self._muac(health_id='bob123', category='R')
         self.assertTrue('acute' in form.replies.get().text.lower())
@@ -204,7 +199,7 @@ class FormTest(FormTestCase):
         self.assertTrue(case.tracking_id in form.replies.get().text)
 
     def test_patient_reading_categorization(self):
-        self._register(name='ann')
+        self.register_default_user()
         self._create_patient()
         for reading, category in ((140, 'G'), (125, 'Y'), (110, 'R')):
             self._muac(health_id='bob123', reading=reading)
@@ -213,7 +208,7 @@ class FormTest(FormTestCase):
             self.assertEqual(report.category, category)
 
     def test_patient_age_is_datetime(self):
-        self._register(name='ann')
+        self.register_default_user()
         from datetime import datetime
         age = datetime(1980, 1, 1, 3, 42)
         self._muac(name="Barbra Smith", age=age, sex='F', reading=140)
@@ -221,7 +216,7 @@ class FormTest(FormTestCase):
         self.assertTrue(NutritionReport.objects.get().patient.birthdate, age)
 
     def test_patient_age_is_timedelta(self):
-        self._register(name='ann')
+        self.register_default_user()
         from datetime import timedelta
         age = timedelta(days=60)
         self._muac(name="Barbra Smith", age=age, sex='F', reading=140)
@@ -229,7 +224,7 @@ class FormTest(FormTestCase):
         self.assertTrue(NutritionReport.objects.get().patient.age, age)
 
     def test_patient_age_is_timedelta_and_less_than_a_month(self):
-        self._register(name='ann')
+        self.register_default_user()
         from datetime import timedelta
         age = timedelta(days=29)
         form = self._muac(name="Barbra Smith", age=age, sex='F', reading=140)
@@ -238,14 +233,14 @@ class FormTest(FormTestCase):
     def test_patient_not_found(self):
         from health.models import NutritionReport
         self.assertEqual(NutritionReport.objects.count(), 0)
-        self._register(name='ann')
+        self.register_default_user()
         self._create_patient()
         form = self._muac(health_id='bob456', reading=140)
         self.assertEqual(NutritionReport.objects.count(), 0)
         self.assertTrue('bob456' in form.replies.get().text)
 
     def test_patient_is_identified(self):
-        self._register(name='ann')
+        self.register_default_user()
         self._create_patient()
         self._muac(
             name="bob smith", age=self.patient.age, sex='M', reading=140)
@@ -254,7 +249,7 @@ class FormTest(FormTestCase):
         self.assertEqual(NutritionReport.objects.get().patient, self.patient)
 
     def test_patient_reading_with_oedema(self):
-        self._register(name='ann')
+        self.register_default_user()
         self._create_patient()
         form = self._muac(health_id='bob123', category='G', oedema=True)
         self.assertTrue('oedema' in form.replies.get().text.lower())

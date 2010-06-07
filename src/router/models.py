@@ -22,6 +22,14 @@ class Reporter(models.Model):
     roles = models.ManyToManyField(ReporterRole)
     connections = ()
 
+    @classmethod
+    def from_uri(cls, uri, **kwargs):
+        reporter = cls(**kwargs)
+        reporter.save()
+        connection, created = Connection.objects.get_or_create(uri=uri)
+        reporter.connections.add(connection)
+        return reporter
+
     def __unicode__(self):
         return self.name
 
@@ -83,6 +91,14 @@ class Message(models.Model):
 
     class Meta:
         ordering = ['-time']
+
+    @classmethod
+    def from_uri(cls, uri, **kwargs):
+        message = cls(**kwargs)
+        connection, created = Connection.objects.get_or_create(uri=uri)
+        message.connection = connection
+        message.save()
+        return message
 
 class Incoming(Message):
     """An incoming message."""

@@ -36,14 +36,11 @@ class FormTest(Scenario):
     @classmethod
     def _death(cls, **kwargs):
         from ..models import DeathForm
+        kwargs.setdefault("uri", "test://ann")
         return cls.handle(DeathForm, **kwargs)
 
-    @classmethod
-    def _register(cls, **kwargs):
-        from reporter.models import Registration
-        return cls.handle(Registration, **kwargs)
-
     def test_health_id(self):
+        self.register_default_user()
         form = self._death(ids=['bob123'])
         from ..models import Case
         self.assertNotEqual(Case.objects.get().closed, None)
@@ -52,6 +49,7 @@ class FormTest(Scenario):
         self.assertTrue('Bob' in form.replies.all()[0].text)
 
     def test_case_id(self):
+        self.register_default_user()
         form = self._death(ids=['TRACK123'])
         from ..models import Case
         self.assertNotEqual(Case.objects.get().closed, None)
@@ -60,20 +58,23 @@ class FormTest(Scenario):
         self.assertTrue('Bob' in form.replies.all()[0].text)
 
     def test_case_id_other(self):
-        self._register(uri="test://other", name="Ann")
-        form = self._death(uri="test://other", ids=['TRACK123'])
+        self.register_default_user()
+        form = self._death(uri=self.default_uri, ids=['TRACK123'])
         self.assertEqual(form.replies.count(), 2)
 
     def test_case_id_not_exist(self):
+        self.register_default_user()
         form = self._death(ids=['TRACK456'])
         self.assertTrue('TRACK456' in form.replies.get().text)
 
     def test_name_sex_age_unknown_patient(self):
+        self.register_default_user()
         from datetime import timedelta
         form = self._death(name="Jim", sex="M", age=timedelta(days=60))
         self.assertTrue('Jim' in form.replies.all()[0].text)
 
     def test_name_sex_age_known_patient(self):
+        self.register_default_user()
         from datetime import datetime
         form = self._death(name="Bob", sex="M", age=datetime(1980, 1, 1, 3, 42))
         from ..models import Case

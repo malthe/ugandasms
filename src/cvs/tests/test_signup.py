@@ -104,13 +104,14 @@ class ParserTest(SignupTestCase):
              })
 
 class FormTest(SignupTestCase, FormTestCase):
-    @classmethod
-    def _register(cls, **kwargs):
-        from reporter.models import Registration
-        return cls.handle(Registration, **kwargs)
+    @staticmethod
+    def _register(uri="test://ann", name="Ann"):
+        from router.models import Reporter
+        return Reporter.from_uri(uri, name=name)
 
     @classmethod
     def _signup(cls, **kwargs):
+        kwargs.setdefault("uri", "test://ann")
         from ..models import Signup
         return cls.handle(Signup, **kwargs)
 
@@ -120,14 +121,13 @@ class FormTest(SignupTestCase, FormTestCase):
 
     def test_signup(self):
         self.bootstrap()
-        self._register(name="foo")
-
-        message = self._signup(role=self.role, facility=self.facility, area=self.area)
+        self._register()
+        form = self._signup(role=self.role, facility=self.facility, area=self.area)
 
         from router.models import Reporter
         reporter = Reporter.objects.get()
 
-        self.assertEqual(reporter, message.reporter)
+        self.assertEqual(reporter, form.reporter)
 
         from cvs.models import HealthReporter
         reporter = HealthReporter.objects.get()

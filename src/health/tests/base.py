@@ -9,7 +9,8 @@ class Scenario(FormTestCase):
     def setUp(self):
         super(Scenario, self).setUp()
 
-        form = self._register(name="ann")
+        from router.models import Reporter
+        reporter = Reporter.from_uri("test://ann", name="Ann")
 
         from datetime import datetime
         from ..models import Patient
@@ -19,6 +20,13 @@ class Scenario(FormTestCase):
         from stats.models import ReportKind
         ReportKind(slug="test", name="Test report").save()
 
+        from router.models import Form
+        from router.models import Incoming
+
+        message = Incoming.from_uri("test://ann")
+        form = Form(message=message)
+        form.save()
+
         report = Report(slug="test", source=form)
         report.save()
 
@@ -27,7 +35,7 @@ class Scenario(FormTestCase):
             name="Bob",
             sex="M",
             birthdate=datetime(1980, 1, 1, 3, 42),
-            last_reported_on_by=form.reporter,
+            last_reported_on_by=reporter,
             )
         patient.save()
 
@@ -38,3 +46,4 @@ class Scenario(FormTestCase):
             )
 
         case.save()
+

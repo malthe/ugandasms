@@ -29,9 +29,9 @@ class HandlerTest(FormTestCase):
         )
 
     @classmethod
-    def _register(cls, *args, **kwargs):
-        from .models import Registration
-        return cls.handle(Registration, *args, **kwargs)
+    def _register(cls, **kwargs):
+        from reporter.models import Registration
+        return cls.handle(Registration, **kwargs)
 
     def test_initial_registration(self):
         self._register(name="foo")
