@@ -82,102 +82,102 @@
     name: Red
 
 - model: stats.observationkind
-  pk: epi_bd
+  pk: epidemiological_observations_bd
   fields:
     name: Bloody diarrhea (Dysentery)
 
 - model: stats.observationkind
-  pk: epi_ma
+  pk: epidemiological_observations_ma
   fields:
     name: Malaria
 
 - model: stats.observationkind
-  pk: epi_tb
+  pk: epidemiological_observations_tb
   fields:
     name: Tuberculosis
 
 - model: stats.observationkind
-  pk: epi_ab
+  pk: epidemiological_observations_ab
   fields:
     name: Animal Bites
 
 - model: stats.observationkind
-  pk: epi_af
+  pk: epidemiological_observations_af
   fields:
     name: Acute Flaccid Paralysis (Polio)
 
 - model: stats.observationkind
-  pk: epi_mg
+  pk: epidemiological_observations_mg
   fields:
     name: Meningitis
 
 - model: stats.observationkind
-  pk: epi_me
+  pk: epidemiological_observations_me
   fields:
     name: Measles
 
 - model: stats.observationkind
-  pk: epi_ch
+  pk: epidemiological_observations_ch
   fields:
     name: Cholera
 
 - model: stats.observationkind
-  pk: epi_gw
+  pk: epidemiological_observations_gw
   fields:
     name: Guinea Worm
 
 - model: stats.observationkind
-  pk: epi_nt
+  pk: epidemiological_observations_nt
   fields:
     name: Neonatal Tetanus
 
 - model: stats.observationkind
-  pk: epi_yf
+  pk: epidemiological_observations_yf
   fields:
     name: Yellow Fever
 
 - model: stats.observationkind
-  pk: epi_ot
+  pk: epidemiological_observations_ot
   fields:
     name: Other
 
 - model: stats.observationkind
-  pk: epi_pl
+  pk: epidemiological_observations_pl
   fields:
     name: Plague
 
 - model: stats.observationkind
-  pk: epi_rb
+  pk: epidemiological_observations_rb
   fields:
     name: Rabies
 
 - model: stats.observationkind
-  pk: epi_vf
+  pk: epidemiological_observations_vf
   fields:
     name: Other Viral Hemorrhagic Fevers
 
 - model: stats.observationkind
-  pk: epi_ei
+  pk: epidemiological_observations_ei
   fields:
     name: Other Emerging Infectious Diseases
 
 - model: stats.observationkind
-  pk: dh_wa
+  pk: observations_at_home_wa
   fields:
     name: Safe Drinking Water
 
 - model: stats.observationkind
-  pk: dh_ha
+  pk: observations_at_home_ha
   fields:
     name: Handwashing Facilities
 
 - model: stats.observationkind
-  pk: dh_la
+  pk: observations_at_home_la
   fields:
     name: Latrines
 
 - model: stats.observationkind
-  pk: dh_it
+  pk: observations_at_home_it
   fields:
     name: ITTNs/LLINs
 

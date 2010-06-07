@@ -511,7 +511,7 @@ class ObservationForm(Form):
 
             kinds = ObservationKind.objects.filter(slug__startswith="%s_" % slug).all()
             observation_kinds = dict((kind.slug, kind) for kind in kinds)
-            codes = [observation_slug.split('_', 1)[1]
+            codes = [observation_slug.rsplit('_', 1)[1]
                      for observation_slug in observation_kinds]
 
             # we allow both the observation kinds and any aliases

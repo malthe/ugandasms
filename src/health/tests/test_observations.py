@@ -7,9 +7,9 @@ class HealthTestCase(FunctionalTestCase):
         'reporter',
         )
 
-class ParserTest(HealthTestCase):
-    @staticmethod
-    def _parse(text):
+    def setUp(self):
+        super(HealthTestCase, self).setUp()
+
         from stats.models import ReportKind
         from stats.models import ObservationKind
 
@@ -22,6 +22,9 @@ class ParserTest(HealthTestCase):
         kind, created = ObservationKind.objects.get_or_create(
             slug="agg_tb", name="tuberculosis")
 
+class ParserTest(HealthTestCase):
+    @staticmethod
+    def _parse(text):
         from ..models import ObservationForm
         return ObservationForm.parse(text, commands={'agg': 'agg'})[0]
 
@@ -97,7 +100,7 @@ class FormTest(HealthTestCase, FormTestCase):
 
     def test_single_report(self):
         self.register_default_user()
-        message = self._observations(observations={'epi_ma': 5})
+        message = self._observations(observations={'agg_ma': 5})
         from stats.models import Report
         report = Report.objects.get(kind__slug="test")
         self.assertEqual(report.observations.count(), 1)
@@ -107,7 +110,7 @@ class FormTest(HealthTestCase, FormTestCase):
 
     def test_with_total(self):
         self.register_default_user()
-        message = self._observations(total=10, observations={'epi_ma': 5})
+        message = self._observations(total=10, observations={'agg_ma': 5})
         from stats.models import Report
         report = Report.objects.get(kind__slug="test")
         self.assertEqual(report.observations.count(), 2)
@@ -118,17 +121,17 @@ class FormTest(HealthTestCase, FormTestCase):
 
     def test_follow_up_reports(self):
         self.register_default_user()
-        self._observations(observations={'epi_ma': 5})
-        update1 = self._observations(observations={'epi_ma': 10})
-        update2 = self._observations(observations={'epi_ma': 8})
+        self._observations(observations={'agg_ma': 5})
+        update1 = self._observations(observations={'agg_ma': 10})
+        update2 = self._observations(observations={'agg_ma': 8})
         self.assertTrue('malaria 10 (+100%)' in update1.replies.get().text)
         self.assertTrue('malaria 8 (-20%)' in update2.replies.get().text)
 
     def test_follow_up_zero(self):
         self.register_default_user()
-        self._observations(observations={'epi_ma': 5})
-        update1 = self._observations(observations={'epi_ma': 0})
-        update2 = self._observations(observations={'epi_ma': 10})
+        self._observations(observations={'agg_ma': 5})
+        update1 = self._observations(observations={'agg_ma': 0})
+        update2 = self._observations(observations={'agg_ma': 10})
         self.assertTrue(
             'malaria 0 (-5)' in update1.replies.get().text, update1.replies.get().text)
         self.assertTrue(
@@ -136,11 +139,11 @@ class FormTest(HealthTestCase, FormTestCase):
 
     def test_multiple_reports(self):
         self.register_default_user()
-        message = self._observations(observations={'epi_ma': 5, 'epi_tb': 10, 'epi_bd': 2})
+        message = self._observations(observations={'agg_ma': 5, 'agg_tb': 10, 'agg_bd': 2})
         from stats.models import Report
         report = Report.objects.get(kind__slug="test")
         self.assertEqual(report.observations.count(), 3)
         reply = message.replies.get()
         self.assertTrue(
-            'bloody diarrhea (dysentery) 2, malaria 5 and tuberculosis 10' in reply.text,
+            'bloody diarrhea 2, malaria 5 and tuberculosis 10' in reply.text,
             reply.text)

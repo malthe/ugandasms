@@ -11,7 +11,7 @@ class SignupTestCase(FunctionalTestCase):
 
     def bootstrap(self):
         from cvs.models import HealthRole
-        self.role = HealthRole(slug="test", keyword="test", name="Test")
+        self.role = HealthRole(slug="test", keyword="TEST", name="Test")
         self.role.save()
 
         from location.models import LocationKind
