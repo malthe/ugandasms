@@ -20,18 +20,13 @@ class Command(BaseCommand):
 
         reader = csv.reader(open(path), delimiter=',', quotechar='"')
 
-        _district = None
-        _county = None
-        _sub_county = None
-        _parish = None
-
         parent = None
 
         # location roots
-        uganda = Area.add_root(
+        country = Area.add_root(
             name="Uganda", kind=LocationKind.objects.get(name='Country'))
-        amuru = Facility.add_root(
-            name="Amuru", kind=LocationKind.objects.get(name='DHO'))
+        facility = Facility.add_root(
+            name="Amuru", code="71", kind=LocationKind.objects.get(name='DHO'))
 
         _k_district = LocationKind.objects.get(name="District")
         _k_county = LocationKind.objects.get(name="County")
@@ -50,13 +45,18 @@ class Command(BaseCommand):
                 print traceback.format_exc(exc)
                 continue
 
+            # prefix with the amuru district code
+            code = "71" + code
+
             if x and y:
-                longitude, latitude = pyproj.transform(utm33, wgs84, float(x), float(y))
+                transformed = pyproj.transform(utm33, wgs84, float(x), float(y))
+                longitude, latitude = map(str, transformed)
             else:
                 longitude, latitude = None, None
 
             # create new facility if required
             if level:
+                level = level.replace(' ', '')
                 try:
                     kind = LocationKind.objects.get(name=level)
                 except LocationKind.DoesNotExist:
@@ -74,8 +74,8 @@ class Command(BaseCommand):
                     name=name,
                     kind=kind,
                     code=code,
-                    longitude=str(longitude),
-                    latitude=str(latitude),
+                    longitude=longitude,
+                    latitude=latitude,
                     )
 
                 # explicit reload
@@ -89,7 +89,7 @@ class Command(BaseCommand):
                          (village, _k_village),
                          (sub_village, _k_sub_village))
 
-            parent = uganda
+            parent = country
             for placename, kind in locations:
                 kwargs = dict(name=placename, kind=kind)
                 try:

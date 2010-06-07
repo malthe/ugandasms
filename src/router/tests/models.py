@@ -33,12 +33,21 @@ class Empty(Form):
     def handle(self):
         self.reply(u"You sent a message with no text.")
 
+class CantParse(Form):
+    @pico
+    def parse(cls):
+        one_of('+')
+        caseless_string('cantparse')
+        raise FormatError("cantparse")
+
 class Error(Form):
     @pico
     def parse(cls):
         one_of('+')
         caseless_string('error')
-        raise FormatError("error")
+
+    def handle(self):
+        raise RuntimeError("Error")
 
 class Broken(Form):
     @pico

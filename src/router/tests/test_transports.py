@@ -170,8 +170,7 @@ class KannelTest(FunctionalTestCase):
                 datetime.datetime(1999, 12, 31).timetuple())),
             })
 
-        response = self.view(request)
-        self.assertEqual(response.status_code, "500 Internal Server Error")
+        self.assertRaises(RuntimeError, self.view, request)
 
     def test_message_record(self):
         kannel = self._make_kannel()
@@ -208,9 +207,9 @@ class KannelTest(FunctionalTestCase):
         query = {}
         def fetch(request=None, **kwargs):
             query.update(cgi.parse_qsl(request.get_full_url()))
-            class response:
-                code = 202
-            return response()
+            class mock_response:
+                status_code = 202
+            return mock_response()
 
         kannel = self._make_kannel(fetch=fetch, dlr_url='http://localhost')
         response = self.view(request)

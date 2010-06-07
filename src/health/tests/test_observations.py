@@ -1,9 +1,15 @@
 from router.testing import FormTestCase
-from router.testing import UnitTestCase
+from router.testing import FunctionalTestCase
 
-class ParserTest(UnitTestCase):
+class HealthTestCase(FunctionalTestCase):
+    INSTALLED_APPS = FormTestCase.INSTALLED_APPS + (
+        'health',
+        'reporter',
+        )
+
+class ParserTest(HealthTestCase):
     @staticmethod
-    def _agg(text):
+    def _parse(text):
         from stats.models import ReportKind
         from stats.models import ObservationKind
 
@@ -20,63 +26,58 @@ class ParserTest(UnitTestCase):
         return ObservationForm.parse(text, commands={'agg': 'agg'})[0]
 
     def test_allowed_commands(self):
-        self._agg("+agg")
+        self._parse("+agg")
 
     def test_empty(self):
-        data = self._agg("+agg")
+        data = self._parse("+agg")
         self.assertEqual(data['observations'], {})
 
     def test_missing_value(self):
         from router.router import FormatError
-        self.assertRaises(FormatError, self._agg, "+agg ma")
+        self.assertRaises(FormatError, self._parse, "+agg ma")
 
     def test_duplicate(self):
         from router.router import FormatError
-        self.assertRaises(FormatError, self._agg, "+agg ma 5 ma 10")
+        self.assertRaises(FormatError, self._parse, "+agg ma 5 ma 10")
 
     def test_value(self):
-        data = self._agg("+agg MA 5")
+        data = self._parse("+agg MA 5")
         self.assertEqual(data['observations'], {'agg_ma': 5.0})
 
     def test_values_together(self):
-        data = self._agg("+agg MA5 BD1")
+        data = self._parse("+agg MA5 BD1")
         self.assertEqual(data['observations'], {'agg_ma': 5.0, 'agg_bd': 1.0})
 
     def test_value_lowercase(self):
-        data = self._agg("+agg ma 5")
+        data = self._parse("+agg ma 5")
         self.assertEqual(data['observations'], {'agg_ma': 5.0})
 
     def test_value_with_total(self):
-        data = self._agg("+agg 10, ma 5")
+        data = self._parse("+agg 10, ma 5")
         self.assertEqual(data['observations'], {'agg_ma': 5.0})
         self.assertEqual(data['total'], 10)
 
     def test_negative_value(self):
         from router.router import FormatError
-        self.assertRaises(FormatError, self._agg, "+agg MA -5")
+        self.assertRaises(FormatError, self._parse, "+agg MA -5")
 
     def test_values(self):
-        data = self._agg("+agg MA 5 TB 10")
+        data = self._parse("+agg MA 5 TB 10")
         self.assertEqual(data['observations'], {'agg_ma': 5.0, 'agg_tb': 10.0})
 
     def test_values_with_comma(self):
-        data = self._agg("+agg MA 5, TB 10")
+        data = self._parse("+agg MA 5, TB 10")
         self.assertEqual(data['observations'], {'agg_ma': 5.0, 'agg_tb': 10.0})
 
     def test_bad_indicator(self):
         from router.router import FormatError
-        self.assertRaises(FormatError, self._agg, "+agg xx 5.0")
+        self.assertRaises(FormatError, self._parse, "+agg xx 5.0")
 
     def test_bad_value(self):
         from router.router import FormatError
-        self.assertRaises(FormatError, self._agg, "+agg ma five")
+        self.assertRaises(FormatError, self._parse, "+agg ma five")
 
-class FormTest(FormTestCase):
-    INSTALLED_APPS = FormTestCase.INSTALLED_APPS + (
-        'health',
-        'reporter',
-        )
-
+class FormTest(HealthTestCase, FormTestCase):
     @classmethod
     def _register(cls, **kwargs):
         from reporter.models import Registration
@@ -105,7 +106,7 @@ class FormTest(FormTestCase):
         from stats.models import Report
         report = Report.objects.get(kind__slug="test")
         self.assertEqual(report.observations.count(), 1)
-        self.assertEqual(report.source.user, message.user)
+        self.assertEqual(report.source.reporter, message.reporter)
         reply = message.replies.get()
         self.assertTrue('malaria 5' in reply.text)
 
@@ -115,7 +116,7 @@ class FormTest(FormTestCase):
         from stats.models import Report
         report = Report.objects.get(kind__slug="test")
         self.assertEqual(report.observations.count(), 2)
-        self.assertEqual(report.source.user, message.user)
+        self.assertEqual(report.source.reporter, message.reporter)
         self.assertEqual(report.observations.get(kind__slug="total").value, 10)
         reply = message.replies.get()
         self.assertTrue('malaria 5' in reply.text)

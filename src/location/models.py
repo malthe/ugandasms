@@ -20,11 +20,20 @@ class Location(MP_Node):
     class Meta:
         abstract = True
 
+    def __init__(self, *args, **kwargs):
+        slug = kwargs.pop("slug", None)
+        if slug is not None:
+            kwargs.setdefault("kind", LocationKind.objects.get(slug=slug))
+        super(Location, self).__init__(*args, **kwargs)
+
     def __unicode__(self): # pragma: NOCOVER
         return "%s %s" % (self.name, self.kind.name)
+
+    def get(self):
+        return type(self).objects.get(pk=self.pk)
 
 class Facility(Location):
     pass
 
 class Area(Location):
-    report_to = models.ForeignKey(Facility, null=True)
+    report_to = models.ForeignKey(Facility, null=True, related_name="areas")

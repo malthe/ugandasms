@@ -137,6 +137,10 @@ class ParserTest(UnitTestCase):
             'oedema': True,
             })
 
+    def test_health_id_with_something_else(self):
+        from router.router import FormatError
+        self.assertRaises(FormatError, self._muac, "+muac abc1, red, something")
+
     def test_health_id_with_oe(self):
         self.assertEqual(self._muac("+muac abc1, red, oe"), {
             'health_id': 'abc1',
@@ -151,8 +155,8 @@ class FormTest(FormTestCase):
         )
 
     def _create_patient(self):
-        from reporter.models import Reporter
-        user = Reporter.objects.get()
+        from router.models import Reporter
+        reporter = Reporter.objects.get()
         from health.models import Patient
         from datetime import datetime
         patient = self.patient = Patient(
@@ -160,7 +164,7 @@ class FormTest(FormTestCase):
             name="Bob Smith",
             sex='M',
             birthdate=datetime(1980, 1, 1, 3, 42),
-            last_reported_on_by=user)
+            last_reported_on_by=reporter)
         patient.save()
 
     @classmethod

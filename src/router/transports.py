@@ -27,7 +27,7 @@ from django.utils.functional import memoize
 
 from .models import Incoming
 from .models import Outgoing
-from .models import Peer
+from .models import Connection
 
 pre_route = Signal()
 post_route = Signal()
@@ -103,10 +103,10 @@ class Message(Transport):
         time = time or datetime.now()
         message = Incoming(text=text, time=time)
 
-        # make sure we have a peer record for this sender
+        # make sure we have a connection record for this sender
         message.uri = "%s://%s" % (self.name, ident)
-        peer, created = Peer.objects.get_or_create(uri=message.uri)
-        if created: peer.save()
+        connection, created = Connection.objects.get_or_create(uri=message.uri)
+        if created: connection.save()
 
         # save message
         message.save()
@@ -226,17 +226,17 @@ class GSM(Message): # pragma: NOCOVER
 
             # outgoing
             messages = Outgoing.objects.filter(
-                time=None, peer__uri__startswith="%s://" % self.name)
+                time=None, connection__uri__startswith="%s://" % self.name)
             if len(messages) > 0:
                 self.logger.debug("Sending %d message(s)..." % len(messages))
 
             for message in messages.all():
                 try:
                     self.logger.debug("%s <-- %s" % (
-                        message.ident, repr(message.text.encode('utf-8'))))
+                        message.connection.ident, repr(message.text.encode('utf-8'))))
 
                     # prepare send
-                    self.modem.conn.write("AT+CMGS=\"%s\"\r" % message.ident)
+                    self.modem.conn.write("AT+CMGS=\"%s\"\r" % message.connection.ident)
                     result = self.modem.conn.readall()
 
                     if '>' not in result:
@@ -428,7 +428,7 @@ class Kannel(Message):
         def on_outgoing(sender=None, instance=None, created=False, **kwargs):
             transport = reference()
             if transport is not None:
-                if created is True and instance.transport == transport.name:
+                if created is True and instance.connection.transport == transport.name:
                     transport.send(instance)
 
         signals.post_save.connect(on_outgoing, sender=Outgoing, weak=False)
@@ -492,12 +492,7 @@ class Kannel(Message):
             message.delivery = time
             message.save()
         else:
-            try:
-                self.incoming(sender, text, time)
-            except Exception, exc:
-                return "There was an internal error (``%s``) " \
-                       "processing the request: %s." % (
-                    type(exc).__name__, str(exc)), "500 Internal Server Error"
+            self.incoming(sender, text, time)
 
         return "", "200 OK"
 
@@ -511,7 +506,7 @@ class Kannel(Message):
             url += "?"
 
         query = {
-            'to': message.ident,
+            'to': message.connection.ident,
             'text': message.text,
             }
 
@@ -527,6 +522,6 @@ class Kannel(Message):
             )
 
         response = self.fetch(request, timeout=self.timeout)
-        if response.code // 100 == 2:
+        if response.status_code // 100 == 2:
             message.time = datetime.now()
             message.save()

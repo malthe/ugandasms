@@ -1,8 +1,6 @@
 import re
 import string
 
-from django.db import models
-
 from picoparse import any_token
 from picoparse import choice
 from picoparse import commit
@@ -15,28 +13,10 @@ from picoparse.text import whitespace1
 
 from router import pico
 from router.models import Form
-from router.models import Peer
-from router.models import User
+from router.models import Connection
+from router.models import Reporter
 
-from location.models import Area
 from stats.models import Report
-
-class ReporterRole(models.Model):
-    """Represents the role of the reporter.  This may put reporters
-    into different roles such as community health workers, supervisors
-    and hospital staff."""
-
-    name = models.CharField(max_length=50)
-    slug = models.SlugField(unique=True, primary_key=True)
-
-class Reporter(User):
-    """A Reporter is someone who interacts with RapidSMS as a user of
-    the system (as opposed to an administrator).  Although not
-    enforced, they will tend to register with the system via SMS."""
-
-    name = models.CharField(max_length=50)
-    location = models.ForeignKey(Area, null=True, blank=True)
-    roles = models.ManyToManyField(ReporterRole)
 
 class Registration(Form):
     """Register with the system.
@@ -98,22 +78,22 @@ class Registration(Form):
         return result
 
     def handle(self, name=None, ident=None):
-        if self.user is None:
+        if self.reporter is None:
             if ident is not None:
-                # identify user using ``ident`` and add this peer
-                peer = Peer.objects.get(uri__endswith="://%s" % ident)
-                if peer.user is None:
+                # identify user using ``ident`` and add this connection
+                connection = Connection.objects.get(uri__endswith="://%s" % ident)
+                if connection.reporter is None:
                     self.reply("We did not find an existing registration "
                                "identified by: %s." % ident)
                 else:
-                    peer.user.peers.add(self.message.peer)
-                    self.message.peer.save()
+                    connection.reporter.connections.add(self.message.connection)
+                    self.message.connection.save()
                     self.reply("Thank you for your registration.")
             elif name is not None:
-                user = Reporter(name=name)
-                user.save()
-                self.message.peer.user = user
-                self.message.peer.save()
+                reporter = Reporter(name=name)
+                reporter.save()
+                self.message.connection.reporter = reporter
+                self.message.connection.save()
 
                 Report.from_observations(
                     "registration", source=self, location=None,
@@ -129,10 +109,10 @@ class Registration(Form):
         else:
             if name is None:
                 self.reply("You're currently registered with %s." % \
-                           self.message.ident)
+                           self.message.connection.ident)
             else:
-                self.user.name = name
-                self.user.save()
+                self.reporter.name = name
+                self.reporter.save()
 
                 self.reply((
                     "Hello, %(name)s. "

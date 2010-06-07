@@ -1,16 +1,29 @@
 from django.db import models
 from polymorphic import PolymorphicModel as Model
 
-class User(Model):
+class ReporterRole(models.Model):
+    """Represents the role of the user.  This may put reporters into
+    different roles such as community health workers, supervisors and
+    hospital staff."""
+
+    name = models.CharField(max_length=50)
+    slug = models.SlugField(unique=True, primary_key=True)
+
+class Reporter(models.Model):
     """An authenticated user.
 
     The device used to send and receive messages typically provide a
     means of authentication. Since users may use different devices, we
-    record a set of :class:`Peer` objects that each
-    authenticate a user.
+    record a set of :class:`Connection` objects that each
+    authenticate a reporter.
     """
 
-    peers = ()
+    name = models.CharField(max_length=50)
+    roles = models.ManyToManyField(ReporterRole)
+    connections = ()
+
+    def __unicode__(self):
+        return self.name
 
 class CustomForeignKey(models.ForeignKey):
     def __init__(self, *args, **kwargs):
@@ -21,7 +34,7 @@ class CustomForeignKey(models.ForeignKey):
     def get_attname(self):
         return self.column
 
-class Peer(Model):
+class Connection(models.Model):
     """Mapping between device and user.
 
     The ``uri`` attribute identifies the device in terms of the
@@ -42,16 +55,10 @@ class Peer(Model):
     """
 
     uri = models.CharField(max_length=30, primary_key=True)
-    user = models.ForeignKey(User, related_name="peers", null=True)
+    reporter = models.ForeignKey(Reporter, related_name="connections", null=True)
 
-class Message(Model):
-    """SMS message between a user and the system."""
-
-    uri = None
-    text = models.CharField(max_length=160*3)
-    time = models.DateTimeField(null=True)
-    peer = CustomForeignKey(
-        Peer, column="uri", related_name="messages", null=True)
+    def __unicode__(self):
+        return self.ident
 
     @property
     def transport(self):
@@ -64,6 +71,15 @@ class Message(Model):
         """Return ident string."""
 
         return self.uri.split('://', 1)[1]
+
+class Message(models.Model):
+    """SMS message between a user and the system."""
+
+    uri = None
+    text = models.CharField(max_length=160*3)
+    time = models.DateTimeField(null=True)
+    connection = CustomForeignKey(
+        Connection, column="uri", related_name="messages", null=True)
 
     class Meta:
         ordering = ['-time']
@@ -83,10 +99,14 @@ class Form(Model):
     prompt = u""
 
     @property
-    def user(self):
-        """Return :class:`User` object, or ``None`` if not available."""
+    def kind(self):
+        return self.__class__.__name__
 
-        return self.message.peer.user
+    @property
+    def reporter(self):
+        """Return :class:`Reporter` object, or ``None`` if not available."""
+
+        return self.message.connection.reporter
 
     def handle(self, **result):
         """Handle incoming message.
@@ -103,7 +123,7 @@ class Form(Model):
         raise NotImplementedError(
             "Message must implement the ``handle`` function.") # PRAGMA: nocover
 
-    def reply(self, text, user=None):
+    def reply(self, text, reporter=None):
         """Reply to this form.
 
         This method puts an outgoing message into the delivery queue,
@@ -114,10 +134,10 @@ class Form(Model):
         assert self.message.id is not None
         text = self.prompt + text
 
-        if user is None:
+        if reporter is None:
             uri = self.message.uri
         else:
-            uri = user.peers.all()[0].uri
+            uri = reporter.connections.all()[0].uri
 
         message = Outgoing(text=text, uri=uri, in_reply_to=self)
         message.save()
@@ -141,3 +161,11 @@ class Outgoing(Message):
 
         return self.time is not None
 
+    def is_response(self):
+        """Return ``True`` if this outgoing message was a direct
+        response to an incoming message (as opposed to an unsolicited
+        message or an indirect response to an incoming message)."""
+
+        if self.in_reply_to is not None:
+            return self.uri == self.in_reply_to.message.uri
+        return False

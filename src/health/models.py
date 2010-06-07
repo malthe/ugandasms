@@ -25,7 +25,7 @@ from picoparse.text import caseless_string
 
 from router import pico
 from router.models import Form
-from router.models import User
+from router.models import Reporter
 from router.router import FormatError
 
 from stats.models import Observation
@@ -61,7 +61,7 @@ class Patient(Model):
     sex = models.CharField(max_length=1, choices=GENDER_CHOICES)
     birthdate = models.DateTimeField()
     deathdate = models.DateTimeField(null=True)
-    last_reported_on_by = models.ForeignKey(User)
+    last_reported_on_by = models.ForeignKey(Reporter)
 
     @property
     def age(self):
@@ -192,14 +192,14 @@ class BirthForm(Form):
         return result
 
     def handle(self, name=None, sex=None, place=None):
-        if self.user is None: # pragma: NOCOVER
+        if self.reporter is None: # pragma: NOCOVER
             return self.reply(u"Please register before sending in reports.")
 
         birthdate = datetime.datetime.now()
 
         patient = Patient(
             name=name, sex=sex, birthdate=birthdate,
-            last_reported_on_by=self.user)
+            last_reported_on_by=self.reporter)
         patient.save()
 
         observations = {
@@ -273,7 +273,7 @@ class DeathForm(Form):
         return result
 
     def handle(self, ids=None, name=None, sex=None, age=None):
-        if self.user is None: # pragma: NOCOVER
+        if self.reporter is None: # pragma: NOCOVER
             return self.reply(u"Please register before sending in reports.")
 
         if ids is not None:
@@ -302,7 +302,7 @@ class DeathForm(Form):
             else:
                 birthdate = age
 
-            patient = Patient.identify(name, sex, birthdate, self.user)
+            patient = Patient.identify(name, sex, birthdate, self.reporter)
             if patient is None:
                 return self.reply(
                     u"We have recorded the death of %s." % name)
@@ -315,7 +315,7 @@ class DeathForm(Form):
             patient.save()
 
         for case in cases:
-            if case.report.source.user != self.user:
+            if case.report.source.reporter != self.reporter:
                 self.reply("We have received notice of the death "
                            "of your patient %s." % case.patient.label)
             case.closed = self.message.time
@@ -374,9 +374,9 @@ class CureForm(Form):
             case.closed = self.message.time
             case.save()
             label = case.patient.label
-            reporter = case.report.source.user
+            reporter = case.report.source.reporter
 
-            if reporter != self.user:
+            if reporter != self.reporter:
                 self.reply("Your patient, %s, has been set as \"cured\"." % (
                     label), reporter)
 
@@ -419,8 +419,8 @@ class ObservationForm(Form):
       You reported malaria 12 (+5) and tuberculosis 4 (+23%).
 
     All aggregates are entered into the database as separate
-    objects. To group aggregates based on reports, filter by user and
-    group by time.
+    objects. To group aggregates based on reports, filter by reporter
+    and group by time.
     """
 
     ALIASES = {
@@ -456,17 +456,17 @@ class ObservationForm(Form):
                 result['total'] = int(total)
                 many1(partial(one_of, ' ,;'))
 
+            kinds = ObservationKind.objects.filter(slug__startswith="%s_" % slug).all()
+            observation_kinds = dict((kind.slug, kind) for kind in kinds)
+            codes = [observation_slug.split('_', 1)[1]
+                     for observation_slug in observation_kinds]
+
+            # we allow both the observation kinds and any aliases
+            allowed_codes = tuple(codes) + tuple(cls.ALIASES)
+
             while peek():
                 # look up observation kinds that double as user input
                 # for the aggregate codes
-                kinds = ObservationKind.objects.filter(slug__startswith="%s_" % slug).all()
-                observation_kinds = dict((kind.slug, kind) for kind in kinds)
-                codes = [observation_slug.split('_', 1)[1]
-                         for observation_slug in observation_kinds]
-
-                # we allow both the observation kinds and any aliases
-                allowed_codes = tuple(codes) + tuple(cls.ALIASES)
-
                 try:
                     code = "".join(pico.one_of_strings(*allowed_codes)).lower()
                 except:
@@ -503,12 +503,12 @@ class ObservationForm(Form):
         return result
 
     def handle(self, kind=None, total=None, observations={}):
-        if self.user is None: # pragma: NOCOVER
+        if self.reporter is None: # pragma: NOCOVER
             self.reply(u"Please register before sending in reports.")
         elif observations:
             # determine whether there's any previous reports for this user
             previous_reports = Report.objects.filter(
-                source__message__peer__user=self.user).all()
+                kind=kind, source__message__connection__reporter=self.reporter).all()
             if previous_reports:
                 previous = previous_reports[0]
             else:
@@ -530,7 +530,7 @@ class ObservationForm(Form):
                 if previous is not None:
                     try:
                         previous_observation = previous.observations.get(kind=kind)
-                    except Observation.DoesNotExist:
+                    except Observation.DoesNotExist: # pragma: NOCOVER
                         pass
                     else:
                         previous_value = previous_observation.value
@@ -686,7 +686,7 @@ class MuacForm(Form):
     def handle(self, health_id=None, name=None, sex=None,
                age=None, category=None, reading=None, oedema=False):
 
-        if self.user is None: # pragma: NOCOVER
+        if self.reporter is None: # pragma: NOCOVER
             return self.reply(u"Please register before sending in reports.")
 
         if health_id is None:
@@ -696,13 +696,13 @@ class MuacForm(Form):
                 birthdate = age
 
             # attempt to identify the patient using the information
-            patient = Patient.identify(name, sex, birthdate, self.user)
+            patient = Patient.identify(name, sex, birthdate, self.reporter)
 
             # if we fail to identify the patient, we create a new record
             if patient is None:
                 patient = Patient(
                     name=name, sex=sex, birthdate=birthdate,
-                    last_reported_on_by=self.user)
+                    last_reported_on_by=self.reporter)
                 patient.save()
         else:
             try:

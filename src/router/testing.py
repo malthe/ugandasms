@@ -30,7 +30,7 @@ class Gateway(object):
                 self.send(reply)
 
     def send(self, reply):
-        receiver = self._subscribers[reply.ident]
+        receiver = self._subscribers[reply.connection.ident]
         receiver.receive(reply.text)
 
         # note delivery time
@@ -152,7 +152,9 @@ class FunctionalTestCase(UnitTestCase):  # pragma: NOCOVER
         # reinitialize connections
         from django import db
         db.connections.__init__(SETTINGS.DATABASES)
-        db.connection = db.connections[db.DEFAULT_DB_ALIAS]
+        default = db.connections[db.DEFAULT_DB_ALIAS]
+        db.connection.__dict__.update(default.__dict__)
+        db.connections._connections[db.DEFAULT_DB_ALIAS] = db.connection
 
         # if we're using gis and sqlite, initialize the database
         if 'django.contrib.gis' in self.INSTALLED_APPS and not self._pg_enabled:
@@ -184,6 +186,8 @@ class FunctionalTestCase(UnitTestCase):  # pragma: NOCOVER
             self.tearDown()
             raise
 
+        default.close()
+
     def tearDown(self):
         super(FunctionalTestCase, self).tearDown()
 
@@ -191,6 +195,9 @@ class FunctionalTestCase(UnitTestCase):  # pragma: NOCOVER
         for connection in connections.all():
             conn = connection.connection
             connection.close()
+
+        from django.db import connection
+        connection.close()
 
         if self._pg_enabled:
             conn = self._pg_connect()
@@ -311,9 +318,9 @@ class FormTestCase(FunctionalTestCase):
         from datetime import datetime
         time = datetime(1999, 12, 31, 0, 0, 0)
         message = Incoming(text=text, time=time, uri=uri)
-        from .models import Peer
-        message.peer, created = Peer.objects.get_or_create(uri=uri)
-        message.peer.save()
+        from .models import Connection
+        message.connection, created = Connection.objects.get_or_create(uri=uri)
+        message.connection.save()
         message.save()
         form = model(text=text, message=message)
         form.save()

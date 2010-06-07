@@ -6,7 +6,7 @@ class SequentialRouterTest(FunctionalTestCase):
         )
 
     USER_SETTINGS = {
-        'FORMS': ('Echo', 'Error', 'Hello'),
+        'FORMS': ('Echo', 'Error', 'CantParse', 'Hello', 'Broken'),
         }
 
     def test_signals(self):
@@ -49,7 +49,7 @@ class SequentialRouterTest(FunctionalTestCase):
         from router.models import Incoming
 
         router = Sequential()
-        message = Incoming(text="+error")
+        message = Incoming(text="+cantparse")
         message.save()
         router.route(message)
         self.assertEqual(len(handled), 0)
@@ -74,3 +74,11 @@ class SequentialRouterTest(FunctionalTestCase):
 
         self.assertEqual(len(parsed), 2)
 
+    def test_error(self):
+        from router.router import Sequential
+        from router.models import Incoming
+
+        router = Sequential()
+        message = Incoming(text="+error")
+        message.save()
+        self.assertRaises(RuntimeError, router.route, message)

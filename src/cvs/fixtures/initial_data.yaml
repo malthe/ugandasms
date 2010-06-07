@@ -19,6 +19,11 @@
     name: HCIV
 
 - model: location.locationkind
+  pk: hc5
+  fields:
+    name: HCV
+
+- model: location.locationkind
   pk: country
   fields:
     name: Country
@@ -63,18 +68,28 @@
   fields:
     name: DHO
 
-- model: reporter.reporterrole
+- model: cvs.healthrole
   pk: vht
   fields:
-    name: Village Health Team
+      name: Village Health Team
+      keyword: VHT
 
-- model: reporter.reporterrole
+- model: cvs.healthrole
   pk: pvht
   fields:
     name: Peer Village Health Team
+    keyword: PVHT
 
-- model: reporter.reporterrole
+- model: cvs.healthrole
+  pk: hno
+  fields:
+    name: Health Surveillance Officer
+    keyword: HNO
+
+- model: cvs.healthrole
   pk: hso
   fields:
     name: Health Surveillance Officer
+    keyword: HSO
+
 

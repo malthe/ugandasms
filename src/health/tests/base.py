@@ -6,11 +6,6 @@ class Scenario(FormTestCase):
         'reporter',
         )
 
-    @classmethod
-    def _register(cls, **kwargs):
-        from reporter.models import Registration
-        return cls.handle(Registration, **kwargs)
-
     def setUp(self):
         super(Scenario, self).setUp()
 
@@ -32,7 +27,7 @@ class Scenario(FormTestCase):
             name="Bob",
             sex="M",
             birthdate=datetime(1980, 1, 1, 3, 42),
-            last_reported_on_by=form.user,
+            last_reported_on_by=form.reporter,
             )
         patient.save()
 

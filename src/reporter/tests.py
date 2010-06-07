@@ -46,14 +46,14 @@ class HandlerTest(FormTestCase):
     def test_inquire_for_ident(self):
         self._register(name="foo")
         form = self._register()
-        self.assertTrue(str(form.message.ident) in form.replies.get().text)
+        self.assertTrue(str(form.message.connection.ident) in form.replies.get().text)
 
     def test_inquire_for_ident_but_not_registered(self):
         self._register()
         form = self._register()
         from .models import Reporter
         self.assertEqual(Reporter.objects.count(), 0)
-        self.assertFalse(str(form.message.ident) in form.replies.get().text)
+        self.assertFalse(str(form.message.connection.ident) in form.replies.get().text)
 
     def test_registration_update(self):
         self._register(name="foo")
@@ -75,5 +75,5 @@ class HandlerTest(FormTestCase):
         from .models import Reporter
         self.assertEqual(Reporter.objects.count(), 1)
         form = self._register(uri="test://new", ident="new")
-        self.assertEqual(form.user, None)
+        self.assertEqual(form.reporter, None)
         self.assertTrue('new' in form.replies.get().text)
