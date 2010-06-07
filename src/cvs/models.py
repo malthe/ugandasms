@@ -51,7 +51,7 @@ class Signup(Form):
         keywords = dict((role.keyword, role) for role in HealthRole.objects.all())
 
         one_of('+')
-        keyword = u"".join(pico.one_of_strings(*keywords)).lower()
+        keyword = u"".join(pico.one_of_strings(*keywords)).upper()
 
         result = {
             'role': keywords[keyword],
@@ -121,5 +121,4 @@ class Signup(Form):
             self.reply(
                 "You have joined the system as %s reporting to %s. "
                 "Please resend if there is a mistake." % (
-                    getattr(settings, "HEALTH_FACILITY_ROLES", {}).get(role, role),
-                    facility.name))
+                    role.name, facility.name))
