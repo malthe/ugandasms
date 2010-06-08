@@ -35,10 +35,6 @@
 </div>
 
 <table id="message-log" class="sortable">
-  {% for column, display in columns %}
-  <col{% ifequal column sort_column %} class="sorted"{% endifequal %} />
-  {% endfor %}
-
   <thead>
 	{% for column, display in columns %}
 	{% ifequal column sort_column %}
