@@ -1,6 +1,5 @@
 import difflib
 
-from django.conf import settings
 from django.db import models
 
 from picoparse import remaining
@@ -70,10 +69,11 @@ class Signup(Form):
             raise FormatError(u"No such HMIS facility code: %s." % code)
 
         whitespace()
+        optional(pico.separator, None)
 
-        if optional(pico.separator, None):
-            name = "".join(remaining()).strip()
-
+        # optionally provide a sub-village area
+        name = "".join(remaining()).strip()
+        if name:
             # get all (name, location) pairs of all child nodes of
             # areas that report to this facility
             areas = {}
