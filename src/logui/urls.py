@@ -6,5 +6,5 @@ from django.conf.urls.defaults import *
 from . import views
 
 urlpatterns = patterns('',
-    url(r'^logger/?$', views.index),
+    url(r'^message-log/?$', views.index),
 )

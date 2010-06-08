@@ -12,7 +12,7 @@ from django.template import RequestContext
 @login_required
 def index(req):
     columns = (("time", "Arrival"),
-               ("uri", "Identification"),
+               ("connection", "Identification"),
                ("text", "Message"))
 
     sort_column, sort_descending = _get_sort_info(
@@ -29,7 +29,7 @@ def index(req):
     else:
         query = query.filter(
             Q(text__icontains=search_string) |
-            Q(uri__icontains=search_string))
+            Q(connection__uri__icontains=search_string))
 
     messages = Paginator(query, 25)
 

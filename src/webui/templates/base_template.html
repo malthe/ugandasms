@@ -7,6 +7,7 @@
 
 	{% block stylesheets %}
 	<!-- stylesheets -->
+    <link type="text/css" rel="stylesheet" href="/static/webui/stylesheets/reset.css" />
 	<link type="text/css" rel="stylesheet" href="/static/webui/stylesheets/layout.css" />
 	<link type="text/css" rel="stylesheet" href="/static/webui/stylesheets/modules.css" />
 	{% block page_stylesheets %}{% endblock %}
@@ -42,7 +43,7 @@
 		  {% block tabs %}
 		  <ul id="tabs">
             <li class="app-message-log">
-              <a href="/logger">Message log</a>
+              <a href="/message-log">Message log</a>
             </li>
 		  </ul>
 		  {% block page_tabs %}

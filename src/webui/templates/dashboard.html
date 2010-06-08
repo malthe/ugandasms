@@ -3,10 +3,7 @@
 {% block javascripts %}
 {% endblock %}
 {% block content %}
-Welcome to RapidSMS! 
-{% if user.is_authenticated %}
-Click on a tab to explore.
-{% else %}                                        
-Please <a href="/accounts/login/">log in</a> to continue.
-{% endif %}  
+<h1>Welcome to RapidSMS!</h1>
+<p class="help">Click on a tab to explore.</p>
+
 {% endblock %}
