@@ -63,20 +63,24 @@
         <pre>{{ message.connection }}</pre>
       </td>
 	  <td>
-        <pre class="message-text">{{ message.text }}</pre>
         {% if message.forms.all %}
         <ul>
           {% for form in message.forms.all %}
-          <li>{{ form.kind }}</li>
-          <ul>
-            {% for outgoing in form.replies.all %}
-            <li class="{% if outgoing.is_response %}response{% else %}alert{% endif %}">
-              {{ outgoing.text }}
-            </li>
-            {% endfor %}
-          </ul>
+          <li class="{% if form.erroneous %} erroneous{% endif %}">
+            <tt class="message-text">{{ form.text }}</tt>
+            <span class="form-kind form-{{ form.kind }}">({{ form.kind }})</span>
+            <ul>
+              {% for outgoing in form.replies.all %}
+              <li class="{% if outgoing.is_response %}response{% else %}alert{% endif %}">
+                {{ outgoing.text }}
+              </li>
+              {% endfor %}
+            </ul>
+          </li>
           {% endfor %}
         </ul>
+        {% else %}
+        <pre class="message-text">{{ message.text }}</pre>
         {% endif %}
       </td>
 	</tr>

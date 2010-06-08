@@ -1,5 +1,10 @@
+import re
+
 from django.db import models
 from polymorphic import PolymorphicModel as Model
+
+def camelcase_to_underscore(str):
+    return re.sub('(((?<=[a-z])[A-Z])|([A-Z](?![A-Z]|$)))', '_\\1', str).lower().strip('_')
 
 class ReporterRole(models.Model):
     """Represents the role of the user.  This may put reporters into
@@ -116,7 +121,7 @@ class Form(Model):
 
     @property
     def kind(self):
-        return self.__class__.__name__
+        return camelcase_to_underscore(self.__class__.__name__).replace('_', ' ')
 
     @property
     def reporter(self):
