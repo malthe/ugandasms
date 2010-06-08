@@ -410,7 +410,7 @@ class OtpForm(PatientVisitationForm):
     are case-insensitive.
     """
 
-    prompt = "OTP: "
+    prompt = "Otp: "
     report_kind = "otp"
 
     @pico.wrap
@@ -648,7 +648,7 @@ class MuacForm(Form):
     follow up on the referral.
     """
 
-    prompt = "MUAC: "
+    prompt = "Muac: "
 
     @staticmethod
     def get_reading_in_mm(reading):

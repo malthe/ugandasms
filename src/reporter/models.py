@@ -41,7 +41,7 @@ class Registration(Form):
        +REG[ISTER]
     """
 
-    prompt = "REGISTER: "
+    prompt = "Register: "
 
     @pico.wrap
     def parse(cls):
