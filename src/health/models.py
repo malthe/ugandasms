@@ -298,8 +298,10 @@ class PatientVisitationForm(Form):
 
         notifications = {}
         for case in cases:
+            # ``source`` is not a required field
+            if case.report.source is None: # pragma: NOCOVER
+                continue
             # check if we need to notify the original case reporter
-            assert case.report.source is not None
             case_reporter = case.report.source.reporter
             if  case_reporter != self.reporter:
                 notifications[case_reporter.pk] = case.patient
@@ -776,7 +778,8 @@ class MuacForm(Form):
             reading=reading,
             category=category,
             patient=patient,
-            oedema=oedema)
+            oedema=oedema,
+            source=self)
 
         report.save()
 

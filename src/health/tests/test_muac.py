@@ -202,10 +202,11 @@ class FormTest(FormTestCase):
         self.register_default_user()
         self._create_patient()
         for reading, category in ((140, 'G'), (125, 'Y'), (110, 'R')):
-            self._muac(health_id='bob123', reading=reading)
+            form = self._muac(health_id='bob123', reading=reading)
             from health.models import NutritionReport
             report = NutritionReport.objects.all()[0]
             self.assertEqual(report.category, category)
+            self.assertEqual(report.source, form)
 
     def test_patient_age_is_datetime(self):
         self.register_default_user()
