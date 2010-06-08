@@ -67,4 +67,4 @@ class FormTest(UnitTestCase):
     def test_kind(self):
         from router.models import Form
         form = Form()
-        self.assertEqual(form.kind, "Form", form.kind)
+        self.assertEqual(form.kind, "form", form.kind)
