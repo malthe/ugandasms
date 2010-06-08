@@ -8,7 +8,7 @@ from django.contrib.auth.views import logout
 
 admin.autodiscover()
 
-import logui.urls
+import messageui.urls
 import webui.urls
 
 urlpatterns = patterns(
@@ -17,7 +17,7 @@ urlpatterns = patterns(
     url(r'^logout$', logout),
     url(r'^admin/', include(admin.site.urls)),
     ) + \
-    logui.urls.urlpatterns + \
+    messageui.urls.urlpatterns + \
     webui.urls.urlpatterns
 
 

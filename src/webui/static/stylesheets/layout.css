@@ -23,6 +23,19 @@ form#login-form {
   margin-left: 25%;
 }
 
+form.inline {
+  float: left;
+  margin-right: 1em;
+}
+
+form.inline p {
+  display: inline;
+}
+
+table {
+  clear: both;
+}
+
 p.help {
   color: #389ece;
   font-weight: bold;

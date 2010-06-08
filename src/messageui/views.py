@@ -1,19 +1,26 @@
+from django.db.models import Q
 from django.core.paginator import Paginator
 from django.shortcuts import render_to_response
 from django.contrib.auth.decorators import login_required
-from django.db.models import Q
-
-# from rapidsms.webui.utils import paginated
+from django.template import RequestContext
+from django import forms
 
 from router.models import Incoming
+from router.transports import Message
 
-from django.template import RequestContext
+transport = Message("web")
+
+class SendForm(forms.Form):
+    text = forms.CharField(
+        max_length=255,
+        widget=forms.TextInput(attrs={'size':'40'})
+        )
 
 @login_required
 def index(req):
     columns = (("time", "Arrival"),
                ("connection", "Identification"),
-               ("text", "Message"))
+               ("text", "Message text"))
 
     sort_column, sort_descending = _get_sort_info(
         req, default_sort_column="time", default_sort_descending=True)
@@ -33,7 +40,16 @@ def index(req):
 
     messages = Paginator(query, 25)
 
-    return render_to_response("logui/index.html", {
+    if req.method == 'POST':
+        send_form = SendForm(req.POST)
+        if send_form.is_valid():
+            text = send_form.cleaned_data['text']
+            transport.incoming(req.user.username, text)
+    else:
+        send_form = SendForm()
+
+    return render_to_response("messageui/index.html", {
+        "send_form": send_form,
         "columns": columns,
         "messages": messages,
         "sort_column": sort_column,

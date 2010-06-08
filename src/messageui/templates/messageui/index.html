@@ -4,27 +4,35 @@
 
 {% block page_stylesheets %}
 <link type="text/css" rel="stylesheet"
-      href="/static/logui/stylesheets/layout.css" />
+      href="/static/messageui/stylesheets/layout.css" />
 {% endblock %}
 
 {% block content %}
 <h1>
-  <a href="">Message Log</a>{% if search_string %}
+  <a href="{% url messageui.views.index %}">Messages</a>{% if search_string %}
   / <a href="">Search for
       <span class="highlight">{{ search_string }}</span></a>{% endif %}
 </h1>
 
 <p class="help">
-  This table displays the most recent incoming messages and
-  responses.
+  Displays recent messages and lets you send a message to the system.
 </p>
 
 <div class="span-12">
-<form method="get" id="search">
-	<input name="q" type="text" value="{{ search_string }}" />
-	<input type="submit" value="Search" />
-</form>
+  <form class="inline" method="get" id="search">
+    <p>
+      <label for="q">Query:</label>
+      <input name="q" type="text" value="{{ search_string }}" />
+      <input type="submit" value="Search" />
+    </p>
+  </form>
+  <form class="inline" method="post">
+    {% csrf_token %}
+    {{ send_form.as_p }}
+    <input type="submit" value="Send" />
+  </form>
 </div>
+
 <table id="message-log" class="sortable">
   {% for column, display in columns %}
   <col{% ifequal column sort_column %} class="sorted"{% endifequal %} />

@@ -9,9 +9,19 @@ DATABASES = {
     }
 }
 
-MESSAGES = (
-    (r'\+\s*echo(\s+|$)', 'Echo'),
-    (r'^$', 'Empty'),
+MESSAGE_ROUTER = "router.router.Sequential"
+
+FORMS = (
+    'ObservationForm',
+    'MuacForm',
+    'OtpForm',
+    'BirthForm',
+    'DeahthForm',
+    'CureForm',
+    'Registration',
+    'Signup',
+    'NotUnderstood',
+    'FreeForm',
     )
 
 TRANSPORTS = {
@@ -26,7 +36,17 @@ INSTALLED_APPS = (
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.admin',
+    'treebeard',
     'router',
+    'router.tests',
+    'reporter',
+    'health',
+    'location',
+    'stats',
+    'cvs',
+    'webui',
+    'messageui',
+    'help',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -40,6 +60,18 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     "django.core.context_processors.debug",
     "django.core.context_processors.i18n",
     "django.core.context_processors.media",
+    "django.core.context_processors.request",
     "django.contrib.messages.context_processors.messages",
     "django.core.context_processors.csrf",
     )
+
+TEMPLATE_DIRS = (
+    "../django-treebeard/treebeard/templates",
+    "../django/django/contrib/admin/templates",
+    "../django/django/contrib/auth/templates",
+    "src/webui/templates",
+    "src/messageui/templates",
+    )
+
+LOGIN_URL = "/login"
+LOGIN_REDIRECT_URL = "/"
