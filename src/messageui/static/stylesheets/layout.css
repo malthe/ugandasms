@@ -2,18 +2,12 @@ table#message-log {
   width: 100%;
 }
 
-table#message-log th,
-table#message-log td {
-  width: 16%;
-}
-
-table#message-log th,
-table#message-log td {
-  width: 32%;
-}
-
-.message-text {
+table#message-log tt.message-text {
   font-weight: bold;
+}
+
+table#message-log td.message-text {
+  width: 66%;
 }
 
 table#message-log li.erroneous li.response {
