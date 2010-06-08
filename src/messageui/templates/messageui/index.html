@@ -29,7 +29,8 @@
   <form class="inline" method="post">
     {% csrf_token %}
     {{ send_form.as_p }}
-    <input type="submit" value="Send" />
+    <input type="submit" name="send" value="Send" />
+    <input type="submit" name="send_as_guest" value="Send as guest" />
   </form>
 </div>
 

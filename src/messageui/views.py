@@ -6,6 +6,8 @@ from django.template import RequestContext
 from django import forms
 
 from router.models import Incoming
+from router.models import Connection
+from router.models import Reporter
 from router.transports import Message
 
 transport = Message("web")
@@ -43,8 +45,18 @@ def index(req):
     if req.method == 'POST':
         send_form = SendForm(req.POST)
         if send_form.is_valid():
+            if 'send' in req.POST:
+                username = req.user.username
+            if 'send_as_guest' in req.POST:
+                connections = Connection.objects.filter(
+                    uri__startswith="%s://guest" % transport.name)
+                username = "guest%d" % (len(connections) + 1)
+                reporter = Reporter(name="Guest")
+                reporter.save()
+                reporter.connections.create(uri="%s://%s" % (transport.name, username))
+
             text = send_form.cleaned_data['text']
-            transport.incoming(req.user.username, text)
+            transport.incoming(username, text)
     else:
         send_form = SendForm()
 
