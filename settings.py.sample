@@ -16,7 +16,7 @@ FORMS = (
     'MuacForm',
     'OtpForm',
     'BirthForm',
-    'DeahthForm',
+    'DeathForm',
     'CureForm',
     'Registration',
     'Signup',
