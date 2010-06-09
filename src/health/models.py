@@ -684,7 +684,8 @@ class MuacForm(Form):
         if 'name' in result:
             try:
                 pico.separator()
-                result['sex'] = one_of('MmFf').upper()
+                result['sex'] = pico.one_of_strings(
+                    'male', 'female', 'm', 'f')[0].upper()
             except:
                 raise FormatError("Expected either M or F "
                                   "to indicate the patient's gender.")

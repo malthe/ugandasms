@@ -35,6 +35,14 @@ class ParserTest(UnitTestCase):
             'category': u'R',
             })
 
+    def test_sex_spelled_out(self):
+        self.assertEqual(self._muac("+MUAC JOE, Male, 2 Years, RED"), {
+            'name': 'JOE',
+            'sex': 'M',
+            'age': self._timedelta(days=2*365),
+            'category': u'R',
+            })
+
     def test_health_id_first(self):
         self.assertEqual(self._muac("abc1 +muac red"), {
             'health_id': 'abc1',
