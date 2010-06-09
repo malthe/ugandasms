@@ -7,9 +7,12 @@
 
 	{% block stylesheets %}
 	<!-- stylesheets -->
-    <link type="text/css" rel="stylesheet" href="/static/webui/stylesheets/reset.css" />
-	<link type="text/css" rel="stylesheet" href="/static/webui/stylesheets/layout.css" />
-	<link type="text/css" rel="stylesheet" href="/static/webui/stylesheets/modules.css" />
+    <link type="text/css" rel="stylesheet"
+          href="{% url webui.views.static %}/webui/stylesheets/reset.css" />
+	<link type="text/css" rel="stylesheet"
+          href="{% url webui.views.static %}/webui/stylesheets/layout.css" />
+	<link type="text/css" rel="stylesheet"
+          href="{% url webui.views.static %}/webui/stylesheets/modules.css" />
 	{% block page_stylesheets %}{% endblock %}
 	{% endblock %}
 	<!-- javascripts (global, app, page) -->
@@ -43,7 +46,7 @@
 		  {% block tabs %}
 		  <ul id="tabs">
             <li class="app-messageui">
-              <a href="/messages">Messages</a>
+              <a href="{% url messageui.views.index %}">Messages</a>
             </li>
           </ul>
 		  {% block page_tabs %}
