@@ -99,7 +99,7 @@ class Sequential(object):
                 except FormatError, error:
                     pass
 
-                yield cls, result, text, error
+                yield cls, result, text[:-len(remaining) or None], error
                 break
 
             # stop when there's no more text to parse
