@@ -115,7 +115,8 @@ class Signup(Form):
                 name = matches[0]
                 area = areas[name]
             elif area is not None:
-                new_area = area.add_child(slug="user_added_location", name='"%s"' % name)
+                new_area = area.add_child(
+                    slug="user_added_location", name='"%s"' % name)
                 area = area.get()
 
                 # make sure this newly created area reports to our facility
@@ -127,10 +128,14 @@ class Signup(Form):
         return result
 
     def handle(self, role=None, facility=None, area=None):
-        if self.reporter is None:
+        reporter = self.reporter
+        if reporter is None:
             self.reply(u"Please register before signing up for this service.")
         else:
-            reporter, created = HealthReporter.objects.get_or_create(pk=self.reporter.pk)
+            try:
+                reporter = HealthReporter.objects.get(pk=reporter.pk)
+            except HealthReporter.DoesNotExist:
+                reporter = HealthReporter(pk=reporter.pk, name=reporter.name)
 
             reporter.facility = facility
             reporter.area = area
@@ -144,7 +149,13 @@ class Signup(Form):
 
             reporter.roles.add(role)
 
-            self.reply(
-                "You have joined the system as %s reporting to %s in %s. "
-                "Please resend if there is a mistake." % (
-                    role.name, facility.name, area.name))
+            if area is not None:
+                self.reply(
+                    "You have joined the system as %s reporting to %s in %s. "
+                    "Please resend if there is a mistake." % (
+                        role.name, facility.name, area.name))
+            else:
+                self.reply(
+                    "You have joined the system as %s reporting to %s. "
+                    "Please resend if there is a mistake." % (
+                        role.name, facility.name))
