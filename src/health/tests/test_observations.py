@@ -15,12 +15,14 @@ class HealthTestCase(FunctionalTestCase):
 
         kind, created = ReportKind.objects.get_or_create(
             slug="agg", name="Test aggregate observations")
-        kind, created = ObservationKind.objects.get_or_create(
-            slug="agg_ma", name="malaria")
-        kind, created = ObservationKind.objects.get_or_create(
-            slug="agg_bd", name="bloody diarrhea")
-        kind, created = ObservationKind.objects.get_or_create(
-            slug="agg_tb", name="tuberculosis")
+        ObservationKind.objects.get_or_create(
+            slug="agg_ma", group=kind, name="malaria")
+        ObservationKind.objects.get_or_create(
+            slug="agg_bd", group=kind, name="bloody diarrhea")
+        ObservationKind.objects.get_or_create(
+            slug="agg_tb", group=kind, name="tuberculosis")
+        ObservationKind.objects.get_or_create(
+            slug="agg_total", group=kind, name="Total")
 
 class ParserTest(HealthTestCase):
     @staticmethod
@@ -86,8 +88,7 @@ class FormTest(HealthTestCase, FormTestCase):
         from ..models import ObservationForm
 
         from stats.models import ReportKind
-        kind, created = ReportKind.objects.get_or_create(
-            slug="test", name="Test observations")
+        kind = ReportKind.objects.get(slug="agg")
 
         return cls.handle(ObservationForm, kind=kind, **kwargs)
 
@@ -102,7 +103,7 @@ class FormTest(HealthTestCase, FormTestCase):
         self.register_default_user()
         message = self._observations(observations={'agg_ma': 5})
         from stats.models import Report
-        report = Report.objects.get(kind__slug="test")
+        report = Report.objects.get(kind__slug="agg")
         self.assertEqual(report.observations.count(), 1)
         self.assertEqual(report.source.reporter, message.reporter)
         reply = message.replies.get()
@@ -112,10 +113,11 @@ class FormTest(HealthTestCase, FormTestCase):
         self.register_default_user()
         message = self._observations(total=10, observations={'agg_ma': 5})
         from stats.models import Report
-        report = Report.objects.get(kind__slug="test")
+        report = Report.objects.get(kind__slug="agg")
         self.assertEqual(report.observations.count(), 2)
         self.assertEqual(report.source.reporter, message.reporter)
-        self.assertEqual(report.observations.get(kind__slug="total").value, 10)
+        self.assertEqual(report.observations.get(
+            kind__slug__endswith="_total").value, 10)
         reply = message.replies.get()
         self.assertTrue('malaria 5' in reply.text)
 
@@ -139,9 +141,10 @@ class FormTest(HealthTestCase, FormTestCase):
 
     def test_multiple_reports(self):
         self.register_default_user()
-        message = self._observations(observations={'agg_ma': 5, 'agg_tb': 10, 'agg_bd': 2})
+        message = self._observations(
+            observations={'agg_ma': 5, 'agg_tb': 10, 'agg_bd': 2})
         from stats.models import Report
-        report = Report.objects.get(kind__slug="test")
+        report = Report.objects.get(kind__slug="agg")
         self.assertEqual(report.observations.count(), 3)
         reply = message.replies.get()
         self.assertTrue(

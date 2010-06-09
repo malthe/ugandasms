@@ -2,7 +2,7 @@ from router.testing import FormTestCase
 from router.testing import FunctionalTestCase
 
 class SignupTestCase(FunctionalTestCase):
-    INSTALLED_APPS = FormTestCase.INSTALLED_APPS + (
+    INSTALLED_APPS = FunctionalTestCase.INSTALLED_APPS + (
         'location',
         'reporter',
         'stats',

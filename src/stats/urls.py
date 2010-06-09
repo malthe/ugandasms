@@ -6,5 +6,5 @@ from . import views
 
 urlpatterns = patterns(
     '',
-    url(r'^messages/?$', views.index),
+    url(r'^stats/?$', views.reports),
 )

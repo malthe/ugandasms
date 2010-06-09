@@ -44,7 +44,9 @@
 	  </a>
 	</th>
 	{% else %}
-	<th><a href="?q={{ search_string }}&sort_column={{ column }}" title="Sort by {{ display }}">{{ display }}</a></th>
+	<th>
+      <a href="?q={{ search_string }}&sort_column={{ column }}"
+         title="Sort by {{ display }}">{{ display }}</a></th>
 	{% endifequal %}
 	{% endfor%}
   </thead>

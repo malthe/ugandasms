@@ -1,5 +1,6 @@
-import pyproj
 import csv
+import sys
+import pyproj
 import traceback
 
 from django.core.management.base import BaseCommand
@@ -19,21 +20,31 @@ class Command(BaseCommand):
         Facility.objects.all().delete()
 
         reader = csv.reader(open(path), delimiter=',', quotechar='"')
-
         parent = None
 
-        # location roots
+        # geographic root
         country = Area.add_root(
             name="Uganda", kind=LocationKind.objects.get(name='Country'))
-        facility = Facility.add_root(
-            name="Amuru", code="71", kind=LocationKind.objects.get(name='DHO'))
 
-        _k_district = LocationKind.objects.get(name="District")
-        _k_county = LocationKind.objects.get(name="County")
-        _k_sub_county = LocationKind.objects.get(name="Sub-county")
-        _k_parish = LocationKind.objects.get(name="Parish")
-        _k_village = LocationKind.objects.get(name="Village")
-        _k_sub_village = LocationKind.objects.get(name="Sub-village")
+        # facility root
+        gov = Facility.add_root(
+            name="Government of Uganda", code=None,
+            kind=LocationKind.objects.get(slug='gov'))
+
+        moh = gov.get().add_child(
+            name="Ministry of Health", code=None,
+            kind=LocationKind.objects.get(slug='moh'))
+
+        facility = moh.get().add_child(
+            name="Amuru", code="71",
+            kind=LocationKind.objects.get(slug='dho'))
+
+        _k_district = LocationKind.objects.get(slug="district")
+        _k_county = LocationKind.objects.get(slug="county")
+        _k_sub_county = LocationKind.objects.get(slug="sub_county")
+        _k_parish = LocationKind.objects.get(slug="parish")
+        _k_village = LocationKind.objects.get(slug="village")
+        _k_sub_village = LocationKind.objects.get(slug="sub_village")
 
         reader.next()
         for index, line in enumerate(reader):
@@ -58,28 +69,30 @@ class Command(BaseCommand):
             if level:
                 level = level.replace(' ', '')
                 try:
-                    kind = LocationKind.objects.get(name=level)
+                    slug = level.lower()
+                    kind = LocationKind.objects.get(slug=slug)
                 except LocationKind.DoesNotExist:
                     print "%03d Skipping row (unable to look up location kind '%s')" % (
                         index+2, level)
-                n, l = parent_composite.rsplit(' ', 1)
-                try:
-                    parent = Facility.objects.get(name=n, kind__name=l)
-                except Facility.DoesNotExist:
-                    print "%03d Skipping row (unable to find " \
-                          "reporting facility with name '%s')." % (index+2, n)
-                    continue
+                else:
+                    n, l = parent_composite.rsplit(' ', 1)
+                    try:
+                        parent = Facility.objects.get(name=n, kind__slug=l.lower())
+                    except Facility.DoesNotExist:
+                        print "%03d Skipping row (unable to find " \
+                              "reporting facility with name '%s')." % (index+2, n)
+                        continue
 
-                facility = parent.add_child(
-                    name=name,
-                    kind=kind,
-                    code=code,
-                    longitude=longitude,
-                    latitude=latitude,
-                    )
+                    facility = parent.add_child(
+                        name=name,
+                        kind=kind,
+                        code=code,
+                        longitude=longitude,
+                        latitude=latitude,
+                        )
 
-                # explicit reload
-                parent = Facility.objects.get(pk=parent.pk)
+                    # explicit reload
+                    parent = Facility.objects.get(pk=parent.pk)
 
             # update locations
             locations = ((district, _k_district),
@@ -91,6 +104,9 @@ class Command(BaseCommand):
 
             parent = country
             for placename, kind in locations:
+                if not placename.strip():
+                    break
+
                 kwargs = dict(name=placename, kind=kind)
                 try:
                     inst = Area.objects.get(**kwargs)
@@ -98,3 +114,6 @@ class Command(BaseCommand):
                     inst = parent.add_child(report_to=facility, **kwargs)
 
                 parent = Area.objects.get(pk=inst.pk)
+
+        print >> sys.stderr, "%d areas added." % Area.objects.count()
+        print >> sys.stderr, "%d facilities added." % Facility.objects.count()

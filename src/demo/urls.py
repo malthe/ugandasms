@@ -10,6 +10,7 @@ admin.autodiscover()
 
 import messageui.urls
 import webui.urls
+import stats.urls
 
 urlpatterns = patterns(
     '',
@@ -18,6 +19,7 @@ urlpatterns = patterns(
     url(r'^admin/', include(admin.site.urls)),
     ) + \
     messageui.urls.urlpatterns + \
+    stats.urls.urlpatterns + \
     webui.urls.urlpatterns
 
 

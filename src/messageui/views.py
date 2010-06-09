@@ -62,8 +62,8 @@ def index(req):
 
     return render_to_response("messageui/index.html", {
         "send_form": send_form,
-        "columns": columns,
         "messages": messages,
+        "columns": columns,
         "sort_column": sort_column,
         "sort_descending": sort_descending,
         "search_string": search_string

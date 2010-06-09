@@ -26,6 +26,18 @@ class Location(MP_Node):
             kwargs.setdefault("kind", LocationKind.objects.get(slug=slug))
         super(Location, self).__init__(*args, **kwargs)
 
+    def __lt__(self, other):
+        return self.name < other.name
+
+    def __gt__(self, other):
+        return self.name > other.name
+
+    def __eq__(self, other):
+        return self.slug == getattr(other, "slug", other)
+
+    def __ne__(self, other):
+        return self.slug != getattr(other, "slug", other)
+
     def __unicode__(self): # pragma: NOCOVER
         return "%s %s" % (self.name, self.kind.name)
 

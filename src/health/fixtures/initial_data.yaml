@@ -9,9 +9,9 @@
     name: Death
 
 - model: stats.reportkind
-  pk: nutrition
+  pk: muac
   fields:
-    name: Nutrition
+    name: Muac
 
 - model: stats.reportkind
   pk: otp
@@ -49,159 +49,228 @@
     name: OTP visit
 
 - model: stats.observationkind
+  pk: death_female
+  fields:
+    name: Female
+    group: birth
+
+- model: stats.observationkind
+  pk: death_male
+  fields:
+    name: Male
+    group: birth
+
+- model: stats.observationkind
+  pk: birth_female
+  fields:
+    name: Female
+    group: birth
+
+- model: stats.observationkind
+  pk: birth_male
+  fields:
+    name: Male
+    group: birth
+
+- model: stats.observationkind
   pk: birth_at_home
   fields:
     name: Home
+    group: birth
     description: Occurred in the home.
 
 - model: stats.observationkind
   pk: birth_at_clinic
   fields:
     name: Clinic
+    group: birth
     description: Occurred at a private or minor clinic.
 
 - model: stats.observationkind
   pk: birth_at_facility
   fields:
     name: Facility
+    group: birth
     description: Occurred at a health facility.
+
+- model: stats.observationkind
+  pk: age
+  fields:
+    name: Age
+    aggregator: avg
+    renderer: timedelta
+    group: muac
 
 - model: stats.observationkind
   pk: green_muac
   fields:
     name: Green
+    group: muac
 
 - model: stats.observationkind
   pk: yellow_muac
   fields:
     name: Yellow
+    group: muac
 
 - model: stats.observationkind
   pk: red_muac
   fields:
     name: Red
-
-- model: stats.observationkind
-  pk: epidemiological_observations_bd
-  fields:
-    name: Bloody diarrhea (Dysentery)
-
-- model: stats.observationkind
-  pk: epidemiological_observations_ma
-  fields:
-    name: Malaria
-
-- model: stats.observationkind
-  pk: epidemiological_observations_tb
-  fields:
-    name: Tuberculosis
-
-- model: stats.observationkind
-  pk: epidemiological_observations_ab
-  fields:
-    name: Animal Bites
-
-- model: stats.observationkind
-  pk: epidemiological_observations_af
-  fields:
-    name: Acute Flaccid Paralysis (Polio)
-
-- model: stats.observationkind
-  pk: epidemiological_observations_mg
-  fields:
-    name: Meningitis
-
-- model: stats.observationkind
-  pk: epidemiological_observations_me
-  fields:
-    name: Measles
-
-- model: stats.observationkind
-  pk: epidemiological_observations_ch
-  fields:
-    name: Cholera
-
-- model: stats.observationkind
-  pk: epidemiological_observations_gw
-  fields:
-    name: Guinea Worm
-
-- model: stats.observationkind
-  pk: epidemiological_observations_nt
-  fields:
-    name: Neonatal Tetanus
-
-- model: stats.observationkind
-  pk: epidemiological_observations_yf
-  fields:
-    name: Yellow Fever
-
-- model: stats.observationkind
-  pk: epidemiological_observations_ot
-  fields:
-    name: Other
-
-- model: stats.observationkind
-  pk: epidemiological_observations_pl
-  fields:
-    name: Plague
-
-- model: stats.observationkind
-  pk: epidemiological_observations_rb
-  fields:
-    name: Rabies
-
-- model: stats.observationkind
-  pk: epidemiological_observations_vf
-  fields:
-    name: Other Viral Hemorrhagic Fevers
-
-- model: stats.observationkind
-  pk: epidemiological_observations_ei
-  fields:
-    name: Other Emerging Infectious Diseases
-
-- model: stats.observationkind
-  pk: observations_at_home_wa
-  fields:
-    name: Safe Drinking Water
-
-- model: stats.observationkind
-  pk: observations_at_home_ha
-  fields:
-    name: Handwashing Facilities
-
-- model: stats.observationkind
-  pk: observations_at_home_la
-  fields:
-    name: Latrines
-
-- model: stats.observationkind
-  pk: observations_at_home_it
-  fields:
-    name: ITTNs/LLINs
+    group: muac
 
 - model: stats.observationkind
   pk: oedema
   fields:
     name: Oedema
+    group: muac
+
+- model: stats.observationkind
+  pk: epidemiological_observations_bd
+  fields:
+    name: Bloody diarrhea (Dysentery)
+    group: epidemiological_observations
+
+- model: stats.observationkind
+  pk: epidemiological_observations_ma
+  fields:
+    name: Malaria
+    group: epidemiological_observations
+
+- model: stats.observationkind
+  pk: epidemiological_observations_tb
+  fields:
+    name: Tuberculosis
+    group: epidemiological_observations
+
+- model: stats.observationkind
+  pk: epidemiological_observations_ab
+  fields:
+    name: Animal Bites
+    group: epidemiological_observations
+
+- model: stats.observationkind
+  pk: epidemiological_observations_af
+  fields:
+    name: Acute Flaccid Paralysis (Polio)
+    group: epidemiological_observations
+
+- model: stats.observationkind
+  pk: epidemiological_observations_mg
+  fields:
+    name: Meningitis
+    group: epidemiological_observations
+
+- model: stats.observationkind
+  pk: epidemiological_observations_me
+  fields:
+    name: Measles
+    group: epidemiological_observations
+
+- model: stats.observationkind
+  pk: epidemiological_observations_ch
+  fields:
+    name: Cholera
+    group: epidemiological_observations
+
+- model: stats.observationkind
+  pk: epidemiological_observations_gw
+  fields:
+    name: Guinea Worm
+    group: epidemiological_observations
+
+- model: stats.observationkind
+  pk: epidemiological_observations_nt
+  fields:
+    name: Neonatal Tetanus
+    group: epidemiological_observations
+
+- model: stats.observationkind
+  pk: epidemiological_observations_yf
+  fields:
+    name: Yellow Fever
+    group: epidemiological_observations
+
+- model: stats.observationkind
+  pk: epidemiological_observations_ot
+  fields:
+    name: Other
+    group: epidemiological_observations
+
+- model: stats.observationkind
+  pk: epidemiological_observations_pl
+  fields:
+    name: Plague
+    group: epidemiological_observations
+
+- model: stats.observationkind
+  pk: epidemiological_observations_rb
+  fields:
+    name: Rabies
+    group: epidemiological_observations
+
+- model: stats.observationkind
+  pk: epidemiological_observations_vf
+  fields:
+    name: Other Viral Hemorrhagic Fevers
+    group: epidemiological_observations
+
+- model: stats.observationkind
+  pk: epidemiological_observations_ei
+  fields:
+    name: Other Emerging Infectious Diseases
+    group: epidemiological_observations
+
+- model: stats.observationkind
+  pk: observations_at_home_total
+  fields:
+    name: Homesteads visited
+    group: observations_at_home
+
+- model: stats.observationkind
+  pk: observations_at_home_wa
+  fields:
+    name: Safe Drinking Water
+    group: observations_at_home
+
+- model: stats.observationkind
+  pk: observations_at_home_ha
+  fields:
+    name: Handwashing Facilities
+    group: observations_at_home
+
+- model: stats.observationkind
+  pk: observations_at_home_la
+  fields:
+    name: Latrines
+    group: observations_at_home
+
+- model: stats.observationkind
+  pk: observations_at_home_it
+  fields:
+    name: ITTNs/LLINs
+    group: observations_at_home
 
 - model: stats.observationkind
   pk: registered_patient
   fields:
     name: Registered patient
+    group: patient
 
 - model: stats.observationkind
   pk: unregistered_patient
   fields:
     name: Unregistered patient
+    group: patient
 
 - model: stats.observationkind
   pk: opening_of_case
   fields:
     name: Cases closed
+    group: patient
 
 - model: stats.observationkind
   pk: closing_of_case
   fields:
     name: Cases closed
+    group: patient

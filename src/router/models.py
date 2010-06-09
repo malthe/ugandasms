@@ -190,3 +190,4 @@ class Outgoing(Message):
         if self.in_reply_to is not None:
             return self.uri == self.in_reply_to.message.uri
         return False
+

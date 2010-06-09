@@ -2,10 +2,32 @@ from django.db import models
 from location.models import Area
 from router.models import Form
 
+RENDERERS = (
+    ('timedelta', 'Time delta'),
+    ('datetime', 'Date and time'),
+    )
+
+AGGREGATORS = (
+    ('avg', 'Average'),
+    ('sum', 'Sum'),
+    )
+
 class ReportKind(models.Model):
     name = models.CharField(max_length=50)
     slug = models.SlugField(unique=True, primary_key=True)
     description = models.CharField(max_length=255, null=True, blank=True)
+
+    def __lt__(self, other):
+        return self.name < other.name
+
+    def __gt__(self, other):
+        return self.name > other.name
+
+    def __eq__(self, other):
+        return self.slug == getattr(other, "slug", other)
+
+    def __ne__(self, other):
+        return self.slug != getattr(other, "slug", other)
 
 class Report(models.Model):
     source = models.ForeignKey(Form, null=True)
@@ -21,23 +43,32 @@ class Report(models.Model):
             kwargs.setdefault("kind", ReportKind.objects.get(slug=slug))
         super(Report, self).__init__(*args, **kwargs)
 
+    def __unicode__(self):
+        if self.location is not None:
+            return "%s @ %s" % (self.kind.name, self.location)
+        else:
+            return self.kind.name
+
     @classmethod
     def from_observations(cls, slug, source=None, location=None, **observations):
         """Create a report from a set of observations.
 
+        :param slug: Report kind slug.
         :param source: The form from which this report originated.
         :param location: The location at which this report happened.
-        :param kind: Either a slug identifying a report kind, or a report kind object.
 
-        In this example we'll set up an Epidemiology report for sightings of Malaria and Tuberculosis.
+        In this example we'll set up an Epidemiology report for
+        sightings of Malaria and Tuberculosis.
 
-        >>> ObservationKind(slug="ma", name='Malaria').save()
-        >>> ObservationKind(slug="tb", name='Tuberculosis').save()
-        >>> ReportKind(slug="epi", name="Epidemiology").save()
+        >>> kind = ReportKind(slug='epi', name='Epidemiology')
+        >>> kind.save()
+
+        >>> ObservationKind(slug='ma', group=kind, name='Malaria').save()
+        >>> ObservationKind(slug='tb', group=kind, name='Tuberculosis').save()
 
         You can specify both the report kind and the observations using the slug string.
 
-        >>> report = Report.from_observations("epi", ma=10, tb=20)
+        >>> report = Report.from_observations('epi', ma=10, tb=20)
         >>> report.observations.count()
         2
 
@@ -59,7 +90,22 @@ class Report(models.Model):
 class ObservationKind(models.Model):
     slug = models.SlugField(unique=True, primary_key=True)
     name = models.CharField(max_length=50)
+    group = models.ForeignKey(ReportKind, related_name='observation_kinds')
+    aggregator = models.CharField(max_length=20, choices=AGGREGATORS, default='sum')
+    renderer = models.CharField(max_length=20, choices=RENDERERS, null=True)
     description = models.CharField(max_length=255, null=True, blank=True)
+
+    def __lt__(self, other):
+        return self.name < other.name
+
+    def __gt__(self, other):
+        return self.name > other.name
+
+    def __eq__(self, other):
+        return self.slug == other.slug
+
+    def __ne__(self, other):
+        return self.slug != other.slug
 
 class Observation(models.Model):
     value = models.DecimalField(max_digits=20, decimal_places=10)
@@ -74,3 +120,6 @@ class Observation(models.Model):
         if slug is not None:
             kwargs.setdefault("kind", ObservationKind.objects.get(slug=slug))
         super(Observation, self).__init__(*args, **kwargs)
+
+    def __unicode__(self):
+        return "%s=%s" % (self.kind.name, self.value)

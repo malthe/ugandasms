@@ -9,7 +9,7 @@ class ModuleTests(FunctionalTestCase):
         'reporter',
         'location',
         )
-     
+
     def __new__(cls, test):
         self = FunctionalTestCase.__new__(cls)
         return getattr(self, test)()
@@ -17,6 +17,6 @@ class ModuleTests(FunctionalTestCase):
     def test_models(self):
         from stats import models
         return doctest.DocTestSuite(
-            models, 
+            models,
             setUp=lambda suite: self.setUp(),
             tearDown=lambda suite: self.tearDown())

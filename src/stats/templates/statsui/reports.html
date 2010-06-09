@@ -1,0 +1,102 @@
+{% extends "base_template.html" %}
+
+{% block title %}Message Log{% endblock %}
+
+{% block page_stylesheets %}
+<link type="text/css" rel="stylesheet"
+      href="{% url webui.views.static %}/statsui/stylesheets/layout.css" />
+{% endblock %}
+
+{% block content %}
+<h1>
+  <a href="{% url stats.views.reports %}">Stats</a>{% if search_string %}
+  / <a href="">
+      <span class="highlight">{{ timeframe }}</span></a>{% endif %}
+</h1>
+
+<p class="help">
+  Displays statistical indicators by report and location.
+</p>
+
+<div class="span-12">
+  <form style="float: right" class="inline" method="get">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <input type="submit" value="Update" />
+  </form>
+</div>
+
+You are here:
+{% for ancestor in root.get_ancestors %}
+<a href="?location={{ ancestor.pk }}">{{ ancestor.name }}</a> &rarr;
+{% endfor %}
+<a href="?location={{ root.pk }}">{{ root.name }}</a>
+
+<table id="stats" class="sortable">
+  <thead>
+    <tr class="reports">
+      <th>Locations</th>
+      {% for report_kind, kinds in columns %}
+      <th colspan="{{ kinds|length }}">
+        {{ report_kind.name }}
+      </th>
+      {% endfor %}
+    </tr>
+    <tr class="observations">
+      {% if not sort_column %}
+      <th class="sorted {% if sort_descending %}descending{% else %}ascending{% endif %}">
+        <a href="?q={{ search_string }}&sort_descending={% if sort_descending %}false{% else %}true{% endif %}&sort_column={{ column }}" title="Sort by {{ display }}{% if sort_descending %} (asc){% endif %}">
+		  {{ root.name }}
+	    </a>
+      </th>
+      {% else %}
+      <th><a href="?sort_column="
+           title="Sort by location">{{ root.name }}</a></th>
+      {% endif %}
+
+      {% for report_kind, kinds in columns %}
+      {% for sorting, kind in kinds %}
+
+      {% ifequal sorting sort_column %}
+      <th class="sorted {% if sort_descending %}descending{% else %}ascending{% endif %}">
+        <a href="?q={{ search_string }}&sort_descending={% if sort_descending %}false{% else %}true{% endif %}&sort_column={{ sorting }}" title="Sort by {{ kind.name }}{% if sort_descending %} (asc){% endif %}">
+		  {{ kind.name }}
+	    </a>
+      </th>
+      {% else %}
+      <th>
+        <a href="?sort_column={{ sorting }}" 
+           title="Sort by {{ kind.name }}">{{ kind.name }}</a>
+      </th>
+      {% endifequal %}
+      {% endfor %}
+      {% endfor %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for location, observations in observations_by_location %}
+    {% if observations %}
+    <tr>
+      <td>
+        {% if location.pk %}
+        <a href="?location={{ location.pk }}"> {{ location.name }}</a>
+        {% else %}
+        {{ location.name }}
+        {% endif %}
+      </td>
+      {% for aggregate in observations %}
+      <td>
+        {% if aggregate %}
+        {{ aggregate }}
+        {% else %}
+        -
+        {% endif %}
+      </td>
+      {% endfor %}
+    </tr>
+    {% endif %}
+    {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}

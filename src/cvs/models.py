@@ -1,6 +1,7 @@
 import difflib
 
 from django.db import models
+from django.db.models import signals
 
 from picoparse import remaining
 from picoparse import one_of
@@ -15,6 +16,31 @@ from router.models import Reporter
 from router.models import ReporterRole
 from location.models import Area
 from location.models import Facility
+from stats.models import Report
+
+def on_save_report(sender=None, instance=None, **kwargs):
+    if not issubclass(sender, Report):
+        return
+
+    if instance.source is None:
+        return
+
+    reporter = instance.source.reporter
+    if reporter is None:
+        return
+
+    try:
+        reporter = HealthReporter.objects.get(pk=reporter.pk)
+    except HealthReporter.DoesNotExist:
+        return
+
+    if instance.location is not None:
+        return
+
+    instance.location = reporter.area
+    instance.save()
+
+signals.post_save.connect(on_save_report, weak=True)
 
 class HealthRole(ReporterRole):
     keyword = models.SlugField(max_length=10)
@@ -80,16 +106,16 @@ class Signup(Form):
             area = None
 
             for area in facility.areas.all():
-                areas[area.name] = area
+                areas[area.name.upper()] = area
                 for descendant in area.get_descendants():
                     areas[descendant.name] = descendant
 
-            matches = difflib.get_close_matches(name, areas)
+            matches = difflib.get_close_matches(name.upper(), areas)
             if matches:
                 name = matches[0]
                 area = areas[name]
             elif area is not None:
-                new_area = area.add_child(slug="user_added_location", name=name)
+                new_area = area.add_child(slug="user_added_location", name='"%s"' % name)
                 area = area.get()
 
                 # make sure this newly created area reports to our facility
@@ -119,6 +145,6 @@ class Signup(Form):
             reporter.roles.add(role)
 
             self.reply(
-                "You have joined the system as %s reporting to %s. "
+                "You have joined the system as %s reporting to %s in %s. "
                 "Please resend if there is a mistake." % (
-                    role.name, facility.name))
+                    role.name, facility.name, area.name))

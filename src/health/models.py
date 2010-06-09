@@ -242,7 +242,7 @@ class BirthForm(Form):
         patient.save()
 
         observations = {
-            'male' if sex == 'M' else 'female': 1,
+            'birth_male' if sex == 'M' else 'birth_female': 1,
             "birth_at_%s" % place.lower(): 1
             }
 
@@ -334,15 +334,30 @@ class DeathForm(PatientVisitationForm):
             u"We have recorded the death of %s." % name)
 
     def handle_registered(self, patients, cases, notifications):
+        death_male = 0
+        death_female = 0
+
         for patient in patients:
             patient.deathdate = self.message.time
             patient.save()
+
+            if patient.sex == 'M':
+                death_male += 1
+            else:
+                death_female += 1
 
         for case in cases:
             case.closed = self.message.time
             case.save()
 
-        Report.from_observations(slug=self.report_kind, closing_of_case=len(cases))
+        Report.from_observations(
+            "death", source=self, location=None,
+            death_male=death_male,
+            death_female=death_female)
+
+        Report.from_observations(
+            "patient", source=self,
+            closing_of_case=len(cases))
 
         for pk, patient in notifications.items():
             reporter = Reporter.objects.get(pk=pk)
@@ -386,7 +401,9 @@ class CureForm(PatientVisitationForm):
             case.closed = self.message.time
             case.save()
 
-        Report.from_observations(slug=self.report_kind, closing_of_case=len(cases))
+        Report.from_observations(
+            "patient", source=self,
+            closing_of_case=len(cases))
 
         for pk, patient in notifications.items():
             reporter = Reporter.objects.get(pk=pk)
@@ -573,6 +590,16 @@ class ObservationForm(Form):
             report = Report(kind=kind, source=self)
             report.save()
 
+            # if the report kind has support for an observation total,
+            # we add it to the report
+            if total is not None:
+                try:
+                    total_kind = ObservationKind.objects\
+                                .get(group=kind, slug__endswith="_total")
+                    report.observations.create(kind=total_kind, value=total)
+                except ObservationKind.DoesNotExist:
+                    pass
+
             # we keep running tally of stats to generate message reply
             # item by item
             stats = []
@@ -605,9 +632,6 @@ class ObservationForm(Form):
 
                 report.observations.create(kind=kind, value=value)
                 stats.append(stat)
-
-            if total is not None:
-                report.observations.create(slug="total", value=total)
 
             separator = [", "] * len(stats)
             if len(stats) > 1:
@@ -775,7 +799,7 @@ class MuacForm(Form):
                 category = 'Y'
 
         report = NutritionReport(
-            slug="nutrition",
+            slug="muac",
             reading=reading,
             category=category,
             patient=patient,
@@ -786,10 +810,12 @@ class MuacForm(Form):
 
         report.observations.create(slug="oedema", value=int(oedema))
         report.observations.create(
-            slug="age_in_days",
+            slug="age",
             value=(datetime.datetime.now()-patient.birthdate).days)
         report.observations.create(
-            slug={'G': 'green_muac', 'Y': 'yellow_muac', 'R': 'red_muac'}[category],
+            slug={'G': 'green_muac',
+                  'Y': 'yellow_muac',
+                  'R': 'red_muac'}[category],
             value=1)
 
         pronoun = 'his' if patient.sex == 'M' else 'her'
@@ -804,7 +830,7 @@ class MuacForm(Form):
                 except IntegrityError: # pragma: NOCOVER
                     pass
 
-            Report.from_observations(slug="nutrition", opening_of_case=1)
+            Report.from_observations(slug="patient", opening_of_case=1)
 
             if category == 'Y':
                 severity = "Risk of"

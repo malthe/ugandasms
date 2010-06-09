@@ -1,25 +1,25 @@
 - model: location.locationkind
-  pk: hc1
+  pk: hci
   fields:
     name: HCI
 
 - model: location.locationkind
-  pk: hc2
+  pk: hcii
   fields:
     name: HCII
 
 - model: location.locationkind
-  pk: hc3
+  pk: hciii
   fields:
     name: HCIII
 
 - model: location.locationkind
-  pk: hc4
+  pk: hciv
   fields:
     name: HCIV
 
 - model: location.locationkind
-  pk: hc5
+  pk: hcv
   fields:
     name: HCV
 
@@ -64,9 +64,19 @@
     name: Sub-village
 
 - model: location.locationkind
+  pk: gov
+  fields:
+    name: Government
+
+- model: location.locationkind
+  pk: moh
+  fields:
+    name: Ministry of Health
+
+- model: location.locationkind
   pk: dho
   fields:
-    name: DHO
+    name: District Health Office
 
 - model: cvs.healthrole
   pk: vht
