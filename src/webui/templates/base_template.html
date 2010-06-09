@@ -27,17 +27,18 @@
 		<div class="container">
 		  {% block auth %}
 		  <div id="auth">{% if user.is_authenticated %}
-			<a href="/logout">
+			<a href="{% url django.contrib.auth.views.logout %}">
               Logout <span class="username">({{ user.username }})</span>
             </a>{% else %}
-			<a href="/login">Login</a>{% endif %}
+			<a href="{% url django.contrib.auth.views.login %}">Login</a>{% endif %}
 		  </div>
 		  {% endblock %}
 
 		  <div id="branding">
             {% block branding %}
 			<h1>
-			  <a title="Return to the Dashboard" href="/">
+			  <a title="Return to the Dashboard"
+                 href="{% url webui.views.dashboard %}">
                 <span>RapidSMS</span>
               </a>
             </h1>
@@ -57,21 +58,6 @@
       </div><!-- End Container Class -->
 	  <div id="inner">
 		<div class="container">
-		  {% block language_selector %}
-		  {% if USE_I18N %}
-		  <form action="/i18n/setlang/" method="post" style="float:right">
-			<select name="language">
-			  {% for lang in LANGUAGES %}
-			  <option value="{{ lang.0 }}"
-					  {% ifequal LANGUAGE_CODE lang.0 %}selected{% endifequal %}>
-				{{ lang.1 }}
-			  </option>
-			  {% endfor %}
-			</select>
-			<input type="submit" class="small" value="Submit"/>
-		  </form>
-		  {% endif %}
-		  {% endblock language_selector %}
           {% block content %}{% endblock %}
 
 		</div><!-- End Container Class -->
