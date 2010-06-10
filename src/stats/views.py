@@ -142,11 +142,39 @@ def reports(req):
     else:
         location_sort = None
 
+    # if we're showing more than one report kind, prioritize
+    # non-trivial observations; we take the top priority from each
+    # report kind and in order of priority fill up to the desired
+    # number of observations (columns)
+    if len(report_kinds) > 1:
+        max_columns = max(8, len(report_kinds))
+        prioritized = []
+
+        sorted_non_trivial_kinds = sorted(
+            non_trivial_observation_kinds,
+            key=lambda kind: kind.priority)
+
+        for report_kind in report_kinds:
+            kinds = filter(
+                sorted_non_trivial_kinds.__contains__,
+                report_kind.observation_kinds.all())
+
+            if len(kinds) == 0:
+                continue
+
+            top_priority = kinds[0]
+            prioritized.append(top_priority)
+            sorted_non_trivial_kinds.remove(top_priority)
+
+        missing = max_columns-len(prioritized)
+        prioritized.extend(sorted_non_trivial_kinds[:missing])
+        assert len(prioritized) <= max_columns
+
     # set up columns to map report kinds to observation kinds
     columns = []
     for report_kind in sorted(report_kinds):
         kinds = filter(
-            non_trivial_observation_kinds.__contains__,
+            prioritized.__contains__,
             report_kind.observation_kinds.all())
 
         if len(kinds) == 0:
@@ -161,7 +189,7 @@ def reports(req):
     observations_by_location = [
         (location, tuple(chain(*(
             [value for kind, value in sorted(by_observation_kind.items())
-             if kind in non_trivial_observation_kinds]
+             if kind in prioritized]
             for (report_kind, by_observation_kind) in sorted(
                 by_location[location].items())))))
         for location in sorted(
