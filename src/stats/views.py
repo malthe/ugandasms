@@ -87,7 +87,10 @@ def reports(req):
     else:
         root = TOP_LOCATION
         first_node = Area.get_first_root_node()
-        locations = list(first_node.get_siblings().all())
+        if first_node is None:
+            locations = []
+        else:
+            locations = list(first_node.get_siblings().all())
         locations.append(NO_LOCATION)
 
     report_kinds = ReportKind.objects.all()
