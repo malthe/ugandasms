@@ -32,12 +32,6 @@ class Location(MP_Node):
     def __gt__(self, other):
         return self.name > other.name
 
-    def __eq__(self, other):
-        return self.slug == getattr(other, "slug", other)
-
-    def __ne__(self, other):
-        return self.slug != getattr(other, "slug", other)
-
     def __unicode__(self): # pragma: NOCOVER
         return "%s %s" % (self.name, self.kind.name)
 
