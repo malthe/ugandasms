@@ -9,9 +9,15 @@
 
 {% block content %}
 <h1>
-  <a href="{% url stats.views.reports %}">Stats</a>{% if search_string %}
+  <a href="{% url stats.views.reports %}">Stats</a>
+  {% if search_string %}
   / <a href="">
-      <span class="highlight">{{ timeframe }}</span></a>{% endif %}
+      <span class="highlight">{{ timeframe }}</span></a>
+  {% endif %}
+  {% if report %}
+  / <a href="">
+      <span class="highlight">{{ report.name }}</span></a>
+  {% endif %}
 </h1>
 
 <p class="help">
@@ -29,41 +35,46 @@
 You are here:
 <a href="?">All</a>
 {% for ancestor in location.get_ancestors %}
- &rarr; <a href="?location={{ ancestor.pk }}">{{ ancestor.name }}</a>
+ &rarr; <a href="?location={{ ancestor.pk }}&report={{ report.slug }}">{{ ancestor.name }}</a>
 {% endfor %}
 {% if location.pk %}
 &rarr;
-<a href="?location={{ location.pk }}">{{ location.name }}</a>
+<a href="?location={{ location.pk }}&report={{ report.slug }}">{{ location.name }}</a>
 {% endif %}
 
 <table id="stats" class="sortable">
   <thead>
     <tr class="reports">
       <th>Locations</th>
-      {% for report_kind, kinds in columns %}
+      {% for report_kind, kinds, prioritized in columns %}
       <th colspan="{{ kinds|length }}">
-        {{ report_kind.name }}
+        <a href="?q={{ search_string }}&location={{ location.pk }}&report={{ report_kind.slug }}">
+          {{ report_kind.name }}
+          {% if prioritized %}
+          <small>[ &hellip; ]</small>
+          {% endif %}
+        </a>
       </th>
       {% endfor %}
     </tr>
     <tr class="observations">
       {% if not sort_column %}
       <th class="sorted {% if sort_descending %}descending{% else %}ascending{% endif %}">
-        <a href="?q={{ search_string }}&location={{ location.pk }}&sort_descending={% if sort_descending %}false{% else %}true{% endif %}&sort_column={{ column }}" title="Sort by {{ display }}{% if sort_descending %} (asc){% endif %}">
+        <a href="?q={{ search_string }}&report={{ report.slug }}&location={{ location.pk }}&sort_descending={% if sort_descending %}false{% else %}true{% endif %}&sort_column={{ column }}" title="Sort by {{ display }}{% if sort_descending %} (asc){% endif %}">
 		  {{ root.name }}
 	    </a>
       </th>
       {% else %}
-      <th><a href="?location={{ location.pk }}&sort_column="
+      <th><a href="?location={{ location.pk }}&report={{ report.slug }}&sort_column="
              title="Sort by location">{{ root.name }}</a></th>
       {% endif %}
 
-      {% for report_kind, kinds in columns %}
+      {% for report_kind, kinds, prioritized in columns %}
       {% for kind in kinds %}
 
       {% ifequal kind.slug sort_column %}
       <th class="{{ kind.aggregator }}-aggregation sorted {% if sort_descending %}descending{% else %}ascending{% endif %}">
-        <a href="?q={{ search_string }}&location={{ location.pk }}&sort_descending={% if sort_descending %}false{% else %}true{% endif %}&sort_column={{ kind.slug }}" title="Sort by {{ kind.name }}{% if sort_descending %} (asc){% endif %}">
+        <a href="?q={{ search_string }}&report={{ report.slug }}&location={{ location.pk }}&sort_descending={% if sort_descending %}false{% else %}true{% endif %}&sort_column={{ kind.slug }}" title="Sort by {{ kind.name }}{% if sort_descending %} (asc){% endif %}">
           {% if kind.abbr %}
           {{ kind.abbr }}
           {% else %}
@@ -73,7 +84,7 @@ You are here:
       </th>
       {% else %}
       <th class="{{ kind.aggregator }}-aggregation">
-        <a href="?sort_column={{ kind.slug }}&location={{ location.pk }}" 
+        <a href="?sort_column={{ kind.slug }}&report={{ report.slug }}&location={{ location.pk }}" 
            title="Sort by {{ kind.name }}">
           {% if kind.abbr %}
           {{ kind.abbr }}
@@ -93,7 +104,7 @@ You are here:
     <tr>
       <td>
         {% if location.pk %}
-        <a href="?location={{ location.pk }}"> {{ location.name }}</a>
+        <a href="?location={{ location.pk }}&report={{ report.slug }}"> {{ location.name }}</a>
         {% else %}
         {{ location.name }}
         {% endif %}

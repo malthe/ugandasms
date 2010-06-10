@@ -69,6 +69,7 @@ def reports(req):
     form = StatsForm(req.GET)
     days = form.fields['timeframe'].initial
     location = req.GET.get('location')
+    report = req.GET.get('report')
 
     if form.is_valid():
         days = form.cleaned_data.get('timeframe') or days
@@ -93,7 +94,12 @@ def reports(req):
             locations = list(first_node.get_siblings().all())
         locations.append(NO_LOCATION)
 
-    report_kinds = ReportKind.objects.all()
+    if report:
+        report = ReportKind.objects.get(pk=report)
+        report_kinds = (report,)
+    else:
+        report_kinds = ReportKind.objects.all()
+
     non_trivial_observation_kinds = set()
 
     by_location = {}
@@ -146,14 +152,16 @@ def reports(req):
     # non-trivial observations; we take the top priority from each
     # report kind and in order of priority fill up to the desired
     # number of observations (columns)
-    if len(report_kinds) > 1:
-        max_columns = max(8, len(report_kinds))
-        prioritized = []
-
+    if len(report_kinds) == 1:
+        prioritized = non_trivial_observation_kinds
+    else:
+        # sort non-trivial observations
         sorted_non_trivial_kinds = sorted(
             non_trivial_observation_kinds,
             key=lambda kind: kind.priority)
 
+        # determine non-trivial report kinds
+        kinds_for_report_kind = []
         for report_kind in report_kinds:
             kinds = filter(
                 sorted_non_trivial_kinds.__contains__,
@@ -162,10 +170,20 @@ def reports(req):
             if len(kinds) == 0:
                 continue
 
+            kinds_for_report_kind.append((report_kind, kinds))
+
+        # the maximum number of columns must span at least all the
+        # non-trivial report kinds
+        max_columns = max(8, len(kinds_for_report_kind))
+        prioritized = []
+
+        # prioritize
+        for report_kind, kinds in kinds_for_report_kind:
             top_priority = kinds[0]
             prioritized.append(top_priority)
             sorted_non_trivial_kinds.remove(top_priority)
 
+        # extend to maximum column length
         missing = max_columns-len(prioritized)
         prioritized.extend(sorted_non_trivial_kinds[:missing])
         assert len(prioritized) <= max_columns
@@ -173,14 +191,16 @@ def reports(req):
     # set up columns to map report kinds to observation kinds
     columns = []
     for report_kind in sorted(report_kinds):
-        kinds = filter(
-            prioritized.__contains__,
-            report_kind.observation_kinds.all())
+        observation_kinds = report_kind.observation_kinds.all()
+        kinds = filter(prioritized.__contains__, observation_kinds)
 
         if len(kinds) == 0:
             continue
 
-        columns.append((report_kind, sorted(kinds)))
+        filtered = len(kinds) < len(filter(
+            non_trivial_observation_kinds.__contains__, observation_kinds))
+
+        columns.append((report_kind, sorted(kinds), filtered))
 
     for index, timeframe in TIMEFRAME_CHOICES:
         if days == index:
@@ -201,6 +221,7 @@ def reports(req):
             'form': form,
             'columns': columns,
             'location': root,
+            'report': report,
             'observations_by_location': observations_by_location,
             'sort_column': sort_column,
             'sort_descending': sort_descending,
