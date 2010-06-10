@@ -27,10 +27,14 @@
 </div>
 
 You are here:
-{% for ancestor in root.get_ancestors %}
-<a href="?location={{ ancestor.pk }}">{{ ancestor.name }}</a> &rarr;
+<a href="?">All</a>
+{% for ancestor in location.get_ancestors %}
+ &rarr; <a href="?location={{ ancestor.pk }}">{{ ancestor.name }}</a>
 {% endfor %}
-<a href="?location={{ root.pk }}">{{ root.name }}</a>
+{% if location.pk %}
+&rarr;
+<a href="?location={{ location.pk }}">{{ location.name }}</a>
+{% endif %}
 
 <table id="stats" class="sortable">
   <thead>
@@ -45,27 +49,27 @@ You are here:
     <tr class="observations">
       {% if not sort_column %}
       <th class="sorted {% if sort_descending %}descending{% else %}ascending{% endif %}">
-        <a href="?q={{ search_string }}&sort_descending={% if sort_descending %}false{% else %}true{% endif %}&sort_column={{ column }}" title="Sort by {{ display }}{% if sort_descending %} (asc){% endif %}">
+        <a href="?q={{ search_string }}&location={{ location.pk }}&sort_descending={% if sort_descending %}false{% else %}true{% endif %}&sort_column={{ column }}" title="Sort by {{ display }}{% if sort_descending %} (asc){% endif %}">
 		  {{ root.name }}
 	    </a>
       </th>
       {% else %}
-      <th><a href="?sort_column="
-           title="Sort by location">{{ root.name }}</a></th>
+      <th><a href="?location={{ location.pk }}&sort_column="
+             title="Sort by location">{{ root.name }}</a></th>
       {% endif %}
 
       {% for report_kind, kinds in columns %}
-      {% for sorting, kind in kinds %}
+      {% for kind in kinds %}
 
-      {% ifequal sorting sort_column %}
+      {% ifequal kind.slug sort_column %}
       <th class="sorted {% if sort_descending %}descending{% else %}ascending{% endif %}">
-        <a href="?q={{ search_string }}&sort_descending={% if sort_descending %}false{% else %}true{% endif %}&sort_column={{ sorting }}" title="Sort by {{ kind.name }}{% if sort_descending %} (asc){% endif %}">
+        <a href="?q={{ search_string }}&location={{ location.pk }}&sort_descending={% if sort_descending %}false{% else %}true{% endif %}&sort_column={{ kind.slug }}" title="Sort by {{ kind.name }}{% if sort_descending %} (asc){% endif %}">
 		  {{ kind.name }}
 	    </a>
       </th>
       {% else %}
       <th>
-        <a href="?sort_column={{ sorting }}" 
+        <a href="?sort_column={{ kind.slug }}&location={{ location.pk }}" 
            title="Sort by {{ kind.name }}">{{ kind.name }}</a>
       </th>
       {% endifequal %}

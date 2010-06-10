@@ -14,6 +14,7 @@ from location.models import Area
 
 from .models import Report
 from .models import ReportKind
+from .models import ObservationKind
 from .models import Observation
 
 transport = Message("web")
@@ -49,6 +50,14 @@ TIMEFRAME_CHOICES = (
 class NO_LOCATION:
     name = "-"
 
+class TOP_LOCATION:
+    name = "All"
+    pk = ""
+
+    @classmethod
+    def get_ancestors(self):
+        return ()
+
 class StatsForm(forms.Form):
     timeframe = forms.TypedChoiceField(
         choices=TIMEFRAME_CHOICES, coerce=int, initial=7, required=False)
@@ -71,17 +80,14 @@ def reports(req):
     sort_column, sort_descending = _get_sort_info(
         req, default_sort_column=None, default_sort_descending=True)
 
-    sort_desc_string = "-" if sort_descending else ""
-
     # determine top-level locations
-    if location is None:
-        root = Area.get_first_root_node()
-    else:
+    if location:
         root = Area.objects.get(pk=int(location))
-
-    locations = list(root.get_children().all())
-
-    if location is None:
+        locations = root.get_children().all()
+    else:
+        root = TOP_LOCATION
+        first_node = Area.get_first_root_node()
+        locations = list(first_node.get_siblings().all())
         locations.append(NO_LOCATION)
 
     report_kinds = ReportKind.objects.all()
@@ -126,6 +132,13 @@ def reports(req):
                 aggregate = renderer(result.values()[0])
                 by_observation_kind[observation_kind] = aggregate
 
+    if sort_column:
+        sort_kind = ObservationKind.objects.get(slug=sort_column)
+        location_sort = lambda location: \
+                        by_location[location][sort_kind.group][sort_kind]
+    else:
+        location_sort = None
+
     # set up columns to map report kinds to observation kinds
     columns = []
     for report_kind in sorted(report_kinds):
@@ -136,10 +149,7 @@ def reports(req):
         if len(kinds) == 0:
             continue
 
-        columns.append((
-            report_kind,
-            [("%s_%s" % (report_kind.slug, kind.slug), kind) for kind in sorted(kinds)],
-            ))
+        columns.append((report_kind, sorted(kinds)))
 
     for index, timeframe in TIMEFRAME_CHOICES:
         if days == index:
@@ -151,14 +161,15 @@ def reports(req):
              if kind in non_trivial_observation_kinds]
             for (report_kind, by_observation_kind) in sorted(
                 by_location[location].items())))))
-        for location in sorted(by_location)
+        for location in sorted(
+            locations, key=location_sort, reverse=sort_descending)
         ]
 
     return render_to_response(
         "statsui/reports.html", {
             'form': form,
             'columns': columns,
-            'root': root,
+            'location': root,
             'observations_by_location': observations_by_location,
             'sort_column': sort_column,
             'sort_descending': sort_descending,
