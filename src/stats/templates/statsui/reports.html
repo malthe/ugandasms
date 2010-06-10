@@ -62,7 +62,7 @@ You are here:
       {% for kind in kinds %}
 
       {% ifequal kind.slug sort_column %}
-      <th class="sorted {% if sort_descending %}descending{% else %}ascending{% endif %}">
+      <th class="{{ kind.aggregator }}-aggregation sorted {% if sort_descending %}descending{% else %}ascending{% endif %}">
         <a href="?q={{ search_string }}&location={{ location.pk }}&sort_descending={% if sort_descending %}false{% else %}true{% endif %}&sort_column={{ kind.slug }}" title="Sort by {{ kind.name }}{% if sort_descending %} (asc){% endif %}">
           {% if kind.abbr %}
           {{ kind.abbr }}
@@ -72,7 +72,7 @@ You are here:
         </a>
       </th>
       {% else %}
-      <th>
+      <th class="{{ kind.aggregator }}-aggregation">
         <a href="?sort_column={{ kind.slug }}&location={{ location.pk }}" 
            title="Sort by {{ kind.name }}">
           {% if kind.abbr %}
