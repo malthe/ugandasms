@@ -108,7 +108,7 @@ class Signup(Form):
             for area in facility.areas.all():
                 areas[area.name.upper()] = area
                 for descendant in area.get_descendants():
-                    areas[descendant.name] = descendant
+                    areas[descendant.name.upper()] = descendant
 
             matches = difflib.get_close_matches(name.upper(), areas)
             if matches:
