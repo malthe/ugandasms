@@ -129,96 +129,115 @@
   pk: epidemiological_observations_bd
   fields:
     name: Bloody diarrhea (Dysentery)
+    abbr: Bd
     group: epidemiological_observations
+    priority: 10
 
 - model: stats.observationkind
   pk: epidemiological_observations_ma
   fields:
     name: Malaria
+    abbr: Ma
     group: epidemiological_observations
+    priority: 10
 
 - model: stats.observationkind
   pk: epidemiological_observations_tb
   fields:
     name: Tuberculosis
+    abbr: Tb
     group: epidemiological_observations
+    priority: 10
 
 - model: stats.observationkind
   pk: epidemiological_observations_ab
   fields:
     name: Animal Bites
+    abbr: Ab
     group: epidemiological_observations
 
 - model: stats.observationkind
   pk: epidemiological_observations_af
   fields:
     name: Acute Flaccid Paralysis (Polio)
+    abbr: Af
     group: epidemiological_observations
 
 - model: stats.observationkind
   pk: epidemiological_observations_mg
   fields:
     name: Meningitis
+    abbr: Mg
     group: epidemiological_observations
 
 - model: stats.observationkind
   pk: epidemiological_observations_me
   fields:
     name: Measles
+    abbr: Me
     group: epidemiological_observations
 
 - model: stats.observationkind
   pk: epidemiological_observations_ch
   fields:
     name: Cholera
+    abbr: Ch
     group: epidemiological_observations
 
 - model: stats.observationkind
   pk: epidemiological_observations_gw
   fields:
     name: Guinea Worm
+    abbr: Gw
     group: epidemiological_observations
 
 - model: stats.observationkind
   pk: epidemiological_observations_nt
   fields:
     name: Neonatal Tetanus
+    abbr: Nt
     group: epidemiological_observations
 
 - model: stats.observationkind
   pk: epidemiological_observations_yf
   fields:
     name: Yellow Fever
+    abbr: Yf
     group: epidemiological_observations
 
 - model: stats.observationkind
   pk: epidemiological_observations_ot
   fields:
     name: Other
+    abbr: Other
     group: epidemiological_observations
 
 - model: stats.observationkind
   pk: epidemiological_observations_pl
   fields:
     name: Plague
+    abbr: Pl
     group: epidemiological_observations
 
 - model: stats.observationkind
   pk: epidemiological_observations_rb
   fields:
     name: Rabies
+    abbr: Ra
     group: epidemiological_observations
 
 - model: stats.observationkind
   pk: epidemiological_observations_vf
   fields:
     name: Other Viral Hemorrhagic Fevers
+    abbr: Vf
     group: epidemiological_observations
 
 - model: stats.observationkind
   pk: epidemiological_observations_ei
   fields:
     name: Other Emerging Infectious Diseases
+    abbr: Ei
     group: epidemiological_observations
 
 - model: stats.observationkind
@@ -231,25 +250,30 @@
   pk: observations_at_home_wa
   fields:
     name: Safe Drinking Water
+    abbr: Wa
     group: observations_at_home
 
 - model: stats.observationkind
   pk: observations_at_home_ha
   fields:
     name: Handwashing Facilities
+    abbr: Ha
     group: observations_at_home
 
 - model: stats.observationkind
   pk: observations_at_home_la
   fields:
     name: Latrines
+    abbr: La
     group: observations_at_home
 
 - model: stats.observationkind
   pk: observations_at_home_it
   fields:
     name: ITTNs/LLINs
+    abbr: It
     group: observations_at_home
+    priority: 5
 
 - model: stats.observationkind
   pk: registered_patient

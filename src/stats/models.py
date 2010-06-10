@@ -90,10 +90,12 @@ class Report(models.Model):
 class ObservationKind(models.Model):
     slug = models.SlugField(unique=True, primary_key=True)
     name = models.CharField(max_length=50)
+    abbr = models.CharField(max_length=10, null=True)
     group = models.ForeignKey(ReportKind, related_name='observation_kinds')
     aggregator = models.CharField(max_length=20, choices=AGGREGATORS, default='sum')
     renderer = models.CharField(max_length=20, choices=RENDERERS, null=True)
     description = models.CharField(max_length=255, null=True, blank=True)
+    priority = models.IntegerField(default=1)
 
     def __lt__(self, other):
         return self.name < other.name
