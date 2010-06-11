@@ -88,9 +88,9 @@ def reports(req):
 
     form = StatsForm(req.GET)
     days = form.fields['timeframe'].initial
-    location = req.GET.get('location')
-    report = req.GET.get('report')
-    search_string = req.GET.get('q')
+    location = req.GET.get('location', '')
+    report = req.GET.get('report', '')
+    search_string = req.GET.get('q', '')
 
     if form.is_valid():
         days = form.cleaned_data.get('timeframe') or days
