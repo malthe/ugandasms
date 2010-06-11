@@ -1,4 +1,5 @@
 from django.db.models import Q
+from django.db.models import aggregates
 from django.core.paginator import Paginator
 from django.shortcuts import render_to_response
 from django.contrib.auth.decorators import login_required
@@ -14,14 +15,14 @@ transport = Message("web")
 @login_required
 def index(req):
     columns = (
-        ("id", "#"),
-        ("name", "Name"),
+        ("id", "#", None),
+        ("name", "Name", None),
+        ("activity", "Last activity", "connections__messages__time"),
         )
 
     sort_column, sort_descending = _get_sort_info(
         req, default_sort_column="id", default_sort_descending=True)
 
-    sort_desc_string = "-" if sort_descending else ""
     search_string = req.REQUEST.get("q", "")
 
     if search_string == "":
@@ -39,9 +40,20 @@ def index(req):
             Q(name__icontains=search_string) |
             Q(pk__in=pks))
 
-    query = query.order_by("%s%s" % (sort_desc_string, sort_column)).all()
+    for name, title, aggregate in columns:
+        if name != sort_column:
+            continue
+
+        if aggregate:
+            query = query.annotate(**{name: aggregates.Max(aggregate)})
+
+        sort_desc_string = "-" if sort_descending else ""
+        query = query.order_by("%s%s" % (sort_desc_string, name)).all()
+
+        break
 
     paginator = Paginator(query, 25)
+
     entries = [
         (reporter, Incoming.objects.filter(
             connection__in=reporter.connections.all())[0])
