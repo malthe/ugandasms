@@ -11,6 +11,7 @@ admin.autodiscover()
 import messageui.urls
 import webui.urls
 import stats.urls
+import reporterui.urls
 
 urlpatterns = patterns(
     '',
@@ -20,6 +21,7 @@ urlpatterns = patterns(
     ) + \
     messageui.urls.urlpatterns + \
     stats.urls.urlpatterns + \
-    webui.urls.urlpatterns
+    webui.urls.urlpatterns + \
+    reporterui.urls.urlpatterns
 
 

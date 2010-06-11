@@ -1,26 +1,3 @@
 table#message-log {
   width: 100%;
 }
-
-table#message-log tt.message-text {
-  font-weight: bold;
-}
-
-table#message-log td.message-text {
-  width: 66%;
-}
-
-table#message-log li.erroneous li.response {
-  color: red;
-}
-
-table#message-log li.response {
-  color: green;
-  margin-top: 0.2em;
-  list-style-type: square;
-  margin-left: 1.3em;
-}
-
-table#message-log span.form-kind {
-  color: #666;
-}

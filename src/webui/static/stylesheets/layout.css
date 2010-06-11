@@ -495,3 +495,26 @@ input.small {
   margin-left: 10px;
   width: 630px;
 }
+
+td.message-text tt.message-text {
+  font-weight: bold;
+}
+
+td.message-text {
+  width: 66%;
+}
+
+td.message-text li.erroneous li.response {
+  color: red;
+}
+
+td.message-text li.response {
+  color: green;
+  margin-top: 0.2em;
+  list-style-type: square;
+  margin-left: 1.3em;
+}
+
+td.message-text span.form-kind {
+  color: #666;
+}

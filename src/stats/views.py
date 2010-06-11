@@ -9,7 +9,6 @@ from django.template import RequestContext
 from django import forms
 
 from router.transports import Message
-
 from location.models import Area
 
 from .models import Report

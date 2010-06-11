@@ -1,21 +1,21 @@
 {% extends "base_template.html" %}
 
-{% block title %}Message Log{% endblock %}
+{% block title %}Reporters{% endblock %}
 
 {% block page_stylesheets %}
 <link type="text/css" rel="stylesheet"
-      href="{% url webui.views.static %}/messageui/stylesheets/layout.css" />
+      href="{% url webui.views.static %}/reporterui/stylesheets/layout.css" />
 {% endblock %}
 
 {% block content %}
 <h1>
-  <a href="{% url messageui.views.index %}">Messages</a>{% if search_string %}
+  <a href="{% url reporterui.views.index %}">Reporters</a>{% if search_string %}
   / <a href="">Search for
       <span class="highlight">{{ search_string }}</span></a>{% endif %}
 </h1>
 
 <p class="help">
-  Displays recent messages and lets you send a message to the system.
+  Displays reporters registered with the system.
 </p>
 
 <div class="span-12">
@@ -26,18 +26,9 @@
       <input type="submit" value="Search" />
     </p>
   </form>
-  <form class="inline" method="post">
-    {% csrf_token %}
-    {{ send_form.as_p }}
-    <p>
-      <br />
-      <input type="submit" name="send" value="Send" />
-      <input type="submit" name="send_as_guest" value="Send as guest" />
-    </p>
-  </form>
 </div>
 
-<table id="message-log" class="sortable">
+<table id="reporters" class="sortable">
   <thead>
 	{% for column, display in columns %}
 	{% ifequal column sort_column %}
@@ -52,18 +43,25 @@
          title="Sort by {{ display }}">{{ display }}</a></th>
 	{% endifequal %}
 	{% endfor%}
+    <th>
+      Last activity
+    </th>
+    <th>
+      Message
+    </th>
   </thead>
-  
+
   <tbody>
-	{% for message in messages.object_list %}
+	{% for reporter, message in entries %}
 	<tr>
-	  <td>{{ message.time|date:"d-M-Y H:i:s" }}</td>
-	  <td>
+      <td>{{ reporter.pk }}</td>
+      <td>
         {% if message.connection.reporter %}
         {{ message.connection.reporter|title }}
         {% endif %}
         <pre>{{ message.connection }}</pre>
       </td>
+	  <td>{{ message.time|date:"d-M-Y H:i:s" }}</td>
 	  <td class="message-text">
         {% if message.forms.all %}
         <ul>
