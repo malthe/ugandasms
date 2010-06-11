@@ -34,15 +34,15 @@ Reporter
 
 Django app::
 
-  "reporter"
+  "register"
 
-The *reporter* app allows mobile users to register themselves as
+The *register* app allows mobile users to register themselves as
 reporters using one or more devices/handsets.
 
 Forms
 ~~~~~
 
-.. automodule:: reporter.models
+.. automodule:: register.models
 
   .. autoclass:: Registration
 

@@ -39,7 +39,7 @@ INSTALLED_APPS = (
     'treebeard',
     'router',
     'router.tests',
-    'reporter',
+    'register',
     'health',
     'location',
     'stats',

@@ -25,12 +25,12 @@ class ParserTest(TestCase):
 class HandlerTest(FormTestCase):
     @classmethod
     def _register(cls, **kwargs):
-        from reporter.models import Registration
+        from .models import Registration
         return cls.handle(Registration, **kwargs)
 
     def test_initial_registration(self):
         self._register(name="foo")
-        from .models import Reporter
+        from router.models import Reporter
         self.assertEqual(Reporter.objects.get().name, "foo")
 
     def test_report(self):
@@ -46,19 +46,19 @@ class HandlerTest(FormTestCase):
     def test_inquire_for_ident_but_not_registered(self):
         self._register()
         form = self._register()
-        from .models import Reporter
+        from router.models import Reporter
         self.assertEqual(Reporter.objects.count(), 0)
         self.assertFalse(str(form.message.connection.ident) in form.replies.get().text)
 
     def test_registration_update(self):
         self._register(name="foo")
         self._register(name="bar")
-        from .models import Reporter
+        from router.models import Reporter
         self.assertEqual(Reporter.objects.get().name, "bar")
 
     def test_register_new_device_then_update(self):
         self._register(name="foo")
-        from .models import Reporter
+        from router.models import Reporter
         self.assertEqual(Reporter.objects.count(), 1)
         self._register(uri="test://new", ident="old")
         self.assertEqual(Reporter.objects.count(), 1)
@@ -67,7 +67,7 @@ class HandlerTest(FormTestCase):
 
     def test_register_new_device_but_not_found(self):
         self._register(name="foo")
-        from .models import Reporter
+        from router.models import Reporter
         self.assertEqual(Reporter.objects.count(), 1)
         form = self._register(uri="test://new", ident="new")
         self.assertEqual(form.reporter, None)
