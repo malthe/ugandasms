@@ -46,7 +46,7 @@ class Sequential(object):
     """
 
     _cache = {}
-    _forms = ()
+    _forms = None
 
     def __init__(self, forms=None):
         if forms is not None:
