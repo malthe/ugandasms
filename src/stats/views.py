@@ -158,7 +158,8 @@ def reports(req):
         # sort non-trivial observations
         sorted_non_trivial_kinds = sorted(
             non_trivial_observation_kinds,
-            key=lambda kind: kind.priority)
+            key=lambda kind: kind.priority,
+            reverse=True)
 
         # determine non-trivial report kinds
         kinds_for_report_kind = []
