@@ -13,7 +13,7 @@ class Location(MP_Node):
     latitude = models.DecimalField(decimal_places=12, max_digits=14, null=True)
     longitude = models.DecimalField(decimal_places=12, max_digits=14, null=True)
     code = models.CharField(max_length=50, blank=True, null=True)
-    name = models.CharField(max_length=50)
+    name = models.CharField(max_length=50, db_index=True)
     kind = models.ForeignKey(LocationKind)
     node_order_by = ['name']
 

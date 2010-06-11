@@ -58,7 +58,28 @@ class TOP_LOCATION:
     def get_ancestors(self):
         return ()
 
+class QueryLocation(object):
+    pk = ""
+
+    def __init__(self, search_string):
+        self.search_string = search_string
+
+    @property
+    def name(self):
+        return "Query for \"%s\"" % self.search_string
+
+    def get_ancestors(self):
+        return (self,)
+
 class StatsForm(forms.Form):
+    q = forms.CharField(
+        label="Filter",
+        max_length=255,
+        widget=forms.TextInput(
+            attrs={'size':'40'}),
+        required=False,
+        )
+
     timeframe = forms.TypedChoiceField(
         choices=TIMEFRAME_CHOICES, coerce=int, initial=7, required=False)
 
@@ -70,6 +91,7 @@ def reports(req):
     days = form.fields['timeframe'].initial
     location = req.GET.get('location')
     report = req.GET.get('report')
+    search_string = req.GET.get('q')
 
     if form.is_valid():
         days = form.cleaned_data.get('timeframe') or days
@@ -82,7 +104,10 @@ def reports(req):
         req, default_sort_column=None, default_sort_descending=True)
 
     # determine top-level locations
-    if location:
+    if search_string:
+        root = QueryLocation(search_string)
+        locations = Area.objects.filter(name__icontains=search_string).all()
+    elif location:
         root = Area.objects.get(pk=int(location))
         locations = root.get_children().all()
     else:
@@ -227,6 +252,7 @@ def reports(req):
             'sort_column': sort_column,
             'sort_descending': sort_descending,
             'timeframe': timeframe,
+            'search_string': search_string,
             },
         RequestContext(req))
 

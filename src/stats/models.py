@@ -32,7 +32,7 @@ class ReportKind(models.Model):
 class Report(models.Model):
     source = models.ForeignKey(Form, null=True)
     location = models.ForeignKey(Area, null=True)
-    kind = models.ForeignKey(ReportKind)
+    kind = models.ForeignKey(ReportKind, db_index=True)
 
     class Meta:
         ordering = ['-id']
@@ -91,11 +91,13 @@ class ObservationKind(models.Model):
     slug = models.SlugField(unique=True, primary_key=True)
     name = models.CharField(max_length=50)
     abbr = models.CharField(max_length=10, null=True)
-    group = models.ForeignKey(ReportKind, related_name='observation_kinds')
+    group = models.ForeignKey(
+        ReportKind, related_name='observation_kinds',
+        db_index=True)
     aggregator = models.CharField(max_length=20, choices=AGGREGATORS, default='sum')
     renderer = models.CharField(max_length=20, choices=RENDERERS, null=True)
     description = models.CharField(max_length=255, null=True, blank=True)
-    priority = models.IntegerField(default=1)
+    priority = models.IntegerField(default=1, db_index=True)
 
     def __lt__(self, other):
         return self.name < other.name
@@ -111,8 +113,8 @@ class ObservationKind(models.Model):
 
 class Observation(models.Model):
     value = models.DecimalField(max_digits=20, decimal_places=10)
-    kind = models.ForeignKey(ObservationKind)
-    report = models.ForeignKey(Report, related_name='observations')
+    kind = models.ForeignKey(ObservationKind, db_index=True)
+    report = models.ForeignKey(Report, related_name='observations', db_index=True)
 
     class Meta:
         ordering = ['-id']

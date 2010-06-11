@@ -10,10 +10,6 @@
 {% block content %}
 <h1>
   <a href="{% url stats.views.reports %}">Stats</a>
-  {% if search_string %}
-  / <a href="">
-      <span class="highlight">{{ timeframe }}</span></a>
-  {% endif %}
   {% if report %}
   / <a href="">
       <span class="highlight">{{ report.name }}</span></a>
@@ -28,18 +24,21 @@
   <form style="float: right" class="inline" method="get">
     {% csrf_token %}
     {{ form.as_p }}
-    <input type="submit" value="Update" />
+    <p>
+      <br />
+      <input type="submit" value="Update" />
+    </p>
   </form>
 </div>
 
 You are here:
 <a href="?">All</a>
 {% for ancestor in location.get_ancestors %}
- &rarr; <a href="?location={{ ancestor.pk }}&report={{ report.slug }}">{{ ancestor.name }}</a>
+ &rarr; <a href="?q={{ search_string }}&location={{ ancestor.pk }}&report={{ report.slug }}">{{ ancestor.name }}</a>
 {% endfor %}
 {% if location.pk %}
 &rarr;
-<a href="?location={{ location.pk }}&report={{ report.slug }}">{{ location.name }}</a>
+<a href="?q={{ search_string }}&location={{ location.pk }}&report={{ report.slug }}">{{ location.name }}</a>
 {% endif %}
 
 <table id="stats" class="sortable">
@@ -61,12 +60,12 @@ You are here:
       {% if not sort_column %}
       <th class="sorted {% if sort_descending %}descending{% else %}ascending{% endif %}">
         <a href="?q={{ search_string }}&report={{ report.slug }}&location={{ location.pk }}&sort_descending={% if sort_descending %}false{% else %}true{% endif %}&sort_column={{ column }}" title="Sort by {{ display }}{% if sort_descending %} (asc){% endif %}">
-		  {{ root.name }}
+		  {{ location.name }}
 	    </a>
       </th>
       {% else %}
       <th><a href="?location={{ location.pk }}&report={{ report.slug }}&sort_column="
-             title="Sort by location">{{ root.name }}</a></th>
+             title="Sort by location">{{ location.name }}</a></th>
       {% endif %}
 
       {% for report_kind, kinds, prioritized in columns %}
@@ -100,7 +99,6 @@ You are here:
   </thead>
   <tbody>
     {% for location, observations in observations_by_location %}
-    {% if observations %}
     <tr>
       <td>
         {% if location.pk %}
@@ -119,7 +117,6 @@ You are here:
       </td>
       {% endfor %}
     </tr>
-    {% endif %}
     {% endfor %}
   </tbody>
 </table>

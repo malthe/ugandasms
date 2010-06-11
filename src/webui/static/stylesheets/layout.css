@@ -25,11 +25,12 @@ form#login-form {
 
 form.inline {
   float: left;
-  margin-right: 1em;
 }
 
 form.inline p {
   display: inline;
+  float: left;
+  margin-left: 1em;
 }
 
 table {
