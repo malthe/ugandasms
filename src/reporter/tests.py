@@ -1,7 +1,7 @@
+from django.test import TestCase
 from router.testing import FormTestCase
-from router.testing import UnitTestCase
 
-class ParserTest(UnitTestCase):
+class ParserTest(TestCase):
     @staticmethod
     def _parse(text):
         from .models import Registration
@@ -23,11 +23,6 @@ class ParserTest(UnitTestCase):
         self.assertEquals(self._parse("+reg #"), None)
 
 class HandlerTest(FormTestCase):
-    INSTALLED_APPS = FormTestCase.INSTALLED_APPS + (
-        'reporter',
-        'stats',
-        )
-
     @classmethod
     def _register(cls, **kwargs):
         from reporter.models import Registration

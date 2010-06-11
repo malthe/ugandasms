@@ -50,11 +50,16 @@ class Transport(object):
     should be set up in the class constructor.
     """
 
-    def __init__(self, name, options={}):
-        self.name = name
+    _router = None
 
+    def __init__(self, name, options={}, router=None):
         for key, value in options.items():
             setattr(self, key.lower(), value)
+
+        self.name = name
+
+        if router is not None:
+            self._router = router
 
 class Message(Transport):
     """Message transport.
@@ -69,7 +74,12 @@ class Message(Transport):
 
     @property
     def router(self):
-        """Resolve router defined in the ``MESSAGE_ROUTER`` setting."""
+        """Return the router which was configured for the transport,
+        or fall back to the global setting ``MESSAGE_ROUTER`` setting.
+        """
+
+        if self._router is not None:
+            return self._router
 
         try:
             path = getattr(settings, "MESSAGE_ROUTER")

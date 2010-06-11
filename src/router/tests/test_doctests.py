@@ -1,8 +1,7 @@
 import re
 import doctest
 
-from router.testing import FunctionalTestCase
-from router.testing import UnitTestCase
+from django.test import TestCase
 
 OPTIONFLAGS = (doctest.ELLIPSIS |
                doctest.NORMALIZE_WHITESPACE)
@@ -19,7 +18,7 @@ def assert_equals(s1, s2, strip=True): # pragma: NOCOVER
 def assert_contains(s1, s2): # pragma: NOCOVER
     assert s2 in s1, "%s does not contain %s." % (repr(s1), repr(s2))
 
-class ModuleTests(UnitTestCase):
+class ModuleTests(TestCase):
     def __new__(self, test):
         return getattr(self, test)()
 
@@ -38,12 +37,7 @@ class ModuleTests(UnitTestCase):
         from router import models
         return doctest.DocTestSuite(models)
 
-class DocumentationTest(FunctionalTestCase): # pragma: NOCOVER
-    INSTALLED_APPS = FunctionalTestCase.INSTALLED_APPS + (
-        'router',
-        'router.tests',
-        )
-
+class DocumentationTest(TestCase): # pragma: NOCOVER
     GLOBS = {
         'assert_equals': assert_equals,
         'assert_contains': assert_contains,
@@ -87,8 +81,13 @@ class DocumentationTest(FunctionalTestCase): # pragma: NOCOVER
         try:
             from router.testing import Gateway
             from router.testing import Peer
-            transport = Gateway("gateway")
+            from router.router import Sequential
+            from router.tests.models import Empty
+            from router.tests.models import Echo
+            router = Sequential((Empty, Echo))
+            transport = Gateway("gateway", router=router)
             self.globs['bob'] = Peer(transport, u"256000000000")
+            self.globs['router'] = router
         except:
             self.tearDown()
             del self.globs

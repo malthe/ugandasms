@@ -1,7 +1,7 @@
-from router.testing import UnitTestCase
+from django.test import TestCase
 from router.testing import FormTestCase
 
-class ParserTest(UnitTestCase):
+class ParserTest(TestCase):
     @staticmethod
     def _birth(text):
         from ..models import BirthForm
@@ -26,11 +26,6 @@ class ParserTest(UnitTestCase):
                          {'name': 'Apio', 'sex': 'F', 'place': 'CLINIC'})
 
 class FormTest(FormTestCase):
-    INSTALLED_APPS = FormTestCase.INSTALLED_APPS + (
-        'health',
-        'reporter',
-        )
-
     @classmethod
     def _birth(cls, **kwargs):
         from ..models import BirthForm

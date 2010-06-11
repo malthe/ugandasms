@@ -46,9 +46,21 @@ class Sequential(object):
     """
 
     _cache = {}
+    _forms = ()
+
+    def __init__(self, forms=None):
+        if forms is not None:
+            self._forms = forms
 
     @property
     def forms(self):
+        """Return the forms which were configured for the router or
+        fail back to the global ``FORMS`` setting.
+        """
+
+        if self._forms is not None:
+            return self._forms
+
         try:
             paths = getattr(settings, "FORMS")
         except AttributeError: # pragma: NOCOVER

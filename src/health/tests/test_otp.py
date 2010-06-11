@@ -1,7 +1,7 @@
-from router.testing import UnitTestCase
+from django.test import TestCase
 from .base import Scenario
 
-class ParserTest(UnitTestCase):
+class ParserTest(TestCase):
     @staticmethod
     def _otp(text):
         from ..models import OtpForm

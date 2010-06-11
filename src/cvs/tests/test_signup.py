@@ -1,14 +1,7 @@
+from django.test import TestCase
 from router.testing import FormTestCase
-from router.testing import FunctionalTestCase
 
-class SignupTestCase(FunctionalTestCase):
-    INSTALLED_APPS = FunctionalTestCase.INSTALLED_APPS + (
-        'location',
-        'reporter',
-        'stats',
-        'cvs',
-        )
-
+class SignupTestCase(TestCase):
     def bootstrap(self):
         from cvs.models import HealthRole
         self.role = HealthRole(slug="test", keyword="TEST", name="Test")

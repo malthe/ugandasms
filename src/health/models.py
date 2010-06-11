@@ -330,6 +330,12 @@ class DeathForm(PatientVisitationForm):
         return parse_patient_input()
 
     def handle_unregistered(self, name, sex, age):
+        is_male = bool(sex == 'M')
+
+        Report.from_observations(
+            "death", source=self, location=None,
+            death_male=is_male, death_female=not is_male)
+
         return self.reply(
             u"We have recorded the death of %s." % name)
 

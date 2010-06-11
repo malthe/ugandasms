@@ -1,12 +1,7 @@
+from django.test import TestCase
 from router.testing import FormTestCase
-from router.testing import FunctionalTestCase
 
-class HealthTestCase(FunctionalTestCase):
-    INSTALLED_APPS = FormTestCase.INSTALLED_APPS + (
-        'health',
-        'reporter',
-        )
-
+class HealthTestCase(TestCase):
     def setUp(self):
         super(HealthTestCase, self).setUp()
 

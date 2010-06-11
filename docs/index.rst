@@ -88,10 +88,7 @@ The system includes an automated test suite. It requires the `nose
 Running all tests::
 
   $ easy_install nose
-  $ python setup.py nosetests
-
-To use PostgreSQL, set the ``WITH_POSTGRESQL`` environment variable to
-any true value.
+  $ python manage.py test
 
 See the API documentation on :ref:`testing` for more information.
 

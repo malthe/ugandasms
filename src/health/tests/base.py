@@ -1,11 +1,6 @@
 from router.testing import FormTestCase
 
 class Scenario(FormTestCase):
-    INSTALLED_APPS = FormTestCase.INSTALLED_APPS + (
-        'health',
-        'reporter',
-        )
-
     def setUp(self):
         super(Scenario, self).setUp()
 

@@ -3,27 +3,18 @@ import datetime
 import time
 import urllib
 
-from ..testing import FunctionalTestCase
+from django.test import TransactionTestCase
 
-class MessageTest(FunctionalTestCase):
-    INSTALLED_APPS = FunctionalTestCase.INSTALLED_APPS + (
-        'router.tests',
-        )
-
-    USER_SETTINGS = {
-        'MESSAGE_ROUTER': 'router.router.Sequential',
-        'FORMS': (
-            'BadConfiguration',
-            'Broken',
-            'Echo',
-            )
-        }
-    
+class MessageTest(TransactionTestCase):
     def test_message_error(self):
         from router.tests.transports import Dummy
-        transport = Dummy("dummy")
+        from router.tests.models import Broken
+        from router.router import Sequential
+        router = Sequential(forms=(Broken,))
+        transport = Dummy("dummy", router=router)
 
         from django.conf import settings
+        DEBUG = settings.DEBUG
         try:
             settings.DEBUG = False
             import warnings
@@ -34,13 +25,17 @@ class MessageTest(FunctionalTestCase):
             self.assertEqual(len(w), 1)
             self.assertTrue('RuntimeError' in str(w[0]))
         finally:
-            settings.DEBUG = True
+            settings.DEBUG = DEBUG
 
     def test_configuration_error(self):
         from router.tests.transports import Dummy
-        transport = Dummy("dummy")
+        from router.tests.models import BadConfiguration
+        from router.router import Sequential
+        router = Sequential(forms=(BadConfiguration,))
+        transport = Dummy("dummy", router=router)
 
         from django.conf import settings
+        DEBUG = settings.DEBUG
         try:
             settings.DEBUG = False
             import warnings
@@ -51,7 +46,7 @@ class MessageTest(FunctionalTestCase):
             self.assertEqual(len(w), 1)
             self.assertTrue('ImproperlyConfigured' in str(w[0]))
         finally:
-            settings.DEBUG = True
+            settings.DEBUG = DEBUG
 
     def test_signals(self):
         from router.transports import pre_route
@@ -71,23 +66,22 @@ class MessageTest(FunctionalTestCase):
         post_route.connect(after_route)
 
         from router.tests.transports import Dummy
-        transport = Dummy("dummy")
+        from router.tests.models import Echo
+
+        from router.router import Sequential
+        router = Sequential(forms=(Echo,))
+        transport = Dummy("dummy", router=router)
         transport.incoming("test", "+echo")
 
         self.assertTrue(len(s1), 1)
         self.assertTrue(len(s2), 1)
 
-class KannelTest(FunctionalTestCase):
-    INSTALLED_APPS = FunctionalTestCase.INSTALLED_APPS + (
-        'router.tests',
-        )
+class KannelTest(TransactionTestCase):
+    def tearDown(self):
+        import gc
+        gc.collect()
 
-    USER_SETTINGS = {
-        'FORMS': (
-            'Echo',
-            'Broken',
-            )
-        }
+        super(KannelTest, self).tearDown()
 
     @staticmethod
     def _make_kannel(fetch=None, **kwargs):
@@ -98,7 +92,14 @@ class KannelTest(FunctionalTestCase):
                 return Response(u"")
 
         kwargs.setdefault('sms_url', '')
-        transport = Kannel("kannel", kwargs)
+
+        from router.tests.models import Echo
+        from router.tests.models import Broken
+
+        from router.router import Sequential
+        router = Sequential(forms=(Echo, Broken))
+
+        transport = Kannel("kannel", kwargs, router=router)
         transport.fetch = fetch
         return transport
 
@@ -148,6 +149,7 @@ class KannelTest(FunctionalTestCase):
             })
 
         from django.conf import settings
+        DEBUG = settings.DEBUG
         try:
             settings.DEBUG = False
             import warnings
@@ -158,7 +160,7 @@ class KannelTest(FunctionalTestCase):
             self.assertEqual(len(w), 1)
             self.assertTrue('RuntimeError' in str(w[0]))
         finally:
-            settings.DEBUG = True
+            settings.DEBUG = DEBUG
         self.assertEqual(response.status_code, "200 OK")
 
     def test_internal_error_debug_mode(self):
@@ -170,7 +172,13 @@ class KannelTest(FunctionalTestCase):
                 datetime.datetime(1999, 12, 31).timetuple())),
             })
 
-        self.assertRaises(RuntimeError, self.view, request)
+        from django.conf import settings
+        DEBUG = settings.DEBUG
+        try:
+            settings.DEBUG = True
+            self.assertRaises(RuntimeError, self.view, request)
+        finally:
+            settings.DEBUG = DEBUG
 
     def test_message_record(self):
         kannel = self._make_kannel()
@@ -224,7 +232,8 @@ class KannelTest(FunctionalTestCase):
         delivery = datetime.datetime(2000, 1, 1)
         request = self._make_request.get(
             dlr_url.replace(
-                '%d', '1').replace('%T', str(time.mktime(delivery.timetuple()))) + '&' + args)
+                '%d', '1').replace(
+                '%T', str(time.mktime(delivery.timetuple()))) + '&' + args)
         response = self.view(request)
         self.assertEqual("".join(response), "")
 

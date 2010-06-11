@@ -1,7 +1,7 @@
-from router.testing import UnitTestCase
+from django.test import TestCase
 from router.testing import FormTestCase
 
-class ParserTest(UnitTestCase):
+class ParserTest(TestCase):
     @staticmethod
     def _muac(text):
         from ..models import MuacForm
@@ -157,11 +157,6 @@ class ParserTest(UnitTestCase):
             })
 
 class FormTest(FormTestCase):
-    INSTALLED_APPS = FormTestCase.INSTALLED_APPS + (
-        'health',
-        'reporter',
-        )
-
     def _create_patient(self):
         from router.models import Reporter
         reporter = Reporter.objects.get()

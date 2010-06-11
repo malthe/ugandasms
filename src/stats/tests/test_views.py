@@ -1,11 +1,6 @@
-from router.testing import FunctionalTestCase
+from django.test import TestCase
 
-class AggregationTestCase(FunctionalTestCase):
-    INSTALLED_APPS = FunctionalTestCase.INSTALLED_APPS + (
-        'stats',
-        'location',
-        )
-
+class AggregationTestCase(TestCase):
     def setUp(self):
         super(AggregationTestCase, self).setUp()
 

@@ -109,15 +109,6 @@ Adding forms
 You enable forms by including them in the ``FORMS`` setting. This
 should be a tuple of strings pointing to form models.
 
-The :mod:`router.tests` app comes with a set of forms for testing and
-demonstration purposes::
-
-  INSTALLED_APPS += (
-    'router.tests',
-  )
-
-  MESSAGE_ROUTER = 'router.router.Sequential'
-
   FORMS = (
       "Empty",
       "Echo",
@@ -125,9 +116,11 @@ demonstration purposes::
 
 .. -> input
 
-  >>> from router.testing import SETTINGS
+  >>> settings = {}
   >>> from textwrap import dedent
-  >>> exec dedent(input) in SETTINGS.__dict__
+  >>> exec dedent(input) in settings
+  >>> tuple(form.__name__ for form in router.forms) == settings['FORMS']
+  True
 
 Let's try it out! In the following ``>>>`` indicates a message sent to
 the system and ``<<<`` indicates a response. You should be able to

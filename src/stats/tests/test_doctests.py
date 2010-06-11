@@ -1,17 +1,11 @@
 import re
 import doctest
 
-from router.testing import FunctionalTestCase
+from django.test import TestCase
 
-class ModuleTests(FunctionalTestCase):
-    INSTALLED_APPS = FunctionalTestCase.INSTALLED_APPS + (
-        'stats',
-        'reporter',
-        'location',
-        )
-
+class ModuleTests(TestCase):
     def __new__(cls, test):
-        self = FunctionalTestCase.__new__(cls)
+        self = TestCase.__new__(cls)
         return getattr(self, test)()
 
     def test_models(self):

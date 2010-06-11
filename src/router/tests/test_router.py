@@ -1,14 +1,6 @@
-from ..testing import FunctionalTestCase
+from django.test import TestCase
 
-class SequentialRouterTest(FunctionalTestCase):
-    INSTALLED_APPS = FunctionalTestCase.INSTALLED_APPS + (
-        'router.tests',
-        )
-
-    USER_SETTINGS = {
-        'FORMS': ('Echo', 'Error', 'CantParse', 'Hello', 'Broken'),
-        }
-
+class SequentialRouterTest(TestCase):
     def test_signals(self):
         from router.router import pre_handle
         from router.router import post_handle
@@ -30,7 +22,8 @@ class SequentialRouterTest(FunctionalTestCase):
         from router.router import Sequential
         from router.models import Incoming
 
-        router = Sequential()
+        from router.tests.models import Echo
+        router = Sequential((Echo,))
         message = Incoming(text="+echo test")
         message.save()
         router.route(message)
@@ -47,8 +40,9 @@ class SequentialRouterTest(FunctionalTestCase):
 
         from router.router import Sequential
         from router.models import Incoming
+        from router.tests.models import CantParse
 
-        router = Sequential()
+        router = Sequential((CantParse,))
         message = Incoming(text="+cantparse")
         message.save()
         router.route(message)
@@ -56,10 +50,10 @@ class SequentialRouterTest(FunctionalTestCase):
 
     def test_multiple(self):
         from router.router import post_handle
+        from router.tests.models import Hello
 
         parsed = []
         def check(sender=None, result=None, **kwargs):
-            from router.tests.models import Hello
             self.assertTrue(isinstance(sender, Hello))
             parsed.append(sender)
         post_handle.connect(check)
@@ -67,7 +61,7 @@ class SequentialRouterTest(FunctionalTestCase):
         from router.router import Sequential
         from router.models import Incoming
 
-        router = Sequential()
+        router = Sequential((Hello,))
         message = Incoming(text="+hello +hello")
         message.save()
         router.route(message)
@@ -77,8 +71,9 @@ class SequentialRouterTest(FunctionalTestCase):
     def test_error(self):
         from router.router import Sequential
         from router.models import Incoming
+        from router.tests.models import Error
 
-        router = Sequential()
+        router = Sequential((Error,))
         message = Incoming(text="+error")
         message.save()
         self.assertRaises(RuntimeError, router.route, message)

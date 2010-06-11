@@ -34,7 +34,7 @@ def on_save_report(sender=None, instance=None, **kwargs):
     except HealthReporter.DoesNotExist:
         return
 
-    if instance.location is not None:
+    if instance.location is not None or reporter.area is None:
         return
 
     instance.location = reporter.area

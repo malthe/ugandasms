@@ -1,7 +1,6 @@
-from ..testing import UnitTestCase
-from ..testing import FunctionalTestCase
+from django.test import TestCase
 
-class MessageTest(UnitTestCase):
+class MessageTest(TestCase):
     def test_ident(self):
         from router.models import Connection
         connection = Connection(uri="foo://bar")
@@ -12,7 +11,7 @@ class MessageTest(UnitTestCase):
         connection = Connection(uri="foo://bar")
         self.assertEqual(connection.transport, "foo")
 
-class OutgoingTest(UnitTestCase):
+class OutgoingTest(TestCase):
     def test_is_response(self):
         from router.models import Connection
         conn1 = Connection(uri="test://1")
@@ -42,19 +41,19 @@ class OutgoingTest(UnitTestCase):
         unsolicited.save()
         self.assertFalse(unsolicited.is_response())
 
-class ConnectionTest(UnitTestCase):
+class ConnectionTest(TestCase):
     def test_str(self):
         from router.models import Connection
         connection = Connection(uri="test://123")
         self.assertEqual(str(connection), '123')
 
-class ReporterTest(UnitTestCase):
+class ReporterTest(TestCase):
     def test_str(self):
         from router.models import Reporter
         reporter = Reporter(name="Name")
         self.assertEqual(str(reporter), "Name")
 
-class FormTest(UnitTestCase):
+class FormTest(TestCase):
     def test_user(self):
         from router.models import Connection
         connection = Connection(uri="test://test")
