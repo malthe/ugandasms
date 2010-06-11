@@ -27,6 +27,9 @@ class Reporter(models.Model):
     roles = models.ManyToManyField(ReporterRole)
     connections = ()
 
+    def __unicode__(self):
+        return self.name
+
     @classmethod
     def from_uri(cls, uri, **kwargs):
         reporter = cls(**kwargs)
@@ -34,9 +37,6 @@ class Reporter(models.Model):
         connection, created = Connection.objects.get_or_create(uri=uri)
         reporter.connections.add(connection)
         return reporter
-
-    def __unicode__(self):
-        return self.name
 
 class CustomForeignKey(models.ForeignKey):
     def __init__(self, *args, **kwargs):
