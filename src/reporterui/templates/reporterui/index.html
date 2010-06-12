@@ -53,10 +53,10 @@
 	<tr>
       <td>{{ reporter.pk }}</td>
       <td>
-        {% if message.connection.reporter %}
-        {{ message.connection.reporter|title }}
-        {% endif %}
-        <pre>{{ message.connection }}</pre>
+        {{ reporter|title }}
+        {% for connection in reporter.connections.all %}
+        <pre>{{ connection }}</pre>
+        {% endfor %}
       </td>
 	  <td>{{ message.time|date:"d-M-Y H:i:s" }}</td>
 	  <td class="message-text">
