@@ -53,11 +53,17 @@ def index(req):
         break
 
     paginator = Paginator(query, 25)
+    entries = []
+    for reporter in paginator.object_list:
+        messages = Incoming.objects.filter(
+            connection__in=reporter.connections.all())
 
-    entries = [
-        (reporter, Incoming.objects.filter(
-            connection__in=reporter.connections.all())[0])
-        for reporter in paginator.object_list]
+        if messages:
+            message = messages[0]
+        else:
+            message = None
+
+        entries.append((reporter, message))
 
     return render_to_response("reporterui/index.html", {
         "entries": entries,
