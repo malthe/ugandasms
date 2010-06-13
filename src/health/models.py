@@ -541,8 +541,7 @@ class ObservationForm(Form):
 
             kinds = ObservationKind.objects.filter(slug__startswith="%s_" % slug).all()
             observation_kinds = dict((kind.slug, kind) for kind in kinds)
-            codes = [observation_slug.rsplit('_', 1)[1]
-                     for observation_slug in observation_kinds]
+            codes = [kind.abbr for kind in kinds if kind.abbr]
 
             # we allow both the observation kinds and any aliases
             allowed_codes = tuple(codes) + tuple(cls.ALIASES)
@@ -555,8 +554,9 @@ class ObservationForm(Form):
                 except:
                     raise FormatError(
                         "Expected an indicator code "
-                        "such as TB or MA (got: %s)." % \
-                        "".join(remaining()))
+                        "such as %s (got: %s)." % (
+                            " or ".join(map(unicode.upper, codes[:2])),
+                            "".join(remaining())))
 
                 # rewrite alias if required, then look up kind
                 munged= "%s_%s" % (slug, code)

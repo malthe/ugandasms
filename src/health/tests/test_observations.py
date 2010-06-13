@@ -11,11 +11,11 @@ class HealthTestCase(TestCase):
         kind, created = ReportKind.objects.get_or_create(
             slug="agg", name="Test aggregate observations")
         ObservationKind.objects.get_or_create(
-            slug="agg_ma", group=kind, name="malaria")
+            slug="agg_ma", group=kind, abbr='ma', name="malaria")
         ObservationKind.objects.get_or_create(
-            slug="agg_bd", group=kind, name="bloody diarrhea")
+            slug="agg_bd", group=kind, abbr='bd', name="bloody diarrhea")
         ObservationKind.objects.get_or_create(
-            slug="agg_tb", group=kind, name="tuberculosis")
+            slug="agg_tb", group=kind, abbr='tb', name="tuberculosis")
         ObservationKind.objects.get_or_create(
             slug="agg_total", group=kind, name="Total")
 
