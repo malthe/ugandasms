@@ -777,7 +777,7 @@ class MuacForm(Form):
 
         if optional(pico.separator, None):
             try:
-                oedema = pico.one_of_strings('oedema', 'oe')
+                oedema = pico.one_of_strings('oedema', 'odema', 'oe')
                 result['oedema'] = bool(oedema)
             except:
                 raise FormatError(
