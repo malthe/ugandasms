@@ -56,9 +56,6 @@ class Command(BaseCommand):
                 print traceback.format_exc(exc)
                 continue
 
-            # prefix with the amuru district code
-            code = "71" + code
-
             if x and y:
                 transformed = pyproj.transform(utm33, wgs84, float(x), float(y))
                 longitude, latitude = map(str, transformed)
