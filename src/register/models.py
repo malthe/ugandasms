@@ -46,6 +46,7 @@ class Registration(Form):
     @pico.wrap
     def parse(cls):
         one_of('+')
+        whitespace()
         pico.one_of_strings('register', 'reg')
 
         result = {}

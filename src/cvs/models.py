@@ -76,6 +76,7 @@ class Signup(Form):
         keywords = dict((role.keyword, role) for role in HealthRole.objects.all())
 
         one_of('+')
+        whitespace()
         keyword = u"".join(pico.one_of_strings(*keywords)).upper()
 
         result = {

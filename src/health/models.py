@@ -188,6 +188,7 @@ class BirthForm(Form):
     @pico.wrap
     def parse(cls):
         one_of('+')
+        whitespace()
         caseless_string('birth')
 
         result = {}
@@ -326,6 +327,7 @@ class DeathForm(PatientVisitationForm):
     @pico.wrap
     def parse(cls):
         one_of('+')
+        whitespace()
         caseless_string('death')
         return parse_patient_input()
 
@@ -395,6 +397,7 @@ class CureForm(PatientVisitationForm):
     @pico.wrap
     def parse(cls):
         one_of('+')
+        whitespace()
         caseless_string('cure')
         return parse_patient_input()
 
@@ -441,6 +444,7 @@ class OtpForm(PatientVisitationForm):
     @pico.wrap
     def parse(cls):
         one_of('+')
+        whitespace()
         caseless_string('otp')
         return parse_patient_input()
 
@@ -518,6 +522,7 @@ class ObservationForm(Form):
             commands = cls.COMMANDS
 
         one_of('+')
+        whitespace()
         command = "".join(pico.one_of_strings(*commands))
         slug = commands[command]
         kind = ReportKind.objects.get(slug=slug)
@@ -698,6 +703,7 @@ class MuacForm(Form):
             whitespace()
 
         one_of('+')
+        whitespace()
         caseless_string('muac')
 
         if prefix is None:
