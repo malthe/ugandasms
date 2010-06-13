@@ -253,8 +253,16 @@ class BirthForm(Form):
         birth = BirthReport(slug="birth", patient=patient, place=place, source=self)
         birth.save()
 
-        self.reply("Thank you for registering the birth of %s." % \
-                   patient.label)
+        if place == 'CLINIC':
+            birth_place = 'at a clinic'
+        if place == 'FACILITY':
+            birth_place = 'in a facility'
+        if place == 'HOME':
+            birth_place = 'at home'
+
+        self.reply("Thank you for registering the birth of %s. "
+                   "We have recorded that the birth took place %s." % (
+            patient.label, birth_place))
 
 class PatientVisitationForm(Form):
     report_kind = None
@@ -292,7 +300,7 @@ class PatientVisitationForm(Form):
             patient = Patient.identify(name, sex, birthdate, self.reporter)
             if patient is None:
                 Report.from_observations(slug=self.report_kind, unregistered_patient=1)
-                return self.handle_unregistered(name, sex, age)
+                return self.handle_unregistered(name, sex, birthdate)
 
             cases = patient.cases.all()
             patients = [patient]
@@ -331,7 +339,7 @@ class DeathForm(PatientVisitationForm):
         caseless_string('death')
         return parse_patient_input()
 
-    def handle_unregistered(self, name, sex, age):
+    def handle_unregistered(self, name, sex, birthdate):
         is_male = bool(sex == 'M')
 
         Report.from_observations(
@@ -339,7 +347,8 @@ class DeathForm(PatientVisitationForm):
             death_male=is_male, death_female=not is_male)
 
         return self.reply(
-            u"We have recorded the death of %s." % name)
+            u"We have recorded the death of %s." % \
+            Patient(name=name, sex=sex, birthdate=birthdate).label)
 
     def handle_registered(self, patients, cases, notifications):
         death_male = 0
@@ -401,9 +410,10 @@ class CureForm(PatientVisitationForm):
         caseless_string('cure')
         return parse_patient_input()
 
-    def handle_unregistered(self, name, sex, age):
+    def handle_unregistered(self, name, sex, birthdate):
         return self.reply(
-            u"We have recorded the curing of %s." % name)
+            u"We have recorded the curing of %s." % \
+            Patient(name=name, sex=sex, birthdate=birthdate).label)
 
     def handle_registered(self, patients, cases, notifications):
         for case in cases:
@@ -448,9 +458,10 @@ class OtpForm(PatientVisitationForm):
         caseless_string('otp')
         return parse_patient_input()
 
-    def handle_unregistered(self, name, sex, age):
+    def handle_unregistered(self, name, sex, birthdate):
         return self.reply(
-            u"We have recorded the OTP visit of %s." % name)
+            u"We have recorded the OTP visit of %s." % \
+            Patient(name=name, sex=sex, birthdate=birthdate).label)
 
     def handle_registered(self, patients, cases, notifications):
         for pk, patient in notifications.items():
