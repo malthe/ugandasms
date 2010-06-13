@@ -19,9 +19,9 @@
     name: HCIV
 
 - model: location.locationkind
-  pk: hcv
+  pk: hospital
   fields:
-    name: HCV
+    name: Hospital
 
 - model: location.locationkind
   pk: country
