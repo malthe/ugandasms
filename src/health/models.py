@@ -533,7 +533,7 @@ class ObservationForm(Form):
             'kind': kind,
             }
 
-        if whitespace():
+        if whitespace() or optional(partial(one_of, ',;'), None):
             total = "".join(optional(pico.digits, ()))
             if total:
                 result['total'] = int(total)
