@@ -8,13 +8,17 @@ from picoparse import many1
 from picoparse import one_of
 from picoparse import optional
 from picoparse import partial
+from picoparse import peek
+from picoparse import remaining
 from picoparse import tri
+from picoparse.text import whitespace
 from picoparse.text import whitespace1
 
 from router import pico
 from router.models import Form
 from router.models import Connection
 from router.models import Reporter
+from router.router import FormatError
 
 from stats.models import Report
 
@@ -75,6 +79,11 @@ class Registration(Form):
             name = optional(name, None)
             if name is not None:
                 result['name'] = name
+
+        whitespace()
+        if peek() and not result:
+            raise FormatError(
+                "We did not understand: %s." % "".join(remaining()))
 
         return result
 

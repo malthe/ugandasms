@@ -10,6 +10,11 @@ class ParserTest(TestCase):
     def test_empty(self):
         self.assertEquals(self._parse("+reg"), {})
 
+    def test_remaining(self):
+        from router.router import FormatError
+        self.assertRaises(FormatError, self._parse, "+reg, Bob")
+        self.assertEquals(self._parse("+reg Bob +reg"), {'name': u'Bob'})
+
     def test_name(self):
         self.assertEquals(self._parse("+reg Bob"), {'name': u'Bob'})
         self.assertEquals(self._parse("+register Bob"), {'name': u'Bob'})
