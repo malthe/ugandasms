@@ -93,7 +93,7 @@
 - model: cvs.healthrole
   pk: hno
   fields:
-    name: Health Surveillance Officer
+    name: Health Nutrition Officer
     keyword: HNO
 
 - model: cvs.healthrole
