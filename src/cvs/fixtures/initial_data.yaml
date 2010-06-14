@@ -64,14 +64,14 @@
     name: Sub-village
 
 - model: location.locationkind
-  pk: gov
+  pk: government
   fields:
     name: Government
 
 - model: location.locationkind
-  pk: moh
+  pk: ministry
   fields:
-    name: Ministry of Health
+    name: Ministry
 
 - model: location.locationkind
   pk: dho
@@ -121,5 +121,4 @@
   pk: hso
   fields:
     name: Health Surveillance Officer
-
 
