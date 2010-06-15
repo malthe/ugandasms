@@ -534,7 +534,7 @@ class ObservationForm(Form):
 
         one_of('+')
         whitespace()
-        command = "".join(pico.one_of_strings(*commands))
+        command = "".join(pico.one_of_strings(*commands)).lower()
         slug = commands[command]
         kind = ReportKind.objects.get(slug=slug)
 
