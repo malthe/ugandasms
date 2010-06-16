@@ -3,6 +3,7 @@ import string
 from django.db import models
 
 from picoparse import commit
+from picoparse import fail
 from picoparse import many1
 from picoparse import one_of
 from picoparse import partial
@@ -19,8 +20,10 @@ class Input(models.Model):
 class NotUnderstood(Form):
     @pico.wrap
     def parse(cls):
-        one_of('+')
-        commit()
+        if one_of('+'):
+            commit()
+        else:
+            fail()
         whitespace()
         try:
             command = "".join(many1(partial(one_of, string.ascii_letters)))
@@ -46,5 +49,10 @@ class FreeForm(Form):
             }
 
     def handle(self, text=None):
-        Input(text=text).save()
-        self.reply("We have received your input. Thank you.")
+        if not text.strip():
+            self.reply(
+                "We received an empty message. If this was a mistake, "
+                "please try again.")
+        else:
+            Input(text=text).save()
+            self.reply("We have received your input. Thank you.")
