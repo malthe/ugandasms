@@ -776,13 +776,14 @@ class MuacForm(Form):
                 "received %s." % "".join(remaining()))
 
         if optional(pico.separator, None):
-            try:
-                oedema = pico.one_of_strings('oedema', 'odema', 'oe')
-                result['oedema'] = bool(oedema)
-            except:
+            if optional(partial(
+                pico.one_of_strings, 'oedema', 'odema', 'oe'), None):
+                result['oedema'] = True
+            elif peek():
                 raise FormatError(
                     "Specify \"oedema\"  or \"oe\" if the patient shows "
-                    "signs of oedema, otherwise leave empty.")
+                    "signs of oedema, otherwise leave empty (got: %s)." % \
+                    "".join(remaining()))
 
         return result
 
