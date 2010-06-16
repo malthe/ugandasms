@@ -21,6 +21,7 @@ from picoparse import NoMatch
 from picoparse.text import caseless_string
 from picoparse.text import lexeme
 from picoparse.text import whitespace
+from picoparse.text import whitespace1
 
 comma = partial(one_of, ',')
 dot = partial(one_of, '.')
@@ -260,11 +261,14 @@ def name():
     >>> parse(name, 'John, Smith')
     'John'
 
+    >>> parse(name, 'John Smith ')
+    'John Smith'
+
     """
     names = map(partial("".join), sep(
-        partial(many1, partial(satisfies, lambda l: l.isalpha())), whitespace))
+        partial(many, partial(satisfies, lambda l: l and l.isalpha())), whitespace1))
 
-    return " ".join(names)
+    return " ".join(names).strip()
 
 def one_of_strings(*strings):
     """Parses one of the strings provided, caseless.
