@@ -334,7 +334,7 @@ class DeathForm(PatientVisitationForm):
     def parse(cls):
         one_of('+')
         whitespace()
-        caseless_string('death')
+        pico.one_of_strings('death', 'deat', 'deah')
         return parse_patient_input()
 
     def handle_unregistered(self, name, sex, birthdate):
