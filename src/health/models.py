@@ -520,6 +520,7 @@ class ObservationForm(Form):
 
     COMMANDS = {
         'epi': 'epidemiological_observations',
+        'epid': 'epidemiological_observations',
         'home': 'observations_at_home',
         }
 
@@ -532,7 +533,8 @@ class ObservationForm(Form):
 
         one_of('+')
         whitespace()
-        command = "".join(pico.one_of_strings(*commands)).lower()
+        command = "".join(pico.one_of_strings(*sorted(
+            commands, key=len, reverse=True))).lower()
         slug = commands[command]
         kind = ReportKind.objects.get(slug=slug)
 
