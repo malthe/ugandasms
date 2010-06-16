@@ -747,11 +747,8 @@ class MuacForm(Form):
                                  "received %s." % "".join(
                                       remaining()).split(',')[0])
         try:
-            if prefix is None:
-                pico.separator()
-            else:
-                whitespace1()
-
+            whitespace()
+            optional(pico.separator, None)
             reading = choice(
                 partial(pico.one_of_strings,
                         'red', 'green', 'yellow', 'r', 'g', 'y'), pico.digits)
