@@ -8,11 +8,9 @@ from django.db import IntegrityError
 from django.db.models import Model
 from django.conf import settings
 
-from picoparse import any_token
 from picoparse import choice
 from picoparse import many
 from picoparse import many1
-from picoparse import many_until
 from picoparse import one_of
 from picoparse import optional
 from picoparse import partial
@@ -745,9 +743,9 @@ class MuacForm(Form):
             try:
                 result['age'] = choice(*map(tri, (pico.date, pico.timedelta)))
             except:
-                received, stop = many_until(any_token, pico.comma)
                 raise FormatError("Expected age or birthdate of patient, but "
-                                 "received %s." % "".join(received))
+                                 "received %s." % "".join(
+                                      remaining()).split(',')[0])
         try:
             if prefix is None:
                 pico.separator()
