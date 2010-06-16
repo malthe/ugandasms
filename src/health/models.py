@@ -187,7 +187,7 @@ class BirthForm(Form):
     def parse(cls):
         one_of('+')
         whitespace()
-        caseless_string('birth')
+        pico.one_of_strings('birth', 'birt', 'birh')
 
         result = {}
 
