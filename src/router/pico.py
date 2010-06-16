@@ -213,13 +213,23 @@ def timedelta():
     180
     >>> run_parser(timedelta, '1 year')[0].days
     365
+    >>> run_parser(timedelta, '2 yrs')[0].days // 2
+    365
     """
 
     number = int("".join(digits()))
 
     def unit():
         whitespace()
-        unit = one_of_strings('day', 'week', 'month', 'year', 'd', 'w', 'm', 'y', )[0]
+        unit = one_of_strings(
+            'day',
+            'week', 'wk',
+            'month', 'mo',
+            'year', 'yr',
+            'd',
+            'w',
+            'm',
+            'y', )[0]
         optional(partial(one_of, 'sS'), None)
         return unit
 
