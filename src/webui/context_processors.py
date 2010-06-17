@@ -10,8 +10,3 @@ def base_template( request ):
         "base_template" : settings.BASE_TEMPLATE
         }
 
-
-
-
-
-

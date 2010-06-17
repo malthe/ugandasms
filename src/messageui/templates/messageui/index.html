@@ -55,7 +55,7 @@
   </thead>
   
   <tbody>
-	{% for message in messages.object_list %}
+	{% for message in page.object_list %}
 	<tr>
 	  <td>{{ message.time|date:"d-M-Y H:i:s" }}</td>
 	  <td>
@@ -89,4 +89,8 @@
 	{% endfor %}
   </tbody>
 </table>
+
+{% load pagination %}
+{% pagination page %}
+
 {% endblock %}

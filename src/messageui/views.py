@@ -40,7 +40,12 @@ def index(req):
             Q(text__icontains=search_string) |
             Q(connection__uri__icontains=search_string))
 
-    messages = Paginator(query, 25)
+    try:
+        page = int(req.GET.get('page', '1'))
+    except ValueError:
+        page = 1
+
+    page = Paginator(query, 25).page(page)
 
     if req.method == 'POST':
         send_form = SendForm(req.POST)
@@ -62,7 +67,7 @@ def index(req):
 
     return render_to_response("messageui/index.html", {
         "send_form": send_form,
-        "messages": messages,
+        "page": page,
         "columns": columns,
         "sort_column": sort_column,
         "sort_descending": sort_descending,
