@@ -88,8 +88,10 @@ class KannelTest(TransactionTestCase):
         from router.transports import Kannel
         if fetch is None:
             def fetch(*args, **kwargs):
-                from django.http import HttpResponse as Response
-                return Response(u"")
+                class mock_response:
+                    def getcode():
+                        return 202
+                return mock_response()
 
         kwargs.setdefault('sms_url', '')
 
@@ -216,7 +218,8 @@ class KannelTest(TransactionTestCase):
         def fetch(request=None, **kwargs):
             query.update(cgi.parse_qsl(request.get_full_url()))
             class mock_response:
-                status_code = 202
+                def getcode():
+                    return 202
             return mock_response()
 
         kannel = self._make_kannel(fetch=fetch, dlr_url='http://localhost')

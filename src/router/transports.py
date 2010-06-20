@@ -532,6 +532,6 @@ class Kannel(Message):
             )
 
         response = self.fetch(request, timeout=self.timeout)
-        if response.status_code // 100 == 2:
+        if response.getcode() // 100 == 2:
             message.time = datetime.now()
             message.save()
